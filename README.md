@@ -39,7 +39,7 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - **compact art**: backgrounds and portraits ship as lossy WebP at quality 0.9 — ~483 KB
   instead of ~4 MB of PNG, with no visible quality loss
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **206/206 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **209/209 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 
@@ -193,7 +193,10 @@ subtree (the stage and sprites keep their authored size), that the settings colu
 constant rendered width as the scale grows, and that the separate sprite scale / Y offset
 settings apply to both sprites and persist. v1.8 checks that a voiced line actually plays on
 the Voice bus, that unvoiced narration stops it, that every `#voice=` clip is loadable, and
-that the WebP-swapped backgrounds still switch and re-dress on rollback.
+that the WebP-swapped backgrounds still switch and re-dress on rollback. v1.8.1 adds
+regressions for the two field bugs it fixes: portraits keep their authored height (the
+sprite Y offset is a delta on the authored rect, never a flatten), and settings rows fill
+the scrollable column instead of stopping at their minimum width.
 
 Rendered screenshots (under Xvfb + software GL):
 

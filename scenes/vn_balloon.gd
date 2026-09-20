@@ -183,6 +183,9 @@ var skip_seen_only: bool = false
 var ui_scale: float = 1.0
 var sprite_scale: float = 1.0
 var sprite_y: float = 0.0
+## Authored offset_top/bottom per sprite, captured once so the Y-offset
+## setting is applied as a delta instead of flattening the rect.
+var _sprite_base_offsets: Dictionary = {}
 var save_menu_mode: String = "save"
 var _settings_path: String = "user://settings.json"
 
@@ -948,14 +951,17 @@ func _on_sprite_y_changed(v: float) -> void:
 	_save_settings()
 
 
-## Sprite scale pivots at each sprite's bottom centre; the Y offset shifts the
-## anchored rect so it survives window resizes.
+## Sprite scale pivots at each sprite's bottom centre; the Y offset is a delta
+## on top of the authored offsets so the anchored rect keeps its height.
 func _apply_sprite_transform() -> void:
 	for spr: TextureRect in [sprite_left, sprite_right]:
+		if not _sprite_base_offsets.has(spr.get_instance_id()):
+			_sprite_base_offsets[spr.get_instance_id()] = Vector2(spr.offset_top, spr.offset_bottom)
+		var base: Vector2 = _sprite_base_offsets[spr.get_instance_id()]
+		spr.offset_top = base.x + sprite_y
+		spr.offset_bottom = base.y + sprite_y
 		spr.pivot_offset = Vector2(spr.size.x * 0.5, spr.size.y)
 		spr.scale = Vector2(sprite_scale, sprite_scale)
-		spr.offset_top = sprite_y
-		spr.offset_bottom = sprite_y
 
 
 func _on_vsync_toggled(on: bool) -> void:

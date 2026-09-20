@@ -182,6 +182,7 @@ func run() -> void:
 	line = await step()
 	check(line != null and line.character == "Rook", "line 2 is Rook")
 	check(alive() and balloon.sprite_right.texture != null and balloon.sprite_right.modulate.a == 1.0, "#sprite=rook:right shows right sprite")
+	check(alive() and balloon.sprite_right.size.y > 500, "portrait keeps its authored height")
 	check(alive() and balloon.voice_player.playing and balloon.voice_player.bus == &"Voice",
 		"Rook's voiced line plays a voice clip on the Voice bus")
 	var missing_voices := 0
@@ -598,6 +599,7 @@ func run() -> void:
 	check(alive() and balloon.settings_panel.visible, "settings reopened for the full surface")
 	check(alive() and balloon.settings_scroll.size.y > 0 and balloon.settings_scroll.get_v_scroll_bar().size.y > 0,
 		"settings live in a real scrolling container")
+	check(alive() and balloon.text_size_slider.size.x > 350, "settings rows fill the column width")
 	check(alive() and balloon.skip_mode_option.item_count == 2 and balloon.resolution_option.item_count == 5,
 		"the skip-mode and resolution dropdowns carry their authored items")
 
@@ -650,6 +652,7 @@ func run() -> void:
 	check(alive() and balloon.sprite_left.offset_bottom == -40.0
 		and balloon.sprite_right.offset_bottom == -40.0,
 		"sprite Y offset applied to both character sprites")
+	check(alive() and balloon.sprite_left.size.y > 500, "Y offset shifts without flattening the sprite")
 	var sprite_data: Variant = JSON.parse_string(FileAccess.get_file_as_string("user://settings.json"))
 	check(sprite_data is Dictionary and is_equal_approx(float(sprite_data.sprite_scale), 1.25)
 		and float(sprite_data.sprite_y) == -40.0,
