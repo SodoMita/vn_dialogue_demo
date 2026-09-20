@@ -15,14 +15,16 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
   row** under the dialogue box (`QS QL Save Load Auto Skip Log Set Panic`), save/load menus
   that list every `user://saves/slot_*.json`, a `+ New slot` button, and `F5`/`F9` quick
   save/load into slot 0 (`docs/07_system_row.png`, `docs/08_save_menu.png`)
-- **auto & skip modes** (skip stops by itself at choices), **settings panel** (text speed +
-  auto delay, persisted to `user://settings.json`), **pause menu** (`P` / right click),
-  **panic/boss screen** (`F12`) that swaps the whole game for a dry quantum-mechanics lecture
-  page (`docs/09_settings.png`, `docs/10_pause.png`, `docs/11_panic.png`)
+- **auto & skip modes** (skip stops by itself at choices), **settings panel** (text speed,
+  auto delay and a fullscreen toggle, persisted to `user://settings.json`), **pause menu**
+  (`P` / right click, with Resume/History/Save/Load/Settings/Quit), **panic/boss screen**
+  (`F12`) that swaps the whole game for a dry quantum-mechanics lecture page
+  (`docs/09_settings.png`, `docs/10_pause.png`, `docs/11_panic.png`)
 - **mobile controls**: with `input_devices/pointing/emulate_mouse_from_touch` enabled,
-  taps drive the same click/advance path and every control is an authored touch target
+  taps drive the same click/advance path, an upward swipe opens the history backlog, and
+  every control is an authored touch target
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **129/129 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **141/141 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 
@@ -92,9 +94,10 @@ restores `dialogue_resource`, replaces the backlog and calls `rollback_to(histor
 story state, stage dressing and the current line all come back through the same code path the
 history panel uses. A toast confirms each action.
 
-**Settings** (`Set`): text speed (typewriter seconds-per-step) and auto delay, applied live and
-persisted to `user://settings.json`; the panel notes that `Esc` closes it. **Pause** (`P` /
-right click) freezes the typewriter and offers Resume / History / Save / Load / Settings.
+**Settings** (`Set`): text speed (typewriter seconds-per-step), auto delay and a fullscreen
+toggle, applied live and persisted to `user://settings.json`; the panel notes that `Esc`
+closes it. **Pause** (`P` / right click) freezes the typewriter and offers Resume / History /
+Save / Load / Settings / Quit.
 **Panic** (`F12` / `Panic`) overlays an opaque, completely unrelated physics-lecture page and
 swallows every input except the boss key itself, so nothing underneath leaks through.
 
@@ -113,10 +116,10 @@ Godot_v4.7.2-stable_linux.x86_64 res://scenes/vn_scene.tscn
 ```
 
 Controls: `Enter` / click / tap = advance or pick a focused choice, `↓/↑` = move between
-choices, `Esc` / click = skip typing, `H` = open history, click a history line = roll back to
-it, `Esc` = close any open panel without side effects, `F5` / `QS` = quick save, `F9` / `QL` =
-quick load, `Save`/`Load` = slot menus, `Auto`/`Skip` = modes, `P` or right-click = pause,
-`F12` / `Panic` = boss screen.
+choices, `Esc` / click = skip typing, `H` or swipe up = open history, click a history line =
+roll back to it, `Esc` = close any open panel without side effects, `F5` / `QS` = quick save,
+`F9` / `QL` = quick load, `Save`/`Load` = slot menus, `Auto`/`Skip` = modes, `P` or
+right-click = pause, `F12` / `Panic` = boss screen.
 
 ## Test & verify
 
@@ -130,8 +133,9 @@ tags → stage, typewriter + skip, next indicator, choices via keyboard, mutatio
 cue jumps, `dialogue_ended`, balloon self-freeing, history & rollback, quick save/load (slot 0),
 the save/load slot menu (New slot, slot rows, mode titles, Esc-close), settings sliders
 (persisted + applied live), auto mode advancing on its own, skip mode running to choices and
-stopping there, pause freezing input and resuming cleanly, and the panic screen swallowing
-everything except the boss key.
+stopping there, pause freezing input and resuming cleanly (with its Quit entry present), the
+panic screen swallowing everything except the boss key, the fullscreen preference persisting,
+and a mobile swipe-up opening the history without advancing the dialogue.
 
 Rendered screenshots (under Xvfb + software GL):
 

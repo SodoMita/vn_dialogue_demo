@@ -514,6 +514,25 @@ max_value = 4.0
 step = 0.25
 value = 1.5
 
+[node name="FullscreenRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="FullscreenLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/FullscreenRow"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 18
+text = "Fullscreen"
+
+[node name="FullscreenCheck" type="CheckBox" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/FullscreenRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+text = "on"
+
 [node name="SettingsHint" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.8, 0.8)
@@ -626,6 +645,21 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
 text = "Settings"
+
+[node name="QuitButton" type="Button" parent="Balloon/PausePanel/PauseMargin/PauseVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Quit"
 
 [node name="PanicScreen" type="Control" parent="Balloon"]
 unique_name_in_owner = true
@@ -945,5 +979,7 @@ one_shot = true
 [connection signal="pressed" from="Balloon/PausePanel/PauseMargin/PauseVBox/PauseSaveButton" to="." method="_on_pause_save_pressed"]
 [connection signal="pressed" from="Balloon/PausePanel/PauseMargin/PauseVBox/PauseLoadButton" to="." method="_on_pause_load_pressed"]
 [connection signal="pressed" from="Balloon/PausePanel/PauseMargin/PauseVBox/PauseSettingsButton" to="." method="_on_pause_settings_pressed"]
+[connection signal="pressed" from="Balloon/PausePanel/PauseMargin/PauseVBox/QuitButton" to="." method="_on_quit_pressed"]
+[connection signal="toggled" from="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/FullscreenRow/FullscreenCheck" to="." method="_on_fullscreen_toggled"]
 [connection signal="timeout" from="ToastTimer" to="." method="_on_toast_timeout"]
 [connection signal="timeout" from="AutoTimer" to="." method="_on_auto_timeout"]

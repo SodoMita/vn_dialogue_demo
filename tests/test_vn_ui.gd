@@ -136,7 +136,7 @@ func run() -> void:
 		user_dir.remove("settings.json")
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -443,6 +443,53 @@ func run() -> void:
 	await get_tree().process_frame
 	check(alive() and not balloon.panic_screen.visible, "panic action hides the panic screen again")
 	check(alive() and balloon.is_waiting_for_input, "dialogue resumes waiting after panic")
+
+	# --- 15: fullscreen setting, swipe-up history, quit entry ---
+	balloon.settings_button.grab_focus()
+	press(&"ui_accept")
+	await get_tree().process_frame
+	check(alive() and balloon.settings_panel.visible, "settings reopen for the fullscreen toggle")
+	balloon.fullscreen_check.grab_focus()
+	press(&"ui_accept")
+	await get_tree().process_frame
+	check(alive() and balloon.fullscreen_check.button_pressed, "fullscreen checkbox toggles on")
+	var settings_data: Variant = JSON.parse_string(FileAccess.get_file_as_string("user://settings.json"))
+	check(settings_data is Dictionary and settings_data.get("fullscreen") == true, "fullscreen preference persisted")
+	balloon.fullscreen_check.grab_focus()
+	press(&"ui_accept")
+	await get_tree().process_frame
+	check(alive() and not balloon.fullscreen_check.button_pressed, "fullscreen checkbox toggles back off")
+	press(&"ui_cancel")
+	await get_tree().process_frame
+	check(alive() and not balloon.settings_panel.visible, "settings close again")
+	await wait_ready()
+
+	# Swipe up (mobile) opens the history without advancing the dialogue.
+	var line_before: String = balloon.dialogue_line.id
+	var t_down := InputEventScreenTouch.new()
+	t_down.pressed = true
+	t_down.position = Vector2(640, 520)
+	Input.parse_input_event(t_down)
+	var t_up := InputEventScreenTouch.new()
+	t_up.pressed = false
+	t_up.position = Vector2(640, 320)
+	Input.parse_input_event(t_up)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(alive() and balloon.history_panel.visible, "swipe up opens the history (mobile)")
+	check(alive() and balloon.dialogue_line.id == line_before, "the swipe does not advance the dialogue")
+	press(&"ui_cancel")
+	await get_tree().process_frame
+	check(alive() and not balloon.history_panel.visible, "history closes after the swipe")
+
+	# The pause menu offers a Quit entry (the suite never presses it).
+	press(&"dialogue_pause")
+	await get_tree().process_frame
+	var quit_btn: Node = balloon.get_node("%QuitButton") if alive() else null
+	check(quit_btn is Button and (quit_btn as Button).visible, "pause menu offers a Quit entry")
+	press(&"dialogue_pause")
+	await get_tree().process_frame
+	check(alive() and not balloon.pause_panel.visible, "pause closes again")
 
 	finish()
 

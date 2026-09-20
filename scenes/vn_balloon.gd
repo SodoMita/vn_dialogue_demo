@@ -109,6 +109,7 @@ class_name VNBalloon extends CanvasLayer
 @onready var settings_panel: PanelContainer = %SettingsPanel
 @onready var text_speed_slider: HSlider = %TextSpeedSlider
 @onready var auto_delay_slider: HSlider = %AutoDelaySlider
+@onready var fullscreen_check: CheckBox = %FullscreenCheck
 
 ## Pause + panic
 @onready var pause_panel: PanelContainer = %PausePanel
@@ -149,6 +150,12 @@ var skip_mode: bool = false
 var auto_delay: float = 1.5
 var save_menu_mode: String = "save"
 var _settings_path: String = "user://settings.json"
+
+## Mobile swipe tracking: an upward swipe opens the history backlog.
+var _touch_from: Vector2 = Vector2.INF
+
+## Frames left during which the emulated mouse click of a finished swipe is swallowed.
+var _swipe_guard_frames: int = 0
 
 var _locale: String = TranslationServer.get_locale()
 
@@ -196,6 +203,8 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	if _swipe_guard_frames > 0:
+		_swipe_guard_frames -= 1
 	if is_instance_valid(dialogue_line):
 		next_indicator.visible = not dialogue_label.is_typing \
 			and dialogue_line.responses.size() == 0 \
@@ -625,13 +634,21 @@ func _load_settings() -> void:
 	if data.has("auto_delay"):
 		auto_delay_slider.value = float(data.auto_delay)
 		_on_auto_delay_changed(float(data.auto_delay))
+	if data.has("fullscreen"):
+		# Programmatic set_pressed() emits no signal, so apply it by hand.
+		fullscreen_check.button_pressed = bool(data.fullscreen)
+		_apply_fullscreen(bool(data.fullscreen))
 
 
 func _save_settings() -> void:
 	var file: FileAccess = FileAccess.open(_settings_path, FileAccess.WRITE)
 	if file == null:
 		return
-	file.store_string(JSON.stringify({"text_speed": text_speed_slider.value, "auto_delay": auto_delay_slider.value}))
+	file.store_string(JSON.stringify({
+		"text_speed": text_speed_slider.value,
+		"auto_delay": auto_delay_slider.value,
+		"fullscreen": fullscreen_check.button_pressed,
+	}))
 	file.close()
 
 
@@ -643,6 +660,19 @@ func _on_text_speed_changed(v: float) -> void:
 func _on_auto_delay_changed(v: float) -> void:
 	auto_delay = v
 	_save_settings()
+
+
+func _on_fullscreen_toggled(on: bool) -> void:
+	_apply_fullscreen(on)
+	_save_settings()
+
+
+func _apply_fullscreen(on: bool) -> void:
+	if DisplayServer.get_name() == "headless":
+		return  # no window to switch; the preference is still persisted
+	DisplayServer.window_set_mode(
+		DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED
+	)
 
 
 #endregion
@@ -741,6 +771,23 @@ func _unhandled_input(event: InputEvent) -> void:
 			open_history()
 		return
 
+	# Mobile: an upward swipe opens the history backlog (the emulated mouse
+	# click the swipe produces is swallowed by the guard in the gui handler).
+	if event is InputEventScreenTouch:
+		if _any_overlay_open():
+			get_viewport().set_input_as_handled()
+			return
+		if event.pressed:
+			_touch_from = event.position
+		else:
+			var delta: Vector2 = event.position - _touch_from
+			_touch_from = Vector2.INF
+			if delta.y < -120.0 and absf(delta.x) < 90.0:
+				_swipe_guard_frames = 2
+				get_viewport().set_input_as_handled()
+				open_history()
+		return
+
 	# While any overlay is open, swallow anything its controls didn't take;
 	# the skip action closes the top-most overlay without side effects.
 	if _any_overlay_open():
@@ -787,6 +834,12 @@ func _on_balloon_gui_input(event: InputEvent) -> void:
 	if _try_system_actions(event):
 		return
 	if _any_overlay_open():
+		return
+
+	# A swipe gesture just ended; swallow its emulated mouse click so the
+	# swipe doesn't also skip typing or advance the dialogue.
+	if _swipe_guard_frames > 0 and event is InputEventMouseButton:
+		get_viewport().set_input_as_handled()
 		return
 
 	if event.is_action_pressed(pause_action):
@@ -917,6 +970,10 @@ func _on_pause_settings_pressed() -> void:
 	dialogue_label.set_process(true)
 	_open_overlay(settings_panel)
 	text_speed_slider.grab_focus()
+
+
+func _on_quit_pressed() -> void:
+	get_tree().quit()
 
 
 func _toast(message: String) -> void:
