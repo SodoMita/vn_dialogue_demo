@@ -58,6 +58,18 @@ func new_line() -> void:
 
 
 func run() -> void:
+	# Clean saves/settings so shots are deterministic.
+	var saves_dir: DirAccess = DirAccess.open("user://saves")
+	if saves_dir != null:
+		saves_dir.list_dir_begin()
+		var fname: String = saves_dir.get_next()
+		while fname != "":
+			saves_dir.remove(fname)
+			fname = saves_dir.get_next()
+	var user_dir: DirAccess = DirAccess.open("user://")
+	if user_dir != null and user_dir.file_exists("settings.json"):
+		user_dir.remove("settings.json")
+
 	var res: DialogueResource = load("res://dialogue/intro.dialogue")
 	balloon = DialogueManager.show_dialogue_balloon(res, "start")
 	await get_tree().process_frame
@@ -118,6 +130,52 @@ func run() -> void:
 	)
 	await get_tree().process_frame
 	await shot("06_saved_toast")
+
+	# 07: plain line with the bottom system row (no toast)
+	await wait_until(func() -> bool:
+		return is_instance_valid(balloon) and not balloon.toast_label.visible
+	, 600)
+	await get_tree().process_frame
+	await shot("07_system_row")
+
+	# 08: save menu with slot list + New Slot
+	balloon.open_save_menu("save")
+	await wait_until(func() -> bool:
+		return is_instance_valid(balloon) and balloon.save_menu_panel.visible
+	)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await shot("08_save_menu")
+
+	# 09: settings panel
+	balloon._close_overlay(balloon.save_menu_panel)
+	balloon._on_settings_pressed()
+	await wait_until(func() -> bool:
+		return is_instance_valid(balloon) and balloon.settings_panel.visible
+	)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await shot("09_settings")
+
+	# 10: pause menu
+	balloon._close_overlay(balloon.settings_panel)
+	balloon.open_pause()
+	await wait_until(func() -> bool:
+		return is_instance_valid(balloon) and balloon.pause_panel.visible
+	)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await shot("10_pause")
+
+	# 11: panic screen (boss key)
+	balloon.close_pause()
+	balloon.toggle_panic()
+	await wait_until(func() -> bool:
+		return is_instance_valid(balloon) and balloon.panic_screen.visible
+	)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await shot("11_panic")
 
 	await get_tree().process_frame
 	get_tree().quit(0)

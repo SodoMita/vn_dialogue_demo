@@ -272,6 +272,7 @@ text = "Choice"
 
 [node name="HistoryPanel" type="PanelContainer" parent="Balloon"]
 unique_name_in_owner = true
+z_index = 10
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -339,50 +340,6 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
 text = "History entry"
 
-[node name="SystemBar" type="HBoxContainer" parent="Balloon"]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -166.0
-offset_top = 14.0
-offset_right = -14.0
-offset_bottom = 54.0
-grow_horizontal = 0
-theme_override_constants/separation = 8
-
-[node name="SaveButton" type="Button" parent="Balloon/SystemBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(70, 40)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
-theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_pressed_color = Color(1, 0.9, 0.6, 1)
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 16
-theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
-text = "Save"
-
-[node name="LoadButton" type="Button" parent="Balloon/SystemBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(70, 40)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
-theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_pressed_color = Color(1, 0.9, 0.6, 1)
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 16
-theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
-text = "Load"
-
 [node name="ToastLabel" type="Label" parent="Balloon"]
 unique_name_in_owner = true
 visible = false
@@ -405,6 +362,317 @@ horizontal_alignment = 2
 unique_name_in_owner = true
 wait_time = 1.2
 one_shot = true
+
+[node name="AutoTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 1.5
+one_shot = true
+
+[node name="SaveMenuPanel" type="PanelContainer" parent="Balloon"]
+unique_name_in_owner = true
+z_index = 10
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_history")
+
+[node name="SaveMenuMargin" type="MarginContainer" parent="Balloon/SaveMenuPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 340
+theme_override_constants/margin_top = 60
+theme_override_constants/margin_right = 340
+theme_override_constants/margin_bottom = 70
+
+[node name="SaveMenuVBox" type="VBoxContainer" parent="Balloon/SaveMenuPanel/SaveMenuMargin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="SaveMenuTitle" type="Label" parent="Balloon/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
+theme_override_fonts/font = ExtResource("5_serifbold")
+theme_override_font_sizes/font_size = 26
+text = "Save"
+
+[node name="NewSlotButton" type="Button" parent="Balloon/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "+ New slot"
+
+[node name="SlotScroll" type="ScrollContainer" parent="Balloon/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+follow_focus = true
+horizontal_scroll_mode = 0
+
+[node name="SlotList" type="VBoxContainer" parent="Balloon/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SlotScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="SlotButton" type="Button" parent="Balloon/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SlotScroll/SlotList"]
+unique_name_in_owner = true
+clip_text = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Slot"
+
+[node name="SettingsPanel" type="PanelContainer" parent="Balloon"]
+unique_name_in_owner = true
+z_index = 10
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_history")
+
+[node name="SettingsMargin" type="MarginContainer" parent="Balloon/SettingsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 380
+theme_override_constants/margin_top = 80
+theme_override_constants/margin_right = 380
+theme_override_constants/margin_bottom = 120
+
+[node name="SettingsVBox" type="VBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin"]
+layout_mode = 2
+theme_override_constants/separation = 22
+
+[node name="SettingsTitle" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
+theme_override_fonts/font = ExtResource("5_serifbold")
+theme_override_font_sizes/font_size = 26
+text = "Settings"
+
+[node name="TextSpeedRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TextSpeedLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/TextSpeedRow"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 18
+text = "Text speed"
+
+[node name="TextSpeedSlider" type="HSlider" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/TextSpeedRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.002
+max_value = 0.06
+step = 0.002
+value = 0.018
+
+[node name="AutoDelayRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="AutoDelayLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/AutoDelayRow"]
+custom_minimum_size = Vector2(180, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 18
+text = "Auto delay"
+
+[node name="AutoDelaySlider" type="HSlider" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/AutoDelayRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.5
+max_value = 4.0
+step = 0.25
+value = 1.5
+
+[node name="SettingsHint" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.75, 0.8, 0.8)
+theme_override_font_sizes/font_size = 14
+text = "Settings are saved automatically. Esc closes."
+
+[node name="PausePanel" type="PanelContainer" parent="Balloon"]
+unique_name_in_owner = true
+z_index = 10
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_history")
+
+[node name="PauseMargin" type="MarginContainer" parent="Balloon/PausePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 480
+theme_override_constants/margin_top = 90
+theme_override_constants/margin_right = 480
+theme_override_constants/margin_bottom = 90
+
+[node name="PauseVBox" type="VBoxContainer" parent="Balloon/PausePanel/PauseMargin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="PauseTitle" type="Label" parent="Balloon/PausePanel/PauseMargin/PauseVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
+theme_override_fonts/font = ExtResource("5_serifbold")
+theme_override_font_sizes/font_size = 30
+text = "Paused"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="Balloon/PausePanel/PauseMargin/PauseVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Resume"
+
+[node name="PauseHistoryButton" type="Button" parent="Balloon/PausePanel/PauseMargin/PauseVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "History"
+
+[node name="PauseSaveButton" type="Button" parent="Balloon/PausePanel/PauseMargin/PauseVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Save"
+
+[node name="PauseLoadButton" type="Button" parent="Balloon/PausePanel/PauseMargin/PauseVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Load"
+
+[node name="PauseSettingsButton" type="Button" parent="Balloon/PausePanel/PauseMargin/PauseVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Settings"
+
+[node name="PanicScreen" type="Control" parent="Balloon"]
+unique_name_in_owner = true
+z_index = 20
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PanicPaper" type="ColorRect" parent="Balloon/PanicScreen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.98, 0.98, 0.96, 1)
+
+[node name="PanicMargin" type="MarginContainer" parent="Balloon/PanicScreen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 90
+theme_override_constants/margin_top = 60
+theme_override_constants/margin_right = 90
+theme_override_constants/margin_bottom = 60
+
+[node name="PanicVBox" type="VBoxContainer" parent="Balloon/PanicScreen/PanicMargin"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="PanicTitle" type="Label" parent="Balloon/PanicScreen/PanicMargin/PanicVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1, 0.1, 0.1, 1)
+theme_override_fonts/font = ExtResource("5_serifbold")
+theme_override_font_sizes/font_size = 30
+text = "PHYS 201 - Quantum Mechanics II"
+
+[node name="PanicBody" type="Label" parent="Balloon/PanicScreen/PanicMargin/PanicVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.15, 0.15, 0.15, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 2
+text = "Lecture 12: The time-independent Schroedinger equation. H psi = E psi, where H is the Hamiltonian operator. For a particle in a 1-D infinite well of width L the energy eigenvalues are E_n = n^2 h^2 / (8 m L^2). Reminder: problem set 4 is due Friday - problems 3.7, 3.9 and the derivation of the uncertainty principle for position and momentum."
 
 [node name="BottomUI" type="Control" parent="Balloon"]
 layout_mode = 1
@@ -483,13 +751,13 @@ theme_override_font_sizes/font_size = 19
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
-anchor_top = 1.0
+anchor_top = 0.0
 anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -66.0
-offset_top = -42.0
-offset_right = -24.0
-offset_bottom = -16.0
+anchor_bottom = 0.0
+offset_left = -58.0
+offset_top = -38.0
+offset_right = -18.0
+offset_bottom = -10.0
 grow_horizontal = 0
 grow_vertical = 0
 mouse_filter = 2
@@ -503,6 +771,156 @@ color = Color(0.93, 0.78, 0.42, 1)
 libraries/ = SubResource("AnimationLibrary_bob")
 autoplay = &"bob"
 
+[node name="SystemRow" type="HBoxContainer" parent="Balloon/BottomUI"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -604.0
+offset_top = -54.0
+offset_right = -14.0
+offset_bottom = -10.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_constants/separation = 6
+
+[node name="QSButton" type="Button" parent="Balloon/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "QS"
+
+[node name="QLButton" type="Button" parent="Balloon/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "QL"
+
+[node name="SaveButton" type="Button" parent="Balloon/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(62, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Save"
+
+[node name="LoadButton" type="Button" parent="Balloon/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(62, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Load"
+
+[node name="AutoButton" type="Button" parent="Balloon/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(62, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Auto"
+
+[node name="SkipButton" type="Button" parent="Balloon/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(62, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Skip"
+
+[node name="LogButton" type="Button" parent="Balloon/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(56, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Log"
+
+[node name="SettingsButton" type="Button" parent="Balloon/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(56, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Set"
+
+[node name="PanicButton" type="Button" parent="Balloon/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(62, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Panic"
+
 [node name="MutationCooldown" type="Timer" parent="."]
 unique_name_in_owner = true
 wait_time = 0.1
@@ -510,6 +928,22 @@ one_shot = true
 
 [connection signal="gui_input" from="Balloon" to="." method="_on_balloon_gui_input"]
 [connection signal="response_selected" from="Balloon/ResponsesCenter/ResponsesMenu" to="." method="_on_responses_menu_response_selected"]
-[connection signal="pressed" from="Balloon/SystemBar/SaveButton" to="." method="_on_save_pressed"]
-[connection signal="pressed" from="Balloon/SystemBar/LoadButton" to="." method="_on_load_pressed"]
+[connection signal="pressed" from="Balloon/BottomUI/SystemRow/QSButton" to="." method="_on_quick_save_pressed"]
+[connection signal="pressed" from="Balloon/BottomUI/SystemRow/QLButton" to="." method="_on_quick_load_pressed"]
+[connection signal="pressed" from="Balloon/BottomUI/SystemRow/SaveButton" to="." method="_on_save_menu_pressed"]
+[connection signal="pressed" from="Balloon/BottomUI/SystemRow/LoadButton" to="." method="_on_load_menu_pressed"]
+[connection signal="pressed" from="Balloon/BottomUI/SystemRow/AutoButton" to="." method="_on_auto_pressed"]
+[connection signal="pressed" from="Balloon/BottomUI/SystemRow/SkipButton" to="." method="_on_skip_pressed"]
+[connection signal="pressed" from="Balloon/BottomUI/SystemRow/LogButton" to="." method="_on_log_pressed"]
+[connection signal="pressed" from="Balloon/BottomUI/SystemRow/SettingsButton" to="." method="_on_settings_pressed"]
+[connection signal="pressed" from="Balloon/BottomUI/SystemRow/PanicButton" to="." method="_on_panic_pressed"]
+[connection signal="pressed" from="Balloon/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/NewSlotButton" to="." method="_on_new_slot_pressed"]
+[connection signal="value_changed" from="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/TextSpeedRow/TextSpeedSlider" to="." method="_on_text_speed_changed"]
+[connection signal="value_changed" from="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/AutoDelayRow/AutoDelaySlider" to="." method="_on_auto_delay_changed"]
+[connection signal="pressed" from="Balloon/PausePanel/PauseMargin/PauseVBox/ResumeButton" to="." method="_on_resume_pressed"]
+[connection signal="pressed" from="Balloon/PausePanel/PauseMargin/PauseVBox/PauseHistoryButton" to="." method="_on_pause_history_pressed"]
+[connection signal="pressed" from="Balloon/PausePanel/PauseMargin/PauseVBox/PauseSaveButton" to="." method="_on_pause_save_pressed"]
+[connection signal="pressed" from="Balloon/PausePanel/PauseMargin/PauseVBox/PauseLoadButton" to="." method="_on_pause_load_pressed"]
+[connection signal="pressed" from="Balloon/PausePanel/PauseMargin/PauseVBox/PauseSettingsButton" to="." method="_on_pause_settings_pressed"]
 [connection signal="timeout" from="ToastTimer" to="." method="_on_toast_timeout"]
+[connection signal="timeout" from="AutoTimer" to="." method="_on_auto_timeout"]

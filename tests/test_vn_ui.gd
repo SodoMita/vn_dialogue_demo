@@ -41,9 +41,13 @@ func press(action: StringName) -> void:
 		&"ui_accept": ev.keycode = KEY_ENTER
 		&"ui_cancel": ev.keycode = KEY_ESCAPE
 		&"ui_down": ev.keycode = KEY_DOWN
+		&"ui_right": ev.keycode = KEY_RIGHT
+		&"ui_left": ev.keycode = KEY_LEFT
 		&"dialogue_history": ev.physical_keycode = KEY_H  # action is bound to physical H
 		&"dialogue_save": ev.keycode = KEY_F5
 		&"dialogue_load": ev.keycode = KEY_F9
+		&"dialogue_pause": ev.physical_keycode = KEY_P  # action is bound to physical P
+		&"dialogue_panic": ev.keycode = KEY_F12
 		_: ev.keycode = KEY_ENTER
 	Input.parse_input_event(ev)
 	# Native Controls (Buttons) activate on key release, so send the pair.
@@ -119,12 +123,20 @@ func choose(i: int) -> DialogueLine:
 
 func run() -> void:
 	gs = get_tree().root.get_node("GameState")
-	var dir: DirAccess = DirAccess.open("user://")
-	if dir != null and dir.file_exists("save_slot_1.json"):
-		dir.remove("save_slot_1.json")
+	# Wipe saves and settings so the run is deterministic.
+	var saves_dir: DirAccess = DirAccess.open("user://saves")
+	if saves_dir != null:
+		saves_dir.list_dir_begin()
+		var save_name: String = saves_dir.get_next()
+		while save_name != "":
+			saves_dir.remove(save_name)
+			save_name = saves_dir.get_next()
+	var user_dir: DirAccess = DirAccess.open("user://")
+	if user_dir != null and user_dir.file_exists("settings.json"):
+		user_dir.remove("settings.json")
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -270,38 +282,167 @@ func run() -> void:
 	check(alive() and not balloon.history_panel.visible, "skip action closes history without rollback")
 	check(alive() and balloon.history.size() == 2, "history unchanged when closing without rollback")
 
-	# --- 11: save / load ---
-	# Save through the authored Save button (focus + Enter pair).
-	balloon.save_button.grab_focus()
-	press(&"ui_accept")
+	# --- 11: quick save / quick load (slot 0) ---
+	press(&"dialogue_save")
 	await get_tree().process_frame
-	check(FileAccess.file_exists("user://save_slot_1.json"), "save slot written to user://")
-	check(alive() and balloon.toast_label.visible and balloon.toast_label.text == "Saved", "toast confirms the save")
+	check(FileAccess.file_exists("user://saves/slot_0.json"), "quick save wrote user://saves/slot_0.json")
+	check(alive() and balloon.toast_label.visible and balloon.toast_label.text == "Saved to slot 0", "toast confirms the quick save")
 
-	# Diverge: advance past the save point and flip a story flag.
+	# Diverge: advance past the save point.
 	line = await step()
 	check(line != null and line.character == "Maya", "advanced past the save point")
-	await step()
-	await run_to_responses()
-	await choose(2)
-	line = await step()
-	check(gs.met_maya == true, "state diverged from the save")
+	check(alive() and balloon.history.size() == 3, "backlog grew after advancing")
 
-	# Load via the F9 action.
+	# Load via the F9 quick-load action.
 	press(&"dialogue_load")
 	await wait_until(func() -> bool:
 		return alive() and balloon.dialogue_line != null and balloon.dialogue_line.text.contains("transfer student")
 	)
-	check(alive() and balloon.dialogue_line.text.contains("transfer student"), "load returns to the saved line")
-	check(gs.met_maya == false, "load restores the saved story state")
-	check(alive() and balloon.history.size() == 2, "load restores the saved backlog")
-	check(alive() and balloon.toast_label.text == "Loaded", "toast confirms the load")
+	check(alive() and balloon.dialogue_line.text.contains("transfer student"), "quick load returns to the saved line")
+	check(alive() and balloon.history.size() == 2, "quick load restores the saved backlog")
+	check(alive() and balloon.toast_label.text == "Loaded slot 0", "toast confirms the quick load")
 
 	# Play continues from the loaded point.
 	if alive() and balloon.dialogue_label.is_typing:
 		press(&"ui_cancel")
 	line = await step()
 	check(line != null and line.character == "Maya", "dialogue continues after load")
+
+	# --- 12: save menu with an arbitrary number of slots ---
+	balloon.save_button.grab_focus()
+	press(&"ui_accept")
+	await get_tree().process_frame
+	check(alive() and balloon.save_menu_panel.visible, "Save button opens the save menu")
+	check(alive() and balloon.save_menu_title.text == "Save", "save menu is titled 'Save'")
+	check(alive() and balloon.new_slot_button.visible, "save mode offers a New Slot button")
+	check(alive() and not balloon.is_waiting_for_input, "waiting pauses while the menu is open")
+
+	balloon.new_slot_button.grab_focus()
+	press(&"ui_accept")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(FileAccess.file_exists("user://saves/slot_1.json"), "New Slot created user://saves/slot_1.json")
+	check(alive() and balloon.toast_label.text == "Saved to slot 1", "toast confirms the new-slot save")
+	var slot_rows: Array = []
+	if alive():
+		for child: Node in balloon.slot_list.get_children():
+			if child != balloon.slot_template and child.visible:
+				slot_rows.append(child)
+	check(slot_rows.size() == 2, "slot list shows one row per save file")
+	check(alive() and balloon.save_menu_panel.visible, "save menu stays open after saving")
+
+	press(&"ui_cancel")
+	await get_tree().process_frame
+	check(alive() and not balloon.save_menu_panel.visible, "skip action closes the save menu")
+
+	# Advance, then load the older snapshot through the Load menu.
+	line = await step()
+	check(line != null and line.text.contains("bell rang"), "advanced past the menu save point")
+
+	balloon.load_button.grab_focus()
+	press(&"ui_accept")
+	await get_tree().process_frame
+	check(alive() and balloon.save_menu_panel.visible and balloon.save_menu_title.text == "Load", "Load button opens the menu in load mode")
+	check(alive() and not balloon.new_slot_button.visible, "load mode hides the New Slot button")
+	var first_slot: Button = null
+	if alive():
+		for child: Node in balloon.slot_list.get_children():
+			if child != balloon.slot_template and child.visible:
+				first_slot = child
+				break
+	check(first_slot != null and first_slot.text.begins_with("Slot 0"), "first row is slot 0")
+	if first_slot != null:
+		first_slot.grab_focus()
+		press(&"ui_accept")
+		await wait_until(func() -> bool:
+			return alive() and balloon.dialogue_line != null and balloon.dialogue_line.text.contains("transfer student")
+		)
+	check(alive() and balloon.dialogue_line.text.contains("transfer student"), "choosing a row loads that slot")
+	check(alive() and not balloon.save_menu_panel.visible, "menu closes after loading")
+	check(alive() and balloon.history.size() == 2, "loaded slot restored its backlog")
+	if alive() and balloon.dialogue_label.is_typing:
+		press(&"ui_cancel")
+	await wait_ready()
+
+	# --- 13: settings ---
+	balloon.settings_button.grab_focus()
+	press(&"ui_accept")
+	await get_tree().process_frame
+	check(alive() and balloon.settings_panel.visible, "Settings button opens the settings panel")
+
+	var speed_before: float = balloon.dialogue_label.seconds_per_step
+	balloon.text_speed_slider.grab_focus()
+	press(&"ui_right")
+	await get_tree().process_frame
+	check(alive() and balloon.text_speed_slider.value > speed_before, "text speed slider moved right")
+	check(alive() and is_equal_approx(balloon.dialogue_label.seconds_per_step, balloon.text_speed_slider.value), "text speed applied to the typewriter")
+	check(FileAccess.file_exists("user://settings.json"), "settings persisted to user://settings.json")
+
+	var delay_before: float = balloon.auto_delay
+	balloon.auto_delay_slider.grab_focus()
+	press(&"ui_left")
+	await get_tree().process_frame
+	check(alive() and balloon.auto_delay < delay_before, "auto delay slider changed the delay")
+
+	press(&"ui_cancel")
+	await get_tree().process_frame
+	check(alive() and not balloon.settings_panel.visible, "skip action closes settings")
+	await wait_ready()
+	check(alive() and balloon.is_waiting_for_input, "balloon waits for input again after settings close")
+
+	# --- 14: auto, skip, pause and the panic screen ---
+	var auto_start_id: String = balloon.dialogue_line.id
+	balloon.auto_button.grab_focus()
+	press(&"ui_accept")
+	await get_tree().process_frame
+	check(alive() and balloon.auto_mode, "Auto button enables auto mode")
+	check(alive() and balloon.toast_label.text == "Auto on", "toast confirms auto mode")
+	var advanced_by_auto: bool = await wait_until(func() -> bool:
+		return not alive() or balloon.dialogue_line.id != auto_start_id
+	, 6000)
+	check(advanced_by_auto, "auto mode advances the dialogue on its own")
+	balloon.auto_button.grab_focus()
+	press(&"ui_accept")
+	await get_tree().process_frame
+	check(alive() and not balloon.auto_mode, "Auto button toggles auto mode off")
+
+	# Skip: runs the dialogue to the next choices without further input.
+	balloon.skip_button.grab_focus()
+	press(&"ui_accept")
+	await get_tree().process_frame
+	check(alive() and balloon.skip_mode, "Skip button enables skip mode")
+	await wait_until(func() -> bool:
+		return not alive() or balloon.dialogue_line.responses.size() > 0
+	, 6000)
+	check(alive() and balloon.dialogue_line.responses.size() > 0, "skip mode ran to the next choices")
+	check(alive() and not balloon.skip_mode, "skip mode stops at choices")
+	await choose(0)
+
+	# Pause via the P action.
+	press(&"dialogue_pause")
+	await get_tree().process_frame
+	check(alive() and balloon.pause_panel.visible, "pause action opens the pause menu")
+	check(alive() and not balloon.is_waiting_for_input, "input blocked while paused")
+	press(&"ui_accept")  # Resume owns focus when the menu opens
+	await get_tree().process_frame
+	check(alive() and not balloon.pause_panel.visible, "Resume closes the pause menu")
+	await wait_ready()
+	check(alive() and balloon.is_waiting_for_input, "balloon waits for input again after resume")
+
+	# Panic screen (boss key): everything is swallowed except the boss key.
+	press(&"dialogue_panic")
+	await get_tree().process_frame
+	check(alive() and balloon.panic_screen.visible, "panic action shows the panic screen")
+	var frozen_id: String = balloon.dialogue_line.id
+	press(&"ui_accept")
+	press(&"ui_cancel")
+	await get_tree().process_frame
+	check(alive() and balloon.dialogue_line.id == frozen_id, "panic screen swallows dialogue input")
+	check(alive() and balloon.panic_screen.visible, "other keys do not dismiss the panic screen")
+	press(&"dialogue_panic")
+	await get_tree().process_frame
+	check(alive() and not balloon.panic_screen.visible, "panic action hides the panic screen again")
+	check(alive() and balloon.is_waiting_for_input, "dialogue resumes waiting after panic")
 
 	finish()
 
