@@ -313,6 +313,7 @@ text = "Click a line to roll back to it - H or Esc closes"
 horizontal_alignment = 2
 
 [node name="HistoryScroll" type="ScrollContainer" parent="Balloon/HistoryPanel/HistoryMargin/HistoryVBox"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 follow_focus = true
@@ -910,6 +911,36 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
 text = "Skip"
 
+[node name="PrevChoiceButton" type="Button" parent="Balloon/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(84, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "< Choice"
+
+[node name="NextChoiceButton" type="Button" parent="Balloon/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(84, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Choice >"
+
 [node name="LogButton" type="Button" parent="Balloon/BottomUI/SystemRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(56, 44)
@@ -968,6 +999,8 @@ one_shot = true
 [connection signal="pressed" from="Balloon/BottomUI/SystemRow/LoadButton" to="." method="_on_load_menu_pressed"]
 [connection signal="pressed" from="Balloon/BottomUI/SystemRow/AutoButton" to="." method="_on_auto_pressed"]
 [connection signal="pressed" from="Balloon/BottomUI/SystemRow/SkipButton" to="." method="_on_skip_pressed"]
+[connection signal="pressed" from="Balloon/BottomUI/SystemRow/PrevChoiceButton" to="." method="_on_prev_choice_pressed"]
+[connection signal="pressed" from="Balloon/BottomUI/SystemRow/NextChoiceButton" to="." method="_on_next_choice_pressed"]
 [connection signal="pressed" from="Balloon/BottomUI/SystemRow/LogButton" to="." method="_on_log_pressed"]
 [connection signal="pressed" from="Balloon/BottomUI/SystemRow/SettingsButton" to="." method="_on_settings_pressed"]
 [connection signal="pressed" from="Balloon/BottomUI/SystemRow/PanicButton" to="." method="_on_panic_pressed"]

@@ -9,12 +9,15 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - typewriter text via the addon's `DialogueLabel`, skip with `Esc`, advance with `Enter`/click
 - bobbing "next" indicator
 - centred choice buttons via the addon's `DialogueResponsesMenu`
-- **history (backlog) panel with rollback**: `H` opens it, clicking any logged line jumps
-  back to it and restores the story state + stage exactly as they were (`docs/05_history.png`)
+- **history (backlog) panel with rollback**: `H` opens it (scrollable with wheel / keys),
+  clicking any logged line jumps back to it and restores the story state + stage exactly as
+  they were; Ren'Py-style the rollback is non-destructive — the mouse wheel rolls the game
+  back a line and forward again through the kept lines (`docs/05_history.png`)
 - **save / load with an arbitrary number of slots**: a Kirikiri/Ren'Py-style **bottom system
-  row** under the dialogue box (`QS QL Save Load Auto Skip Log Set Panic`), save/load menus
-  that list every `user://saves/slot_*.json`, a `+ New slot` button, and `F5`/`F9` quick
-  save/load into slot 0 (`docs/07_system_row.png`, `docs/08_save_menu.png`)
+  row** under the dialogue box (`QS QL Save Load Auto Skip < Choice Choice > Log Set Panic`,
+  including Kirikiri-style jumps to the previous/next choice), save/load menus that list every
+  `user://saves/slot_*.json` with a runtime-rendered thumbnail, a `+ New slot` button, and
+  `F5`/`F9` quick save/load into slot 0 (`docs/07_system_row.png`, `docs/08_save_menu.png`)
 - **auto & skip modes** (skip stops by itself at choices), **settings panel** (text speed,
   auto delay and a fullscreen toggle, persisted to `user://settings.json`), **pause menu**
   (`P` / right click, with Resume/History/Save/Load/Settings/Quit), **panic/boss screen**
@@ -24,7 +27,7 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
   taps drive the same click/advance path, an upward swipe opens the history backlog, and
   every control is an authored touch target
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **141/141 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **154/154 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 
@@ -60,11 +63,17 @@ cues (`~ start`, `~ rooftop`), choices, and `[speed=0.5]...[/speed]` bbcode. See
 ## History & rollback
 
 Every shown line is logged into the balloon's `history` (text, character, the line's ID, a
-`GameState` snapshot and the dressed-stage keys). The panel itself is authored in
-`vn_balloon.tscn` (`HistoryPanel` / `HistoryList` / `HistoryEntry` template); entries duplicate
-the template the same way the choices menu does. Clicking an entry:
+`GameState` snapshot, the dressed-stage keys and whether the line offered choices). The panel
+itself is authored in `vn_balloon.tscn` (`HistoryPanel` / `HistoryScroll` / `HistoryList` /
+`HistoryEntry` template); entries duplicate the template the same way the choices menu does,
+and the `ScrollContainer` scrolls with the mouse wheel or by moving focus.
 
-1. truncates the backlog after that entry,
+Rollback is **non-destructive** (Ren'Py-style): a `history_cursor` marks the line on screen,
+entries past it form a forward stack, and wheel-up / wheel-down roll the game back / forward
+one entry at a time. Advancing from a rolled-back position starts a new branch and drops the
+forward stack. Clicking an entry (or rolling the wheel):
+
+1. moves the cursor to that entry,
 2. restores the `GameState` snapshot (`snapshot()`/`restore()` in `autoloads/game_state.gd`),
 3. re-dresses the stage from the stored `#bg`/`#sprite`/`#focus` keys,
 4. re-fetches the line by ID and types it out again.
@@ -77,22 +86,28 @@ other autoloads are not snapshotted.
 The bottom system row (authored in `vn_balloon.tscn`, `Balloon/BottomUI/SystemRow`) mirrors the
 control bars of Kirikiri / Ren'Py / Monogatari-style engines: `QS`/`QL` quick-save/load slot 0,
 `Save`/`Load` open the slot menu, `Auto`/`Skip` toggle modes (the button tints gold while on),
-`Log` opens the backlog, `Set` the settings panel, `Panic` the boss screen. The same actions
-work from the keyboard: `F5`/`F9` quick save/load, `P` or right-click pauses, `F12` panics.
+`Log` opens the backlog, `Set` the settings panel, `Panic` the boss screen, and `< Choice` /
+`Choice >` jump back to the previous choice / forward to the next one (Kirikiri-style). The
+same actions work from the keyboard: `F5`/`F9` quick save/load, `P` or right-click pauses,
+`F12` panics, mouse wheel rolls the game back/forward through the backlog.
 
 Slots live in `user://saves/slot_<n>.json`, one file each — any number of them:
 
 ```json
-{ "resource": "res://dialogue/intro.dialogue",
-  "meta": { "label": "Maya: Fine, you win...", "when": "2026-09-20T19:19:00" },
-  "history": [ {id, character, text, bg, left, right, focus, state}, ... ] }
+{ "resource": "res://dialogue/intro.dialogue", "cursor": 7,
+  "meta": { "label": "Maya: Fine, you win...", "when": "2026-09-20T19:19:00",
+            "bg": "classroom", "left": "maya_smile", "right": "rook", "focus": "left" },
+  "history": [ {id, character, text, bg, left, right, focus, choices, state}, ... ] }
 ```
 
 The save menu lists every slot file found on disk (sorted, labelled with the saved line and
-timestamp); `+ New slot` creates the next free index and saves into it. Loading parses a slot,
-restores `dialogue_resource`, replaces the backlog and calls `rollback_to(history.size() - 1)` —
-story state, stage dressing and the current line all come back through the same code path the
-history panel uses. A toast confirms each action.
+timestamp) and shows a **thumbnail** per slot: no image data is stored in the JSON — the menu
+composes a small 160x90 `ImageTexture` at runtime from the stage keys in `meta` (background +
+sprite portraits, cached per unique stage) and sets it as the row's icon. `+ New slot` creates
+the next free index and saves into it. Loading parses a slot, restores `dialogue_resource`,
+replaces the backlog and rolls back to the saved cursor — story state, stage dressing and the
+current line all come back through the same code path the history panel uses. A toast confirms
+each action.
 
 **Settings** (`Set`): text speed (typewriter seconds-per-step), auto delay and a fullscreen
 toggle, applied live and persisted to `user://settings.json`; the panel notes that `Esc`
@@ -116,10 +131,12 @@ Godot_v4.7.2-stable_linux.x86_64 res://scenes/vn_scene.tscn
 ```
 
 Controls: `Enter` / click / tap = advance or pick a focused choice, `↓/↑` = move between
-choices, `Esc` / click = skip typing, `H` or swipe up = open history, click a history line =
-roll back to it, `Esc` = close any open panel without side effects, `F5` / `QS` = quick save,
-`F9` / `QL` = quick load, `Save`/`Load` = slot menus, `Auto`/`Skip` = modes, `P` or
-right-click = pause, `F12` / `Panic` = boss screen.
+choices, `Esc` / click = skip typing, `H` or swipe up = open history, wheel / arrow keys =
+scroll the history, click a history line = roll back to it, wheel up / down in-game = roll
+back / forward one line, `Esc` = close any open panel without side effects, `F5` / `QS` =
+quick save, `F9` / `QL` = quick load, `Save`/`Load` = slot menus, `Auto`/`Skip` = modes,
+`< Choice`/`Choice >` = jump to previous/next choice, `P` or right-click = pause,
+`F12` / `Panic` = boss screen.
 
 ## Test & verify
 
@@ -135,7 +152,10 @@ the save/load slot menu (New slot, slot rows, mode titles, Esc-close), settings 
 (persisted + applied live), auto mode advancing on its own, skip mode running to choices and
 stopping there, pause freezing input and resuming cleanly (with its Quit entry present), the
 panic screen swallowing everything except the boss key, the fullscreen preference persisting,
-and a mobile swipe-up opening the history without advancing the dialogue.
+and a mobile swipe-up opening the history without advancing the dialogue. v1.5 adds checks
+for the Ren'Py-style wheel (roll back one line, roll forward again), the scrolling backlog
+panel, the Kirikiri `< Choice` / `Choice >` jumps, and runtime-rendered slot thumbnails with
+no image data persisted in the saves.
 
 Rendered screenshots (under Xvfb + software GL):
 

@@ -83,6 +83,7 @@ class_name VNBalloon extends CanvasLayer
 @onready var history_panel: PanelContainer = %HistoryPanel
 @onready var history_list: VBoxContainer = %HistoryList
 @onready var history_entry_template: Button = %HistoryEntry
+@onready var history_scroll: ScrollContainer = %HistoryScroll
 
 ## System row + chrome
 @onready var qs_button: Button = %QSButton
@@ -94,6 +95,8 @@ class_name VNBalloon extends CanvasLayer
 @onready var log_button: Button = %LogButton
 @onready var settings_button: Button = %SettingsButton
 @onready var panic_button: Button = %PanicButton
+@onready var prev_choice_button: Button = %PrevChoiceButton
+@onready var next_choice_button: Button = %NextChoiceButton
 @onready var toast_label: Label = %ToastLabel
 @onready var toast_timer: Timer = %ToastTimer
 @onready var auto_timer: Timer = %AutoTimer
@@ -135,6 +138,11 @@ var locals: Dictionary = {}
 ## Backlog of every line shown this run; clicking an entry rolls back to it.
 var history: Array[Dictionary] = []
 
+## Ren'Py-style cursor into [member history]: the entry currently on screen.
+## Entries past the cursor are the "forward" stack roll-forward can revisit;
+## advancing from a rolled-back position discards them.
+var history_cursor: int = -1
+
 ## True while a rollback line is being (re)applied, so it isn't logged twice.
 var _restoring: bool = false
 
@@ -147,9 +155,13 @@ var _current_focus: String = ""
 ## Modes
 var auto_mode: bool = false
 var skip_mode: bool = false
+var _seeking_choice: bool = false
 var auto_delay: float = 1.5
 var save_menu_mode: String = "save"
 var _settings_path: String = "user://settings.json"
+
+## Runtime-rendered slot thumbnails, keyed by the stored stage keys.
+var _thumb_cache: Dictionary = {}
 
 ## Mobile swipe tracking: an upward swipe opens the history backlog.
 var _touch_from: Vector2 = Vector2.INF
@@ -255,11 +267,16 @@ func apply_dialogue_line() -> void:
 			"left": _current_left,
 			"right": _current_right,
 			"focus": _current_focus,
+			"choices": dialogue_line.responses.size() > 0,
 		}
 		var game_state: Node = get_tree().root.get_node_or_null("GameState")
 		if is_instance_valid(game_state) and game_state.has_method("snapshot"):
 			entry.state = game_state.snapshot()
+		# Advancing while rolled back starts a new branch: drop the forward stack.
+		if history_cursor < history.size() - 1:
+			history = history.slice(0, history_cursor + 1)
 		history.append(entry)
+		history_cursor = history.size() - 1
 	_restoring = false
 
 	character_label.visible = not dialogue_line.character.is_empty()
@@ -282,7 +299,7 @@ func apply_dialogue_line() -> void:
 	dialogue_label.show()
 	if not dialogue_line.text.is_empty():
 		dialogue_label.type_out()
-		if skip_mode:
+		if skip_mode or _seeking_choice:
 			# skip_typing() fires finished_typing synchronously, so only await
 			# when the label is still actually typing - otherwise the signal
 			# races past the await and the line never completes.
@@ -295,6 +312,7 @@ func apply_dialogue_line() -> void:
 		balloon.focus_mode = Control.FOCUS_NONE
 		skip_mode = false
 		skip_button.modulate = Color.WHITE
+		_seeking_choice = false
 		responses_menu.show()
 	elif dialogue_line.time != "":
 		var time: float = dialogue_line.text.length() * 0.02 if dialogue_line.time == "auto" else dialogue_line.time.to_float()
@@ -304,7 +322,7 @@ func apply_dialogue_line() -> void:
 		is_waiting_for_input = true
 		balloon.focus_mode = Control.FOCUS_ALL
 		balloon.grab_focus()
-		if skip_mode and not _any_overlay_open():
+		if (skip_mode or _seeking_choice) and not _any_overlay_open():
 			next(dialogue_line.next_id)
 		elif auto_mode and not _any_overlay_open():
 			auto_timer.start(auto_delay)
@@ -456,12 +474,15 @@ func close_history() -> void:
 
 
 ## Jump back to a previously shown line, restoring the story state snapshot.
+## Non-destructive: entries after [param index] stay in the backlog so the
+## wheel / roll-forward can revisit them (Ren'Py-style).
 func rollback_to(index: int) -> void:
 	if index < 0 or index >= history.size():
 		return
 
 	var entry: Dictionary = history[index]
-	history = history.slice(0, index + 1)
+	history_cursor = index
+	auto_timer.stop()
 	close_history()
 
 	var game_state: Node = get_tree().root.get_node_or_null("GameState")
@@ -474,6 +495,12 @@ func rollback_to(index: int) -> void:
 	if line != null:
 		dialogue_line = line
 	_restoring = false
+
+
+## Roll forward to the newest kept line after a rollback.
+func roll_forward() -> void:
+	if history_cursor < history.size() - 1:
+		rollback_to(history_cursor + 1)
 
 
 func _on_history_entry_pressed(index: int) -> void:
@@ -496,15 +523,23 @@ func save_to_slot(i: int) -> Error:
 		_toast("Nothing to save")
 		return ERR_INVALID_DATA
 
-	var current: Dictionary = history[history.size() - 1]
+	var current: Dictionary = history[history_cursor] if history_cursor >= 0 else history[history.size() - 1]
 	var data: Dictionary = {
 		"resource": dialogue_resource.resource_path,
 		"history": history,
+		"cursor": history_cursor,
 		"meta": {
 			"label": ("%s: %s" % [current.character, current.text]) if current.character != "" else current.text,
 			"when": Time.get_datetime_string_from_system(),
+			# Stage keys only - the slot menu re-renders a thumbnail from these
+			# at runtime instead of storing image data in the save.
+			"bg": current.get("bg", ""),
+			"left": current.get("left", ""),
+			"right": current.get("right", ""),
+			"focus": current.get("focus", ""),
 		},
 	}
+	_thumb_cache.clear()
 	var file: FileAccess = FileAccess.open(_slot_path(i), FileAccess.WRITE)
 	if file == null:
 		_toast("Save failed")
@@ -537,7 +572,8 @@ func load_from_slot(i: int) -> void:
 			loaded.append(entry)
 	history = loaded
 
-	rollback_to(history.size() - 1)
+	var cursor: int = clampi(int(data.get("cursor", history.size() - 1)), 0, history.size() - 1)
+	rollback_to(cursor)
 	_toast("Loaded slot %d" % i)
 
 
@@ -561,7 +597,15 @@ func _scan_slots() -> Array:
 			var index: int = file_name.substr(5, file_name.length() - 10).to_int()
 			var data: Variant = JSON.parse_string(FileAccess.get_file_as_string("%s/%s" % [saves_dir, file_name]))
 			var meta: Dictionary = data.get("meta", {}) if data is Dictionary else {}
-			out.append({"index": index, "label": str(meta.get("label", "")), "when": str(meta.get("when", ""))})
+			out.append({
+				"index": index,
+				"label": str(meta.get("label", "")),
+				"when": str(meta.get("when", "")),
+				"bg": str(meta.get("bg", "")),
+				"left": str(meta.get("left", "")),
+				"right": str(meta.get("right", "")),
+				"focus": str(meta.get("focus", "")),
+			})
 		file_name = dir.get_next()
 	out.sort_custom(func(a: Variant, b: Variant) -> bool: return a.index < b.index)
 	return out
@@ -588,9 +632,44 @@ func _rebuild_slot_list() -> void:
 	for s: Dictionary in _scan_slots():
 		var b: Button = slot_template.duplicate()
 		b.text = "Slot %d - %s  (%s)" % [s.index, s.label, s.when]
+		if s.bg != "" or s.left != "" or s.right != "":
+			b.icon = _slot_thumb(s)
+			b.expand_icon = true
+			b.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.show()
 		b.pressed.connect(_on_slot_pressed.bind(s.index))
 		slot_list.add_child(b)
+
+
+## Compose a small preview texture for a slot row from the stage keys stored
+## in the save. Nothing image-like is persisted; the thumbnail is rendered in
+## memory (once per unique stage) when the menu is built.
+func _slot_thumb(meta: Dictionary) -> Texture2D:
+	var key: String = "%s|%s|%s|%s" % [meta.get("bg", ""), meta.get("left", ""), meta.get("right", ""), meta.get("focus", "")]
+	if _thumb_cache.has(key):
+		return _thumb_cache[key]
+
+	var img := Image.create(160, 90, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0.06, 0.06, 0.1, 1))
+	var bg_key: String = str(meta.get("bg", ""))
+	if backgrounds.has(bg_key):
+		var bi: Image = (backgrounds[bg_key] as Texture2D).get_image().duplicate()
+		bi.convert(Image.FORMAT_RGBA8)
+		bi.resize(160, 90, Image.INTERPOLATE_BILINEAR)
+		img.blit_rect(bi, Rect2i(0, 0, 160, 90), Vector2i.ZERO)
+	for slot_name: String in ["left", "right"]:
+		var s_key: String = str(meta.get(slot_name, ""))
+		if s_key != "" and sprites.has(s_key):
+			var si: Image = (sprites[s_key] as Texture2D).get_image().duplicate()
+			si.convert(Image.FORMAT_RGBA8)
+			var w: int = maxi(1, roundi(float(si.get_width()) * 90.0 / float(si.get_height())))
+			si.resize(w, 90, Image.INTERPOLATE_BILINEAR)
+			var x: int = 4 if slot_name == "left" else 160 - w - 4
+			img.blit_rect(si, Rect2i(0, 0, si.get_width(), si.get_height()), Vector2i(x, 0))
+
+	var tex := ImageTexture.create_from_image(img)
+	_thumb_cache[key] = tex
+	return tex
 
 
 func _focus_first_slot() -> void:
@@ -803,6 +882,18 @@ func _unhandled_input(event: InputEvent) -> void:
 				close_history()
 		return
 
+	# Wheel roll-back/forward. The balloon's gui handler does this when it
+	# receives the wheel; this is the fallback for builds where mouse events
+	# bypass the GUI (e.g. headless). Overlays keep the wheel for scrolling.
+	if event is InputEventMouseButton and event.pressed \
+		and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+		get_viewport().set_input_as_handled()
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP and history_cursor > 0:
+			rollback_to(history_cursor - 1)
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			roll_forward()
+		return
+
 	# Advance via keyboard even when no control currently holds focus
 	# (the gui_input handler already covers the focused-balloon and mouse cases).
 	# Only when the balloon (or nothing) owns focus - a focused Button handles
@@ -840,6 +931,17 @@ func _on_balloon_gui_input(event: InputEvent) -> void:
 	# swipe doesn't also skip typing or advance the dialogue.
 	if _swipe_guard_frames > 0 and event is InputEventMouseButton:
 		get_viewport().set_input_as_handled()
+		return
+
+	# Ren'Py-style: the mouse wheel rolls the game back / forward through
+	# the backlog instead of scrolling the page.
+	if event is InputEventMouseButton and event.pressed \
+		and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+		get_viewport().set_input_as_handled()
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP and history_cursor > 0:
+			rollback_to(history_cursor - 1)
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			roll_forward()
 		return
 
 	if event.is_action_pressed(pause_action):
@@ -932,6 +1034,30 @@ func _on_skip_pressed() -> void:
 
 func _on_log_pressed() -> void:
 	open_history()
+
+
+## Kirikiri-style jump: fast-forward to the next line that offers choices.
+func _on_next_choice_pressed() -> void:
+	if is_instance_valid(dialogue_line) and dialogue_line.responses.size() > 0:
+		_toast("Already at a choice")
+		_refocus_balloon()
+		return
+	_seeking_choice = true
+	if is_instance_valid(dialogue_line):
+		if dialogue_label.is_typing:
+			dialogue_label.skip_typing()
+		next(dialogue_line.next_id)
+	_refocus_balloon()
+
+
+## Kirikiri-style jump: return to the most recent line that offered choices.
+func _on_prev_choice_pressed() -> void:
+	for i in range(history_cursor - 1, -1, -1):
+		if bool(history[i].get("choices", false)):
+			rollback_to(i)
+			return
+	_toast("No earlier choice")
+	_refocus_balloon()
 
 
 func _on_settings_pressed() -> void:

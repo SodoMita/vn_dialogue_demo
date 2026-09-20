@@ -17,6 +17,7 @@ func _ready() -> void:
 	watchdog.wait_time = 120
 	watchdog.timeout.connect(func() -> void:
 		printerr("[FAIL] watchdog timeout")
+		fails += 1
 		finish()
 	)
 	add_child(watchdog)
@@ -136,7 +137,7 @@ func run() -> void:
 		user_dir.remove("settings.json")
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -269,7 +270,8 @@ func run() -> void:
 	check(line != null and line.text == target_text, "clicking a history line jumps back to it")
 	check(line != null and line.character == "Rook", "rolled back to Rook's first line")
 	check(gs.met_maya == false and gs.met_rook == false, "story state restored to the rollback point")
-	check(alive() and balloon.history.size() == 2, "history truncated after the rollback point")
+	check(alive() and balloon.history_cursor == 1, "rollback moved the history cursor")
+	check(alive() and balloon.history.size() >= 8, "forward entries kept for roll-forward")
 	check(alive() and not balloon.history_panel.visible, "history panel closed after rollback")
 	check(alive() and balloon.background.texture != null and balloon.background.texture.resource_path.ends_with("classroom.png"), "stage re-dressed from rolled-back line's tags")
 
@@ -280,13 +282,15 @@ func run() -> void:
 	press(&"ui_cancel")
 	await get_tree().process_frame
 	check(alive() and not balloon.history_panel.visible, "skip action closes history without rollback")
-	check(alive() and balloon.history.size() == 2, "history unchanged when closing without rollback")
+	check(alive() and balloon.history_cursor == 1, "closing without rollback keeps the cursor")
 
 	# --- 11: quick save / quick load (slot 0) ---
 	press(&"dialogue_save")
 	await get_tree().process_frame
 	check(FileAccess.file_exists("user://saves/slot_0.json"), "quick save wrote user://saves/slot_0.json")
 	check(alive() and balloon.toast_label.visible and balloon.toast_label.text == "Saved to slot 0", "toast confirms the quick save")
+	var saved_size: int = balloon.history.size()
+	var saved_cursor: int = balloon.history_cursor
 
 	# Diverge: advance past the save point.
 	line = await step()
@@ -299,7 +303,7 @@ func run() -> void:
 		return alive() and balloon.dialogue_line != null and balloon.dialogue_line.text.contains("transfer student")
 	)
 	check(alive() and balloon.dialogue_line.text.contains("transfer student"), "quick load returns to the saved line")
-	check(alive() and balloon.history.size() == 2, "quick load restores the saved backlog")
+	check(alive() and balloon.history.size() == saved_size and balloon.history_cursor == saved_cursor, "quick load restores the saved backlog")
 	check(alive() and balloon.toast_label.text == "Loaded slot 0", "toast confirms the quick load")
 
 	# Play continues from the loaded point.
@@ -359,7 +363,7 @@ func run() -> void:
 		)
 	check(alive() and balloon.dialogue_line.text.contains("transfer student"), "choosing a row loads that slot")
 	check(alive() and not balloon.save_menu_panel.visible, "menu closes after loading")
-	check(alive() and balloon.history.size() == 2, "loaded slot restored its backlog")
+	check(alive() and balloon.history.size() == saved_size and balloon.history_cursor == saved_cursor, "loaded slot restored its backlog")
 	if alive() and balloon.dialogue_label.is_typing:
 		press(&"ui_cancel")
 	await wait_ready()
@@ -490,6 +494,91 @@ func run() -> void:
 	press(&"dialogue_pause")
 	await get_tree().process_frame
 	check(alive() and not balloon.pause_panel.visible, "pause closes again")
+	await wait_ready()
+
+	# --- 16: history scrolling, choice jumps, slot thumbnails ---
+	# Ren'Py-style wheel: roll back one line, then roll forward again.
+	var fwd_id: String = balloon.dialogue_line.id
+	var wu := InputEventMouseButton.new()
+	wu.button_index = MOUSE_BUTTON_WHEEL_UP
+	wu.pressed = true
+	wu.position = Vector2(640, 360)
+	Input.parse_input_event(wu)
+	await wait_until(func() -> bool:
+		return not alive() or (balloon.dialogue_line != null and balloon.dialogue_line.id != fwd_id)
+	)
+	check(alive() and balloon.dialogue_line.id != fwd_id, "wheel up rolls the game back one line")
+	if alive() and balloon.dialogue_label.is_typing:
+		press(&"ui_cancel")
+	var wd := InputEventMouseButton.new()
+	wd.button_index = MOUSE_BUTTON_WHEEL_DOWN
+	wd.pressed = true
+	wd.position = Vector2(640, 360)
+	Input.parse_input_event(wd)
+	await wait_until(func() -> bool:
+		return not alive() or (balloon.dialogue_line != null and balloon.dialogue_line.id == fwd_id)
+	)
+	check(alive() and balloon.dialogue_line.id == fwd_id, "wheel down rolls forward to the newer line")
+	if alive() and balloon.dialogue_label.is_typing:
+		press(&"ui_cancel")
+	await wait_ready()
+
+	# Kirikiri-style jumps: next choice ...
+	balloon.next_choice_button.grab_focus()
+	press(&"ui_accept")
+	await wait_until(func() -> bool:
+		return not alive() or (balloon.dialogue_line != null and balloon.dialogue_line.responses.size() > 0 and not balloon.dialogue_label.is_typing)
+	, 3000)
+	check(alive() and balloon.dialogue_line.responses.size() > 0, "Next Choice jumps to the following choice")
+	var choice_text: String = balloon.dialogue_line.text if alive() else ""
+	await choose(0)
+
+	# ... and previous choice.
+	balloon.prev_choice_button.grab_focus()
+	press(&"ui_accept")
+	await wait_until(func() -> bool:
+		return not alive() or (balloon.dialogue_line != null and balloon.dialogue_line.responses.size() > 0 and not balloon.dialogue_label.is_typing)
+	, 600)
+	check(alive() and balloon.dialogue_line.responses.size() > 0, "Prev Choice returns to a choice line")
+	check(alive() and balloon.dialogue_line.text == choice_text, "Prev Choice lands on the choice just passed")
+
+	# Pass the rolled-back choice so the backlog overflows the panel.
+	await choose(0)
+	line = await step()
+
+	# The backlog panel scrolls (focus-follow in its ScrollContainer); by now
+	# enough lines are logged that the list overflows the panel.
+	press(&"dialogue_history")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var h_rows: Array = []
+	if alive():
+		for child: Node in balloon.history_list.get_children():
+			if child != balloon.history_entry_template and child.visible:
+				h_rows.append(child)
+	check(h_rows.size() >= 14, "backlog holds every line incl. seeked-past ones")
+	if h_rows.size() > 1:
+		h_rows[h_rows.size() - 1].grab_focus()
+		await get_tree().process_frame
+		await get_tree().process_frame
+	check(alive() and balloon.history_scroll.scroll_vertical > 0, "history panel scrolls down to the focused row")
+	press(&"ui_cancel")
+	await get_tree().process_frame
+
+	# Slot rows show runtime-rendered thumbnails; no image data is persisted.
+	balloon.open_save_menu("save")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var with_icon := 0
+	if alive():
+		for child: Node in balloon.slot_list.get_children():
+			if child != balloon.slot_template and child.visible and (child as Button).icon != null:
+				with_icon += 1
+	check(with_icon >= 2, "filled slot rows show rendered thumbnails")
+	var slot_json: String = FileAccess.get_file_as_string("user://saves/slot_0.json")
+	check(not "\"image\"" in slot_json and not "base64" in slot_json, "saves store stage keys, not image data")
+	press(&"ui_cancel")
+	await get_tree().process_frame
 
 	finish()
 
