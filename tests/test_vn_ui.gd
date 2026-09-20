@@ -133,11 +133,14 @@ func run() -> void:
 			saves_dir.remove(save_name)
 			save_name = saves_dir.get_next()
 	var user_dir: DirAccess = DirAccess.open("user://")
-	if user_dir != null and user_dir.file_exists("settings.json"):
-		user_dir.remove("settings.json")
+	if user_dir != null:
+		if user_dir.file_exists("settings.json"):
+			user_dir.remove("settings.json")
+		if user_dir.file_exists("seen.json"):
+			user_dir.remove("seen.json")
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SkipTimer"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -579,6 +582,120 @@ func run() -> void:
 	check(not "\"image\"" in slot_json and not "base64" in slot_json, "saves store stage keys, not image data")
 	press(&"ui_cancel")
 	await get_tree().process_frame
+
+	# --- 17: the full settings surface (text, skip, video, audio) ---
+	balloon.settings_button.grab_focus()
+	press(&"ui_accept")
+	await get_tree().process_frame
+	check(alive() and balloon.settings_panel.visible, "settings reopened for the full surface")
+	check(alive() and balloon.settings_scroll.size.y > 0 and balloon.settings_scroll.get_v_scroll_bar().size.y > 0,
+		"settings live in a real scrolling container")
+	check(alive() and balloon.skip_mode_option.item_count == 2 and balloon.resolution_option.item_count == 5,
+		"the skip-mode and resolution dropdowns carry their authored items")
+
+	# Text size
+	balloon.text_size_slider.value += 4  # set_value() emits value_changed
+	await get_tree().process_frame
+	check(alive() and balloon.dialogue_label.get_theme_font_size("normal_font_size") == int(balloon.text_size_slider.value),
+		"text size applied to the dialogue label")
+	check(alive() and balloon.character_label.get_theme_font_size("normal_font_size") == int(balloon.text_size_slider.value),
+		"text size applied to the name plate")
+
+	# Skip speed
+	balloon.skip_speed_slider.value += 0.05
+	await get_tree().process_frame
+	check(alive() and is_equal_approx(balloon.skip_delay, balloon.skip_speed_slider.value)
+		and is_equal_approx(balloon.skip_timer.wait_time, balloon.skip_delay),
+		"skip speed applied to the skip timer")
+
+	# Skip mode
+	balloon.skip_mode_option.item_selected.emit(1)
+	check(alive() and balloon.skip_seen_only, "skip mode 'seen only' registered")
+	balloon.skip_mode_option.item_selected.emit(0)
+	check(alive() and not balloon.skip_seen_only, "skip mode 'everything' registered")
+
+	# UI scaling
+	balloon.ui_scale_slider.value = 1.25
+	await get_tree().process_frame
+	check(alive() and is_equal_approx(get_tree().root.content_scale_factor, 1.25),
+		"UI scale applied to the window content scale")
+	balloon.ui_scale_slider.value = 1.0
+
+	# Resolution presets and any custom positive size
+	balloon.resolution_option.item_selected.emit(1)
+	check(alive() and int(balloon.res_width_spin.value) == 1600 and int(balloon.res_height_spin.value) == 900,
+		"resolution preset fills the custom size spinboxes")
+	balloon.res_width_spin.value = 1366
+	balloon.res_width_spin.value_changed.emit(1366.0)  # set_value() emits nothing; user edits do
+	balloon.res_height_spin.value = 768
+	balloon.res_height_spin.value_changed.emit(768.0)
+	await get_tree().process_frame
+	check(alive() and balloon.resolution_option.selected == 4, "custom size flips the preset menu to 'Custom'")
+	var res_data: Variant = JSON.parse_string(FileAccess.get_file_as_string("user://settings.json"))
+	check(res_data is Dictionary and int(res_data.res_w) == 1366 and int(res_data.res_h) == 768,
+		"custom resolution persisted")
+	balloon.res_width_spin.value = 1280
+	balloon.res_width_spin.value_changed.emit(1280.0)
+	balloon.res_height_spin.value = 720
+	balloon.res_height_spin.value_changed.emit(720.0)
+	check(alive() and balloon.resolution_option.selected == 0, "a size matching a preset re-selects it")
+
+	# Vsync persists (headless has no real display to flip)
+	balloon.vsync_check.toggled.emit(false)
+	var vsync_data: Variant = JSON.parse_string(FileAccess.get_file_as_string("user://settings.json"))
+	check(vsync_data is Dictionary and vsync_data.get("vsync") == false, "vsync preference persisted")
+	balloon.vsync_check.toggled.emit(true)
+
+	# Audio buses and volumes
+	balloon.master_vol_slider.value = 50
+	balloon.music_vol_slider.value = 0
+	await get_tree().process_frame
+	check(alive() and AudioServer.get_bus_index(&"Music") > 0 and AudioServer.get_bus_index(&"Voice") > 0
+		and AudioServer.get_bus_index(&"SFX") > 0, "music/voice/sfx audio buses exist")
+	check(alive() and is_equal_approx(AudioServer.get_bus_volume_db(0), linear_to_db(0.5)),
+		"master volume converted to dB")
+	check(alive() and AudioServer.get_bus_volume_db(AudioServer.get_bus_index(&"Music")) <= -79.0,
+		"zero volume mutes the bus")
+	balloon.master_vol_slider.value = 80
+	balloon.music_vol_slider.value = 80
+
+	# Seen-only skip: fast-forwards through read lines, halts at the first unread one.
+	# The suite has played the whole game by now, so reset the seen log to create
+	# a genuine read/unread boundary right after the current line.
+	DirAccess.remove_absolute(balloon._seen_path)
+	balloon._seen_ids = {}
+	press(&"ui_cancel")
+	await get_tree().process_frame
+	check(alive() and not balloon.settings_panel.visible, "settings closed again")
+	await wait_ready()
+	# Roll back to a line followed by a plain (non-choice) line, so the halt we
+	# observe is the seen-only halt and not the stop-at-choices halt.
+	var rb_index: int = -1
+	for i in range(balloon.history_cursor - 1, 0, -1):
+		if not bool(balloon.history[i + 1].get("choices", false)):
+			rb_index = i
+			break
+	check(alive() and rb_index > 0, "found a rollback spot with a plain line after it")
+	balloon.rollback_to(rb_index)
+	await wait_ready()
+	var rolled_back_id: String = balloon.dialogue_line.id
+	# This line was read when first shown; the re-apply after clearing reset the flag.
+	balloon._current_was_seen = true
+	balloon.skip_seen_only = true
+	balloon.skip_button.grab_focus()
+	press(&"ui_accept")
+	line = await await_line_change()
+	check(alive() and line.id != rolled_back_id, "seen-only skip advanced off the current line")
+	for i in 240:
+		if alive() and not balloon.skip_mode:
+			break
+		await get_tree().process_frame
+	check(alive() and not balloon.skip_mode, "seen-only skip stopped itself at unseen text")
+	# Exactly two lines were re-marked: the rollback target and the line skip halted on.
+	check(alive() and balloon._seen_ids.size() == 2 and balloon._seen_ids.has(balloon.dialogue_line.id),
+		"skip halted on the first unread line")
+	check(alive() and "unseen" in balloon.toast_label.text, "the halt is announced to the player")
+	balloon.skip_seen_only = false
 
 	finish()
 

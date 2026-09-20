@@ -110,14 +110,30 @@ class_name VNBalloon extends CanvasLayer
 
 ## Settings
 @onready var settings_panel: PanelContainer = %SettingsPanel
+@onready var settings_scroll: ScrollContainer = %SettingsScroll
 @onready var text_speed_slider: HSlider = %TextSpeedSlider
+@onready var text_size_slider: HSlider = %TextSizeSlider
+@onready var skip_speed_slider: HSlider = %SkipSpeedSlider
+@onready var skip_mode_option: OptionButton = %SkipModeOption
 @onready var auto_delay_slider: HSlider = %AutoDelaySlider
+@onready var ui_scale_slider: HSlider = %UIScaleSlider
 @onready var fullscreen_check: CheckBox = %FullscreenCheck
+@onready var vsync_check: CheckBox = %VsyncCheck
+@onready var resolution_option: OptionButton = %ResolutionOption
+@onready var res_width_spin: SpinBox = %ResWidthSpin
+@onready var res_height_spin: SpinBox = %ResHeightSpin
+@onready var master_vol_slider: HSlider = %MasterVolSlider
+@onready var music_vol_slider: HSlider = %MusicVolSlider
+@onready var voice_vol_slider: HSlider = %VoiceVolSlider
+@onready var sfx_vol_slider: HSlider = %SfxVolSlider
 
 ## Pause + panic
 @onready var pause_panel: PanelContainer = %PausePanel
 @onready var resume_button: Button = %ResumeButton
 @onready var panic_screen: Control = %PanicScreen
+
+## Timers
+@onready var skip_timer: Timer = %SkipTimer
 
 ## Timer used to briefly hide the box while a mutation runs (authored in the scene).
 @onready var mutation_cooldown: Timer = %MutationCooldown
@@ -157,8 +173,20 @@ var auto_mode: bool = false
 var skip_mode: bool = false
 var _seeking_choice: bool = false
 var auto_delay: float = 1.5
+var skip_delay: float = 0.1
+var skip_seen_only: bool = false
 var save_menu_mode: String = "save"
 var _settings_path: String = "user://settings.json"
+
+## Lines the player has already seen (persistent, for skip-seen-only).
+var _seen_ids: Dictionary = {}
+var _seen_path: String = "user://seen.json"
+## Whether the line currently on screen was seen before it was shown.
+var _current_was_seen: bool = false
+
+const RES_PRESETS: Array = [
+	[1280, 720], [1600, 900], [1920, 1080], [2560, 1440],
+]
 
 ## Runtime-rendered slot thumbnails, keyed by the stored stage keys.
 var _thumb_cache: Dictionary = {}
@@ -198,7 +226,13 @@ func _ready() -> void:
 	pause_panel.hide()
 	panic_screen.hide()
 	DirAccess.make_dir_recursive_absolute(saves_dir)
+	_ensure_audio_buses()
+	_load_seen()
 	_load_settings()
+	# Apply slider defaults even on a fresh install (set_value-less first run).
+	_on_text_size_changed(text_size_slider.value)
+	_on_skip_speed_changed(skip_speed_slider.value)
+	_on_ui_scale_changed(ui_scale_slider.value)
 	Engine.get_singleton("DialogueManager").mutated.connect(_on_mutated)
 
 	# If the responses menu doesn't have a next action set, use this one
@@ -255,6 +289,9 @@ func apply_dialogue_line() -> void:
 
 	# Stage direction tags first, so the scene is dressed before the text types out.
 	_apply_stage_tags(dialogue_line)
+
+	# Was this line already seen before being shown now? (skip-seen-only uses it)
+	_current_was_seen = _seen_ids.has(dialogue_line.id)
 
 	# Log this line in the backlog (skipped while rolling back to it), capturing
 	# the story state and the dressed stage so rollback can restore both.
@@ -322,10 +359,16 @@ func apply_dialogue_line() -> void:
 		is_waiting_for_input = true
 		balloon.focus_mode = Control.FOCUS_ALL
 		balloon.grab_focus()
-		if (skip_mode or _seeking_choice) and not _any_overlay_open():
+		if skip_mode and not _any_overlay_open():
+			if skip_seen_only and not _current_was_seen:
+				_toggle_skip_off_at_unseen()
+			else:
+				skip_timer.start(skip_delay)
+		elif _seeking_choice and not _any_overlay_open():
 			next(dialogue_line.next_id)
 		elif auto_mode and not _any_overlay_open():
 			auto_timer.start(auto_delay)
+	_mark_seen(dialogue_line.id)
 
 
 ## Go to the next line
@@ -710,13 +753,42 @@ func _load_settings() -> void:
 	if data.has("text_speed"):
 		text_speed_slider.value = float(data.text_speed)
 		_on_text_speed_changed(float(data.text_speed))
+	if data.has("text_size"):
+		text_size_slider.value = float(data.text_size)
+		_on_text_size_changed(float(data.text_size))
+	if data.has("skip_speed"):
+		skip_speed_slider.value = float(data.skip_speed)
+		_on_skip_speed_changed(float(data.skip_speed))
+	if data.has("skip_seen_only"):
+		skip_seen_only = bool(data.skip_seen_only)
+		skip_mode_option.selected = 1 if skip_seen_only else 0
 	if data.has("auto_delay"):
 		auto_delay_slider.value = float(data.auto_delay)
 		_on_auto_delay_changed(float(data.auto_delay))
+	if data.has("ui_scale"):
+		ui_scale_slider.value = float(data.ui_scale)
+		_on_ui_scale_changed(float(data.ui_scale))
 	if data.has("fullscreen"):
 		# Programmatic set_pressed() emits no signal, so apply it by hand.
 		fullscreen_check.button_pressed = bool(data.fullscreen)
 		_apply_fullscreen(bool(data.fullscreen))
+	if data.has("vsync"):
+		vsync_check.button_pressed = bool(data.vsync)
+		_apply_vsync(bool(data.vsync))
+	if data.has("res_w") and data.has("res_h"):
+		res_width_spin.value = float(data.res_w)
+		res_height_spin.value = float(data.res_h)
+		_sync_resolution_option()
+		_apply_resolution(int(data.res_w), int(data.res_h))
+	for key: String in ["vol_master", "vol_music", "vol_voice", "vol_sfx"]:
+		if data.has(key):
+			var slider: HSlider = {"vol_master": master_vol_slider, "vol_music": music_vol_slider,
+				"vol_voice": voice_vol_slider, "vol_sfx": sfx_vol_slider}[key]
+			slider.value = float(data[key])
+	_set_bus_volume("Master", master_vol_slider.value)
+	_set_bus_volume("Music", music_vol_slider.value)
+	_set_bus_volume("Voice", voice_vol_slider.value)
+	_set_bus_volume("SFX", sfx_vol_slider.value)
 
 
 func _save_settings() -> void:
@@ -725,8 +797,19 @@ func _save_settings() -> void:
 		return
 	file.store_string(JSON.stringify({
 		"text_speed": text_speed_slider.value,
+		"text_size": text_size_slider.value,
+		"skip_speed": skip_speed_slider.value,
+		"skip_seen_only": skip_seen_only,
 		"auto_delay": auto_delay_slider.value,
+		"ui_scale": ui_scale_slider.value,
 		"fullscreen": fullscreen_check.button_pressed,
+		"vsync": vsync_check.button_pressed,
+		"res_w": int(res_width_spin.value),
+		"res_h": int(res_height_spin.value),
+		"vol_master": master_vol_slider.value,
+		"vol_music": music_vol_slider.value,
+		"vol_voice": voice_vol_slider.value,
+		"vol_sfx": sfx_vol_slider.value,
 	}))
 	file.close()
 
@@ -752,6 +835,114 @@ func _apply_fullscreen(on: bool) -> void:
 	DisplayServer.window_set_mode(
 		DisplayServer.WINDOW_MODE_FULLSCREEN if on else DisplayServer.WINDOW_MODE_WINDOWED
 	)
+
+
+func _on_text_size_changed(v: float) -> void:
+	dialogue_label.add_theme_font_size_override("normal_font_size", int(v))
+	character_label.add_theme_font_size_override("normal_font_size", int(v))
+	_save_settings()
+
+
+func _on_skip_speed_changed(v: float) -> void:
+	skip_delay = v
+	skip_timer.wait_time = v
+	_save_settings()
+
+
+func _on_skip_mode_selected(index: int) -> void:
+	skip_seen_only = index == 1
+	_save_settings()
+
+
+func _on_ui_scale_changed(v: float) -> void:
+	get_tree().root.content_scale_factor = v
+	_save_settings()
+
+
+func _on_vsync_toggled(on: bool) -> void:
+	_apply_vsync(on)
+	_save_settings()
+
+
+func _apply_vsync(on: bool) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	DisplayServer.window_set_vsync_mode(
+		DisplayServer.VSYNC_ENABLED if on else DisplayServer.VSYNC_DISABLED
+	)
+
+
+func _sync_resolution_option() -> void:
+	var w: int = int(res_width_spin.value)
+	var h: int = int(res_height_spin.value)
+	for i: int in RES_PRESETS.size():
+		if RES_PRESETS[i][0] == w and RES_PRESETS[i][1] == h:
+			resolution_option.selected = i
+			return
+	resolution_option.selected = RES_PRESETS.size()  # "Custom"
+
+
+func _on_resolution_selected(index: int) -> void:
+	if index < RES_PRESETS.size():
+		# set_value() emits no signal, so this won't recurse into the spin handlers
+		res_width_spin.value = RES_PRESETS[index][0]
+		res_height_spin.value = RES_PRESETS[index][1]
+		_apply_resolution(RES_PRESETS[index][0], RES_PRESETS[index][1])
+	_save_settings()
+
+
+func _on_res_width_changed(_v: float) -> void:
+	_sync_resolution_option()
+	_apply_resolution(int(res_width_spin.value), int(res_height_spin.value))
+	_save_settings()
+
+
+func _on_res_height_changed(_v: float) -> void:
+	_sync_resolution_option()
+	_apply_resolution(int(res_width_spin.value), int(res_height_spin.value))
+	_save_settings()
+
+
+func _apply_resolution(w: int, h: int) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	DisplayServer.window_set_size(Vector2i(w, h))
+
+
+func _ensure_audio_buses() -> void:
+	for bus_name: String in ["Music", "Voice", "SFX"]:
+		if AudioServer.get_bus_index(bus_name) == -1:
+			AudioServer.add_bus()
+			AudioServer.set_bus_name(AudioServer.bus_count - 1, bus_name)
+			AudioServer.set_bus_send(AudioServer.bus_count - 1, &"Master")
+
+
+func _set_bus_volume(bus_name: String, volume: float) -> void:
+	var index: int = AudioServer.get_bus_index(bus_name)
+	if index == -1:
+		return
+	var linear: float = clampf(volume, 0.0, 100.0) / 100.0
+	AudioServer.set_bus_volume_db(index, linear_to_db(linear) if linear > 0.0 else -80.0)
+
+
+func _on_master_vol_changed(v: float) -> void:
+	_set_bus_volume("Master", v)
+	_save_settings()
+
+
+func _on_music_vol_changed(v: float) -> void:
+	_set_bus_volume("Music", v)
+	_save_settings()
+
+
+func _on_voice_vol_changed(v: float) -> void:
+	_set_bus_volume("Voice", v)
+	_save_settings()
+
+
+func _on_sfx_vol_changed(v: float) -> void:
+	_set_bus_volume("SFX", v)
+	_save_settings()
 
 
 #endregion
@@ -798,9 +989,50 @@ func _toggle_skip() -> void:
 	skip_button.modulate = Color(1.0, 0.85, 0.5) if skip_mode else Color.WHITE
 	_toast("Skip on" if skip_mode else "Skip off")
 	auto_timer.stop()
+	skip_timer.stop()
 	if skip_mode and is_waiting_for_input and not _any_overlay_open() \
 		and is_instance_valid(dialogue_line) and dialogue_line.responses.size() == 0:
-		next(dialogue_line.next_id)
+		if skip_seen_only and not _current_was_seen:
+			_toggle_skip_off_at_unseen()
+		else:
+			skip_timer.start(skip_delay)
+
+
+func _toggle_skip_off_at_unseen() -> void:
+	skip_mode = false
+	skip_button.modulate = Color.WHITE
+	skip_timer.stop()
+	_toast("Skip stopped at unseen text")
+
+
+func _on_skip_timeout() -> void:
+	if not skip_mode:
+		return
+	if is_waiting_for_input and is_instance_valid(dialogue_line) \
+		and dialogue_line.responses.size() == 0 and not _any_overlay_open():
+		if skip_seen_only and not _current_was_seen:
+			_toggle_skip_off_at_unseen()
+		else:
+			next(dialogue_line.next_id)
+
+
+func _mark_seen(id: String) -> void:
+	if not _seen_ids.has(id):
+		_seen_ids[id] = true
+		var f: FileAccess = FileAccess.open(_seen_path, FileAccess.WRITE)
+		if f != null:
+			f.store_string(JSON.stringify(_seen_ids.keys()))
+			f.close()
+
+
+func _load_seen() -> void:
+	_seen_ids = {}
+	if not FileAccess.file_exists(_seen_path):
+		return
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(_seen_path))
+	if data is Array:
+		for id: Variant in data:
+			_seen_ids[str(id)] = true
 
 
 func _on_auto_timeout() -> void:

@@ -369,6 +369,11 @@ unique_name_in_owner = true
 wait_time = 1.5
 one_shot = true
 
+[node name="SkipTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 0.1
+one_shot = true
+
 [node name="SaveMenuPanel" type="PanelContainer" parent="Balloon"]
 unique_name_in_owner = true
 z_index = 10
@@ -457,35 +462,39 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_history")
 
 [node name="SettingsMargin" type="MarginContainer" parent="Balloon/SettingsPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 380
-theme_override_constants/margin_top = 80
-theme_override_constants/margin_right = 380
-theme_override_constants/margin_bottom = 120
+theme_override_constants/margin_left = 340
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 340
+theme_override_constants/margin_bottom = 40
 
-[node name="SettingsVBox" type="VBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin"]
+[node name="SettingsScroll" type="ScrollContainer" parent="Balloon/SettingsPanel/SettingsMargin"]
+unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 22
+size_flags_vertical = 3
+follow_focus = true
 
-[node name="SettingsTitle" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox"]
+[node name="SettingsVBox" type="VBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="SettingsTitle" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
-theme_override_fonts/font = ExtResource("5_serifbold")
-theme_override_font_sizes/font_size = 26
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 20
 text = "Settings"
-
-[node name="TextSpeedRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox"]
+[node name="TextSpeedRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="TextSpeedLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/TextSpeedRow"]
-custom_minimum_size = Vector2(180, 0)
+[node name="TextSpeedRowLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow"]
+custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 17
 text = "Text speed"
-
-[node name="TextSpeedSlider" type="HSlider" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/TextSpeedRow"]
+[node name="TextSpeedSlider" type="HSlider" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -493,20 +502,79 @@ min_value = 0.002
 max_value = 0.06
 step = 0.002
 value = 0.018
-
-[node name="AutoDelayRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox"]
+[node name="TextSizeRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="AutoDelayLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/AutoDelayRow"]
-custom_minimum_size = Vector2(180, 0)
+[node name="TextSizeRowLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSizeRow"]
+custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 18
-text = "Auto delay"
+theme_override_font_sizes/font_size = 17
+text = "Text size"
+[node name="TextSizeSlider" type="HSlider" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSizeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 14
+max_value = 32
+step = 1
+value = 20
+[node name="SkipSpeedRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
 
-[node name="AutoDelaySlider" type="HSlider" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/AutoDelayRow"]
+[node name="SkipSpeedRowLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Skip speed"
+[node name="SkipSpeedSlider" type="HSlider" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.05
+max_value = 0.6
+step = 0.05
+value = 0.1
+[node name="SkipModeRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="SkipModeRowLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipModeRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Skip texts"
+[node name="SkipModeOption" type="OptionButton" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipModeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+item_count = 2
+popup/item_0/text = "Everything"
+popup/item_0/id = 0
+popup/item_1/text = "Seen only"
+popup/item_1/id = 1
+selected = 0
+[node name="AutoDelayRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="AutoDelayRowLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AutoDelayRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Auto delay"
+[node name="AutoDelaySlider" type="HSlider" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AutoDelayRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -514,32 +582,215 @@ min_value = 0.5
 max_value = 4.0
 step = 0.25
 value = 1.5
-
-[node name="FullscreenRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox"]
+[node name="UIScaleRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="FullscreenLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/FullscreenRow"]
-custom_minimum_size = Vector2(180, 0)
+[node name="UIScaleRowLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow"]
+custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 18
-text = "Fullscreen"
+theme_override_font_sizes/font_size = 17
+text = "UI scale"
+[node name="UIScaleSlider" type="HSlider" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.75
+max_value = 1.5
+step = 0.05
+value = 1.0
+[node name="DisplayHeader" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 20
+text = "Display"
+[node name="FullscreenRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
 
-[node name="FullscreenCheck" type="CheckBox" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/FullscreenRow"]
+[node name="FullscreenRowLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/FullscreenRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Fullscreen"
+[node name="FullscreenCheck" type="CheckBox" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/FullscreenRow"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 text = "on"
+[node name="VsyncRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
 
-[node name="SettingsHint" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsVBox"]
+[node name="VsyncRowLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VsyncRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "V-Sync"
+[node name="VsyncCheck" type="CheckBox" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VsyncRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+text = "on"
+[node name="ResolutionRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ResolutionRowLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResolutionRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Resolution"
+[node name="ResolutionOption" type="OptionButton" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResolutionRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+item_count = 5
+popup/item_0/text = "1280 x 720"
+popup/item_0/id = 0
+popup/item_1/text = "1600 x 900"
+popup/item_1/id = 1
+popup/item_2/text = "1920 x 1080"
+popup/item_2/id = 2
+popup/item_3/text = "2560 x 1440"
+popup/item_3/id = 3
+popup/item_4/text = "Custom"
+popup/item_4/id = 4
+selected = 0
+[node name="ResCustomRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ResCustomLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Custom size"
+
+[node name="ResWidthSpin" type="SpinBox" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1
+max_value = 7680
+value = 1280
+
+[node name="ResXLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 17
+text = "x"
+
+[node name="ResHeightSpin" type="SpinBox" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 1
+max_value = 4320
+value = 720
+
+[node name="AudioHeader" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 20
+text = "Audio"
+[node name="MasterVolRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="MasterVolRowLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MasterVolRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Master volume"
+[node name="MasterVolSlider" type="HSlider" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MasterVolRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0
+max_value = 100
+step = 1
+value = 80
+[node name="MusicVolRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="MusicVolRowLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MusicVolRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Music volume"
+[node name="MusicVolSlider" type="HSlider" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MusicVolRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0
+max_value = 100
+step = 1
+value = 80
+[node name="VoiceVolRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="VoiceVolRowLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VoiceVolRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Voice volume"
+[node name="VoiceVolSlider" type="HSlider" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VoiceVolRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0
+max_value = 100
+step = 1
+value = 100
+[node name="SfxVolRow" type="HBoxContainer" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="SfxVolRowLabel" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SfxVolRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "SFX volume"
+[node name="SfxVolSlider" type="HSlider" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SfxVolRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0
+max_value = 100
+step = 1
+value = 80
+[node name="SettingsHint" type="Label" parent="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.8, 0.8)
 theme_override_font_sizes/font_size = 14
 text = "Settings are saved automatically. Esc closes."
-
 [node name="PausePanel" type="PanelContainer" parent="Balloon"]
 unique_name_in_owner = true
 z_index = 10
@@ -1005,14 +1256,27 @@ one_shot = true
 [connection signal="pressed" from="Balloon/BottomUI/SystemRow/SettingsButton" to="." method="_on_settings_pressed"]
 [connection signal="pressed" from="Balloon/BottomUI/SystemRow/PanicButton" to="." method="_on_panic_pressed"]
 [connection signal="pressed" from="Balloon/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/NewSlotButton" to="." method="_on_new_slot_pressed"]
-[connection signal="value_changed" from="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/TextSpeedRow/TextSpeedSlider" to="." method="_on_text_speed_changed"]
-[connection signal="value_changed" from="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/AutoDelayRow/AutoDelaySlider" to="." method="_on_auto_delay_changed"]
+[connection signal="value_changed" from="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow/TextSpeedSlider" to="." method="_on_text_speed_changed"]
+[connection signal="value_changed" from="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSizeRow/TextSizeSlider" to="." method="_on_text_size_changed"]
+[connection signal="value_changed" from="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow/SkipSpeedSlider" to="." method="_on_skip_speed_changed"]
+[connection signal="item_selected" from="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipModeRow/SkipModeOption" to="." method="_on_skip_mode_selected"]
+[connection signal="value_changed" from="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AutoDelayRow/AutoDelaySlider" to="." method="_on_auto_delay_changed"]
+[connection signal="value_changed" from="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow/UIScaleSlider" to="." method="_on_ui_scale_changed"]
+[connection signal="toggled" from="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/FullscreenRow/FullscreenCheck" to="." method="_on_fullscreen_toggled"]
+[connection signal="toggled" from="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VsyncRow/VsyncCheck" to="." method="_on_vsync_toggled"]
+[connection signal="item_selected" from="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResolutionRow/ResolutionOption" to="." method="_on_resolution_selected"]
+[connection signal="value_changed" from="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow/ResWidthSpin" to="." method="_on_res_width_changed"]
+[connection signal="value_changed" from="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow/ResHeightSpin" to="." method="_on_res_height_changed"]
+[connection signal="value_changed" from="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MasterVolRow/MasterVolSlider" to="." method="_on_master_vol_changed"]
+[connection signal="value_changed" from="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MusicVolRow/MusicVolSlider" to="." method="_on_music_vol_changed"]
+[connection signal="value_changed" from="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VoiceVolRow/VoiceVolSlider" to="." method="_on_voice_vol_changed"]
+[connection signal="value_changed" from="Balloon/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SfxVolRow/SfxVolSlider" to="." method="_on_sfx_vol_changed"]
 [connection signal="pressed" from="Balloon/PausePanel/PauseMargin/PauseVBox/ResumeButton" to="." method="_on_resume_pressed"]
 [connection signal="pressed" from="Balloon/PausePanel/PauseMargin/PauseVBox/PauseHistoryButton" to="." method="_on_pause_history_pressed"]
 [connection signal="pressed" from="Balloon/PausePanel/PauseMargin/PauseVBox/PauseSaveButton" to="." method="_on_pause_save_pressed"]
 [connection signal="pressed" from="Balloon/PausePanel/PauseMargin/PauseVBox/PauseLoadButton" to="." method="_on_pause_load_pressed"]
 [connection signal="pressed" from="Balloon/PausePanel/PauseMargin/PauseVBox/PauseSettingsButton" to="." method="_on_pause_settings_pressed"]
 [connection signal="pressed" from="Balloon/PausePanel/PauseMargin/PauseVBox/QuitButton" to="." method="_on_quit_pressed"]
-[connection signal="toggled" from="Balloon/SettingsPanel/SettingsMargin/SettingsVBox/FullscreenRow/FullscreenCheck" to="." method="_on_fullscreen_toggled"]
 [connection signal="timeout" from="ToastTimer" to="." method="_on_toast_timeout"]
 [connection signal="timeout" from="AutoTimer" to="." method="_on_auto_timeout"]
+[connection signal="timeout" from="SkipTimer" to="." method="_on_skip_timeout"]

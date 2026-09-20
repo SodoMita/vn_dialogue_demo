@@ -67,8 +67,11 @@ func run() -> void:
 			saves_dir.remove(fname)
 			fname = saves_dir.get_next()
 	var user_dir: DirAccess = DirAccess.open("user://")
-	if user_dir != null and user_dir.file_exists("settings.json"):
-		user_dir.remove("settings.json")
+	if user_dir != null:
+		if user_dir.file_exists("settings.json"):
+			user_dir.remove("settings.json")
+		if user_dir.file_exists("seen.json"):
+			user_dir.remove("seen.json")
 
 	var res: DialogueResource = load("res://dialogue/intro.dialogue")
 	balloon = DialogueManager.show_dialogue_balloon(res, "start")
