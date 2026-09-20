@@ -42,6 +42,8 @@ func press(action: StringName) -> void:
 		&"ui_cancel": ev.keycode = KEY_ESCAPE
 		&"ui_down": ev.keycode = KEY_DOWN
 		&"dialogue_history": ev.physical_keycode = KEY_H  # action is bound to physical H
+		&"dialogue_save": ev.keycode = KEY_F5
+		&"dialogue_load": ev.keycode = KEY_F9
 		_: ev.keycode = KEY_ENTER
 	Input.parse_input_event(ev)
 	# Native Controls (Buttons) activate on key release, so send the pair.
@@ -117,6 +119,9 @@ func choose(i: int) -> DialogueLine:
 
 func run() -> void:
 	gs = get_tree().root.get_node("GameState")
+	var dir: DirAccess = DirAccess.open("user://")
+	if dir != null and dir.file_exists("save_slot_1.json"):
+		dir.remove("save_slot_1.json")
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
 	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry"]:
@@ -264,6 +269,39 @@ func run() -> void:
 	await get_tree().process_frame
 	check(alive() and not balloon.history_panel.visible, "skip action closes history without rollback")
 	check(alive() and balloon.history.size() == 2, "history unchanged when closing without rollback")
+
+	# --- 11: save / load ---
+	# Save through the authored Save button (focus + Enter pair).
+	balloon.save_button.grab_focus()
+	press(&"ui_accept")
+	await get_tree().process_frame
+	check(FileAccess.file_exists("user://save_slot_1.json"), "save slot written to user://")
+	check(alive() and balloon.toast_label.visible and balloon.toast_label.text == "Saved", "toast confirms the save")
+
+	# Diverge: advance past the save point and flip a story flag.
+	line = await step()
+	check(line != null and line.character == "Maya", "advanced past the save point")
+	await step()
+	await run_to_responses()
+	await choose(2)
+	line = await step()
+	check(gs.met_maya == true, "state diverged from the save")
+
+	# Load via the F9 action.
+	press(&"dialogue_load")
+	await wait_until(func() -> bool:
+		return alive() and balloon.dialogue_line != null and balloon.dialogue_line.text.contains("transfer student")
+	)
+	check(alive() and balloon.dialogue_line.text.contains("transfer student"), "load returns to the saved line")
+	check(gs.met_maya == false, "load restores the saved story state")
+	check(alive() and balloon.history.size() == 2, "load restores the saved backlog")
+	check(alive() and balloon.toast_label.text == "Loaded", "toast confirms the load")
+
+	# Play continues from the loaded point.
+	if alive() and balloon.dialogue_label.is_typing:
+		press(&"ui_cancel")
+	line = await step()
+	check(line != null and line.character == "Maya", "dialogue continues after load")
 
 	finish()
 

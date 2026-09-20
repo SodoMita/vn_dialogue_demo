@@ -36,6 +36,15 @@ class_name VNBalloon extends CanvasLayer
 ## The action that toggles the history (backlog) panel.
 @export var history_action: StringName = &"dialogue_history"
 
+## The action that saves the game to [member save_path].
+@export var save_action: StringName = &"dialogue_save"
+
+## The action that loads the game from [member save_path].
+@export var load_action: StringName = &"dialogue_load"
+
+## Where the single save slot is written.
+@export var save_path: String = "user://save_slot_1.json"
+
 ## How many seconds each typed character takes.
 @export var seconds_per_step: float = 0.018
 
@@ -68,6 +77,12 @@ class_name VNBalloon extends CanvasLayer
 @onready var history_panel: PanelContainer = %HistoryPanel
 @onready var history_list: VBoxContainer = %HistoryList
 @onready var history_entry_template: Button = %HistoryEntry
+
+## System chrome - authored in the scene.
+@onready var save_button: Button = %SaveButton
+@onready var load_button: Button = %LoadButton
+@onready var toast_label: Label = %ToastLabel
+@onready var toast_timer: Timer = %ToastTimer
 
 ## Timer used to briefly hide the box while a mutation runs (authored in the scene).
 @onready var mutation_cooldown: Timer = %MutationCooldown
@@ -155,6 +170,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			open_history()
 		return
 
+	if _try_system_actions(event):
+		return
+
 	# While the history is open, swallow anything the entry buttons didn't take;
 	# the skip action closes the panel without rolling back.
 	if history_panel.visible:
@@ -165,10 +183,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	# Advance via keyboard even when no control currently holds focus
 	# (the gui_input handler already covers the focused-balloon and mouse cases).
+	# Only when the balloon (or nothing) owns focus - a focused Button handles
+	# its own activation on key release and must not advance the dialogue.
+	var focus_owner: Control = get_viewport().gui_get_focus_owner()
 	if is_waiting_for_input \
 		and is_instance_valid(dialogue_line) \
 		and dialogue_line.responses.size() == 0 \
 		and not dialogue_label.is_typing \
+		and (focus_owner == balloon or focus_owner == null) \
 		and event.is_action_pressed(next_action):
 		get_viewport().set_input_as_handled()
 		next(dialogue_line.next_id)
@@ -404,6 +426,98 @@ func _on_history_entry_pressed(index: int) -> void:
 #endregion
 
 
+#region Save / load
+
+
+## Save the current position (backlog + story state) as JSON to [member save_path].
+func save_game() -> Error:
+	if history.is_empty():
+		_toast("Nothing to save")
+		return ERR_INVALID_DATA
+
+	var data: Dictionary = {
+		"resource": dialogue_resource.resource_path,
+		"history": history,
+	}
+	var file: FileAccess = FileAccess.open(save_path, FileAccess.WRITE)
+	if file == null:
+		_toast("Save failed")
+		return FileAccess.get_open_error()
+	file.store_string(JSON.stringify(data))
+	file.close()
+	_toast("Saved")
+	return OK
+
+
+## Load the save slot: restore the backlog, story state, stage and current line.
+func load_game() -> void:
+	if not FileAccess.file_exists(save_path):
+		_toast("No save yet")
+		return
+
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(save_path))
+	if data is not Dictionary or not (data.get("history") is Array) or (data.history as Array).is_empty():
+		_toast("Save is broken")
+		return
+
+	var resource_path: String = data.get("resource", "")
+	if ResourceLoader.exists(resource_path):
+		dialogue_resource = load(resource_path)
+
+	var loaded: Array[Dictionary] = []
+	for entry: Variant in data.history:
+		if entry is Dictionary:
+			loaded.append(entry)
+	history = loaded
+
+	# Reuse the rollback path: state + stage + current line all come back.
+	rollback_to(history.size() - 1)
+	_toast("Loaded")
+
+
+func _toast(message: String) -> void:
+	toast_label.text = message
+	toast_label.show()
+	toast_timer.start()
+
+
+## Save/load work from anywhere - return true when the event was one of them.
+func _try_system_actions(event: InputEvent) -> bool:
+	if event.is_action_pressed(save_action):
+		get_viewport().set_input_as_handled()
+		save_game()
+		return true
+	if event.is_action_pressed(load_action):
+		get_viewport().set_input_as_handled()
+		load_game()
+		return true
+	return false
+
+
+func _on_save_pressed() -> void:
+	save_game()
+	_refocus_balloon()
+
+
+func _on_load_pressed() -> void:
+	load_game()
+	_refocus_balloon()
+
+
+## Buttons keep focus after activation; hand it back so the game stays playable.
+func _refocus_balloon() -> void:
+	if is_instance_valid(dialogue_line) and dialogue_line.responses.size() == 0:
+		balloon.focus_mode = Control.FOCUS_ALL
+		balloon.grab_focus()
+
+
+func _on_toast_timeout() -> void:
+	toast_label.hide()
+
+
+#endregion
+
+
 #region Signals
 
 
@@ -422,6 +536,8 @@ func _on_mutated(mutation: Dictionary) -> void:
 
 
 func _on_balloon_gui_input(event: InputEvent) -> void:
+	if _try_system_actions(event):
+		return
 	if history_panel.visible:
 		return
 

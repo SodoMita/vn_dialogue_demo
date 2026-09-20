@@ -11,8 +11,11 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - centred choice buttons via the addon's `DialogueResponsesMenu`
 - **history (backlog) panel with rollback**: `H` opens it, clicking any logged line jumps
   back to it and restores the story state + stage exactly as they were (`docs/05_history.png`)
+- **save / load**: authored `Save`/`Load` buttons (top-right) plus `F5`/`F9`; the slot stores the
+  backlog + story state as JSON in `user://` and loading reuses the rollback path
+  (`docs/06_saved_toast.png`)
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **66/66 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **75/75 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 
@@ -58,8 +61,22 @@ the template the same way the choices menu does. Clicking an entry:
 4. re-fetches the line by ID and types it out again.
 
 Scope note: snapshots cover `GameState`'s exported variables; ephemeral balloon `locals` and
-other autoloads are not snapshotted. Save/load (serialising the same data to disk) is the
-planned next step.
+other autoloads are not snapshotted.
+
+## Save / load
+
+`Save` (or `F5`) writes `user://save_slot_1.json`:
+
+```json
+{ "resource": "res://dialogue/intro.dialogue", "history": [ {id, character, text, bg, left,
+  right, focus, state}, ... ] }
+```
+
+`Load` (or `F9`) parses the slot, restores `dialogue_resource`, replaces the backlog and calls
+`rollback_to(history.size() - 1)` - so story state, stage dressing and the current line all come
+back through the same code path the history panel uses. A toast (`%ToastLabel` + `%ToastTimer`,
+authored) confirms each action. The slot path is exported (`save_path`) so extra slots are a
+project tweak away.
 
 ## Run it
 
@@ -73,7 +90,7 @@ Godot_v4.7.2-stable_linux.x86_64 res://scenes/vn_scene.tscn
 
 Controls: `Enter` / click = advance or pick a focused choice, `↓/↑` = move between choices,
 `Esc` / click = skip typing, `H` = open history, click a history line = roll back to it,
-`Esc` = close history without rolling back.
+`Esc` = close history without rolling back, `F5` / Save button = save, `F9` / Load button = load.
 
 ## Test & verify
 

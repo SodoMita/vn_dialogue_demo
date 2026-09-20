@@ -101,5 +101,23 @@ func run() -> void:
 	await get_tree().process_frame
 	await shot("05_history")
 
+	# Close history, save, and capture the toast + system bar.
+	var evh := InputEventKey.new()
+	evh.pressed = true
+	evh.physical_keycode = KEY_H
+	Input.parse_input_event(evh)
+	await wait_until(func() -> bool:
+		return not is_instance_valid(balloon) or not balloon.history_panel.visible
+	)
+	var evs := InputEventKey.new()
+	evs.pressed = true
+	evs.keycode = KEY_F5
+	Input.parse_input_event(evs)
+	await wait_until(func() -> bool:
+		return is_instance_valid(balloon) and balloon.toast_label.visible
+	)
+	await get_tree().process_frame
+	await shot("06_saved_toast")
+
 	await get_tree().process_frame
 	get_tree().quit(0)

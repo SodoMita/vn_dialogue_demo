@@ -339,6 +339,73 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
 text = "History entry"
 
+[node name="SystemBar" type="HBoxContainer" parent="Balloon"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -166.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = 54.0
+grow_horizontal = 0
+theme_override_constants/separation = 8
+
+[node name="SaveButton" type="Button" parent="Balloon/SystemBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(70, 40)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Save"
+
+[node name="LoadButton" type="Button" parent="Balloon/SystemBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(70, 40)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Load"
+
+[node name="ToastLabel" type="Label" parent="Balloon"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -320.0
+offset_top = 60.0
+offset_right = -14.0
+offset_bottom = 92.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
+theme_override_fonts/font = ExtResource("5_serifbold")
+theme_override_font_sizes/font_size = 18
+text = "Saved"
+horizontal_alignment = 2
+
+[node name="ToastTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 1.2
+one_shot = true
+
 [node name="BottomUI" type="Control" parent="Balloon"]
 layout_mode = 1
 anchors_preset = 12
@@ -443,3 +510,6 @@ one_shot = true
 
 [connection signal="gui_input" from="Balloon" to="." method="_on_balloon_gui_input"]
 [connection signal="response_selected" from="Balloon/ResponsesCenter/ResponsesMenu" to="." method="_on_responses_menu_response_selected"]
+[connection signal="pressed" from="Balloon/SystemBar/SaveButton" to="." method="_on_save_pressed"]
+[connection signal="pressed" from="Balloon/SystemBar/LoadButton" to="." method="_on_load_pressed"]
+[connection signal="timeout" from="ToastTimer" to="." method="_on_toast_timeout"]
