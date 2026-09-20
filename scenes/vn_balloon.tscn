@@ -5,11 +5,11 @@
 [ext_resource type="Script" uid="uid://bb52rsfwhkxbn" path="res://addons/dialogue_manager/nodes/responses_menu/dialogue_responses_menu.gd" id="3_menu"]
 [ext_resource type="FontFile" path="res://assets/fonts/DejaVuSerif.ttf" id="4_serif"]
 [ext_resource type="FontFile" path="res://assets/fonts/DejaVuSerif-Bold.ttf" id="5_serifbold"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/classroom.png" id="6_bg_classroom"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/rooftop.png" id="7_bg_rooftop"]
-[ext_resource type="Texture2D" path="res://assets/characters/maya.png" id="8_maya"]
-[ext_resource type="Texture2D" path="res://assets/characters/maya_smile.png" id="9_maya_smile"]
-[ext_resource type="Texture2D" path="res://assets/characters/rook.png" id="10_rook"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/classroom.webp" id="6_bg_classroom"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/rooftop.webp" id="7_bg_rooftop"]
+[ext_resource type="Texture2D" path="res://assets/characters/maya.webp" id="8_maya"]
+[ext_resource type="Texture2D" path="res://assets/characters/maya_smile.webp" id="9_maya_smile"]
+[ext_resource type="Texture2D" path="res://assets/characters/rook.webp" id="10_rook"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
 bg_color = Color(0.045, 0.06, 0.12, 0.94)
@@ -383,6 +383,10 @@ one_shot = true
 unique_name_in_owner = true
 wait_time = 0.1
 one_shot = true
+
+[node name="VoicePlayer" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true
+bus = &"Voice"
 
 [node name="SaveMenuPanel" type="PanelContainer" parent="Balloon/UIRoot"]
 unique_name_in_owner = true

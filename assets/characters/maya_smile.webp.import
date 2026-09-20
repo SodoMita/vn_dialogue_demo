@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://052vyvlqaft4"
-path="res://.godot/imported/maya_smile.png-522a37574ff0150b6fe1febd58f5d4cc.ctex"
+uid="uid://brfqr6wi2ryrl"
+path="res://.godot/imported/maya_smile.webp-1d72a558311476fc45de71f92fe61dde.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/characters/maya_smile.png"
-dest_files=["res://.godot/imported/maya_smile.png-522a37574ff0150b6fe1febd58f5d4cc.ctex"]
+source_file="res://assets/characters/maya_smile.webp"
+dest_files=["res://.godot/imported/maya_smile.webp-1d72a558311476fc45de71f92fe61dde.ctex"]
 
 [params]
 

@@ -140,7 +140,7 @@ func run() -> void:
 			user_dir.remove("seen.json")
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -182,6 +182,13 @@ func run() -> void:
 	line = await step()
 	check(line != null and line.character == "Rook", "line 2 is Rook")
 	check(alive() and balloon.sprite_right.texture != null and balloon.sprite_right.modulate.a == 1.0, "#sprite=rook:right shows right sprite")
+	check(alive() and balloon.voice_player.playing and balloon.voice_player.bus == &"Voice",
+		"Rook's voiced line plays a voice clip on the Voice bus")
+	var missing_voices := 0
+	for k: String in balloon.VOICES.keys():
+		if not ResourceLoader.exists(balloon.VOICES[k]):
+			missing_voices += 1
+	check(alive() and missing_voices == 0, "every voiced line has a loadable clip")
 
 	# --- 6: Maya appears on the left, Rook dimmed by #focus=left ---
 	line = await step()
@@ -213,10 +220,11 @@ func run() -> void:
 	check(line != null and line.character == "Rook", "Rook rooftop line")
 	line = await step()  # mutation met_rook runs on the way here
 	check(gs.met_rook == true, "mutation `do met_rook = true` ran")
+	check(alive() and not balloon.voice_player.playing, "unvoiced narration stops the voice")
 	check(line != null and line.text.begins_with("The first bell"), "condition `if day == 1` branch taken")
 	line = await step()  # rooftop narration
 	check(line != null and line.text.begins_with("Wind over the chain-link"), "jumped to ~ rooftop cue")
-	check(alive() and balloon.background.texture != null and balloon.background.texture.resource_path.ends_with("rooftop.png"), "#bg=rooftop switched background")
+	check(alive() and balloon.background.texture != null and balloon.background.texture.resource_path.ends_with("rooftop.webp"), "#bg=rooftop switched background")
 
 	# --- rooftop choices: take the third one ---
 	await step()  # Maya: see?
@@ -276,7 +284,7 @@ func run() -> void:
 	check(alive() and balloon.history_cursor == 1, "rollback moved the history cursor")
 	check(alive() and balloon.history.size() >= 8, "forward entries kept for roll-forward")
 	check(alive() and not balloon.history_panel.visible, "history panel closed after rollback")
-	check(alive() and balloon.background.texture != null and balloon.background.texture.resource_path.ends_with("classroom.png"), "stage re-dressed from rolled-back line's tags")
+	check(alive() and balloon.background.texture != null and balloon.background.texture.resource_path.ends_with("classroom.webp"), "stage re-dressed from rolled-back line's tags")
 
 	# The panel can be closed without rolling back.
 	press(&"dialogue_history")

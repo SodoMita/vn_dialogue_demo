@@ -138,6 +138,7 @@ class_name VNBalloon extends CanvasLayer
 
 ## Timers
 @onready var skip_timer: Timer = %SkipTimer
+@onready var voice_player: AudioStreamPlayer = %VoicePlayer
 
 ## Timer used to briefly hide the box while a mutation runs (authored in the scene).
 @onready var mutation_cooldown: Timer = %MutationCooldown
@@ -199,6 +200,24 @@ const RES_PRESETS: Array = [
 ## scale grows so the rendered settings column keeps a constant, usable width.
 const SETTINGS_SIDE_MARGIN: float = 340.0
 const SETTINGS_V_MARGIN: float = 40.0
+
+## Voice clips per `#voice=` tag; Ogg Vorbis files under assets/voices.
+const VOICES: Dictionary = {
+	"r1": "res://assets/voices/r1.ogg",
+	"r2": "res://assets/voices/r2.ogg",
+	"r3": "res://assets/voices/r3.ogg",
+	"r4": "res://assets/voices/r4.ogg",
+	"r5": "res://assets/voices/r5.ogg",
+	"r6": "res://assets/voices/r6.ogg",
+	"m1": "res://assets/voices/m1.ogg",
+	"m2": "res://assets/voices/m2.ogg",
+	"m3": "res://assets/voices/m3.ogg",
+	"m4": "res://assets/voices/m4.ogg",
+	"m5": "res://assets/voices/m5.ogg",
+	"m6": "res://assets/voices/m6.ogg",
+	"m7": "res://assets/voices/m7.ogg",
+	"m8": "res://assets/voices/m8.ogg",
+}
 
 ## Runtime-rendered slot thumbnails, keyed by the stored stage keys.
 var _thumb_cache: Dictionary = {}
@@ -302,6 +321,7 @@ func apply_dialogue_line() -> void:
 	is_waiting_for_input = false
 
 	# Stage direction tags first, so the scene is dressed before the text types out.
+	voice_player.stop()
 	_apply_stage_tags(dialogue_line)
 
 	# Was this line already seen before being shown now? (skip-seen-only uses it)
@@ -443,6 +463,19 @@ func _apply_stage_tags(line: DialogueLine) -> void:
 			next_indicator.hide()
 		elif tag == "box=show":
 			dialogue_box.show()
+		elif tag.begins_with("voice="):
+			_play_voice(tag.substr(6))
+
+
+## Play the voiced clip for a line on the Voice bus; lines without a clip
+## (or a still-missing file) simply stay silent.
+func _play_voice(key: String) -> void:
+	voice_player.stop()
+	var path: String = VOICES.get(key, "")
+	if path == "" or not ResourceLoader.exists(path):
+		return
+	voice_player.stream = load(path)
+	voice_player.play()
 
 
 func _set_background(key: String) -> void:

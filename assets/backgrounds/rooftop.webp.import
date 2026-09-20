@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c1e7mqhqr8x7"
-path="res://.godot/imported/maya.png-ef13562199db63d01cbc07b2bba9f4c3.ctex"
+uid="uid://bay0i5ox3x8mc"
+path="res://.godot/imported/rooftop.webp-02f5a4bf2892679d993c1a83aa1dd773.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/characters/maya.png"
-dest_files=["res://.godot/imported/maya.png-ef13562199db63d01cbc07b2bba9f4c3.ctex"]
+source_file="res://assets/backgrounds/rooftop.webp"
+dest_files=["res://.godot/imported/rooftop.webp-02f5a4bf2892679d993c1a83aa1dd773.ctex"]
 
 [params]
 

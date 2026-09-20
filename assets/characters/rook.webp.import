@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c4ennli37bl0s"
-path="res://.godot/imported/classroom.png-6307c4617b818a1f7d270d2b09058db0.ctex"
+uid="uid://y2c8c23cqlm6"
+path="res://.godot/imported/rook.webp-da58bebc9637e94273a29b9fe2325e93.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/backgrounds/classroom.png"
-dest_files=["res://.godot/imported/classroom.png-6307c4617b818a1f7d270d2b09058db0.ctex"]
+source_file="res://assets/characters/rook.webp"
+dest_files=["res://.godot/imported/rook.webp-da58bebc9637e94273a29b9fe2325e93.ctex"]
 
 [params]
 

@@ -32,8 +32,14 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - **mobile controls**: with `input_devices/pointing/emulate_mouse_from_touch` enabled,
   taps drive the same click/advance path, an upward swipe opens the history backlog, and
   every control is an authored touch target
+- **voiced dialogue**: all fourteen spoken character lines carry `#voice=` tags and play
+  per-character clips (Maya and Rook) on the Voice bus, silenced again on unvoiced lines;
+  the clips were generated as Opus but ship as tightly packed Ogg Vorbis (mono, 32 kbps)
+  because Godot 4.7 has no Opus importer
+- **compact art**: backgrounds and portraits ship as lossy WebP at quality 0.9 — ~483 KB
+  instead of ~4 MB of PNG, with no visible quality loss
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **202/202 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **206/206 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 
@@ -128,7 +134,12 @@ driving runtime-created buses (0 mutes, 100 = 0 dB); *Sprites*: character-sprite
 applies live and is
 persisted to `user://settings.json`, and lines the player has read are recorded in
 `user://seen.json` so seen-only skip knows where to halt. The panel notes that `Esc` closes
-it; `docs/12_settings_at_150.png` shows it at 150% UI scale, still fully usable. **Pause** (`P` / right click) freezes the typewriter and offers Resume / History /
+it; `docs/12_settings_at_150.png` shows it at 150% UI scale, still fully usable.
+
+**Voices**: every spoken line in `dialogue/intro.dialogue` tags its clip with `#voice=key`;
+the balloon plays it through an authored `VoicePlayer` node routed to the Voice bus (so the
+Voice volume slider governs it) and stops it whenever an unvoiced line shows. Clips live in
+`assets/voices/*.ogg`, one per character voice; a missing clip simply stays silent. **Pause** (`P` / right click) freezes the typewriter and offers Resume / History /
 Save / Load / Settings / Quit.
 **Panic** (`F12` / `Panic`) overlays an opaque, completely unrelated physics-lecture page and
 swallows every input except the boss key itself, so nothing underneath leaks through.
@@ -180,7 +191,9 @@ scrolling settings container, and seen-only skip advancing through read lines an
 with a toast on the first unread line. v1.7 checks that UI scaling touches only the UI
 subtree (the stage and sprites keep their authored size), that the settings column keeps a
 constant rendered width as the scale grows, and that the separate sprite scale / Y offset
-settings apply to both sprites and persist.
+settings apply to both sprites and persist. v1.8 checks that a voiced line actually plays on
+the Voice bus, that unvoiced narration stops it, that every `#voice=` clip is loadable, and
+that the WebP-swapped backgrounds still switch and re-dress on rollback.
 
 Rendered screenshots (under Xvfb + software GL):
 
