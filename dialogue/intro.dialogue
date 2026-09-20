@@ -1,0 +1,43 @@
+// A classical visual-novel intro: stage directions via [#tags],
+// choices, conditions and mutations on GameState.
+using GameState
+
+~ start
+The afternoon light pools between the desks. Somewhere, a chalk tap-taps against the board. [#bg=classroom, #sprite=none:left, #sprite=none:right]
+Rook: Another transfer student. Just what this school needed. [#sprite=rook:right, #focus=right]
+Maya: H-hey! The bell hasn't even rung yet, I'm not late! [#sprite=maya:left, #focus=left]
+Rook: The bell rang four minutes ago. [#focus=right]
+Maya: ... [#sprite=maya_smile:left]
+Maya: Fine, you win, clock-watch person. I'm {{player_name}}. And you are?
+- I'm Alex. Nice to meet you.
+	Maya: {{player_name}}! That's a solid name. I'm Maya! [#sprite=maya_smile:left]
+	do met_maya = true
+- I'd rather not say.
+	Maya: Ooh, the mysterious type. I'm Maya. I'll find out eventually. [#sprite=maya:left]
+	do met_maya = true
+- (Stay silent)
+	Maya: ...You're fun to tease. I'm Maya. [#sprite=maya:left]
+	do met_maya = true
+Rook: Enjoy the rooftop if you like. Everyone ends up there eventually. [#sprite=rook:right, #focus=right]
+do met_rook = true
+if day == 1:
+	The first bell of the day finally rings, sharp and bright.
+else:
+	Another day at {{school_name}}. The halls already hum with gossip.
+=> rooftop
+
+~ rooftop
+Wind over the chain-link fence. The city glitters below like scattered coins. [#bg=rooftop, #sprite=none:left, #sprite=none:right]
+Maya: See? Told you the view was worth the stairs. [#sprite=maya_smile:left, #focus=left]
+Rook: You brought a witness to my hiding spot. Unforgivable. [#sprite=rook:right, #focus=right]
+- Ask what Rook hides up here.
+	Rook: Quiet. It's the only currency this school respects.
+	do knows_secret = true
+- Ask Maya why she's so kind.
+	Maya: Kind? I just collect interesting people. You're exhibit A. [#sprite=maya_smile:left]
+- (Say nothing. Watch the sunset.)
+	[speed=0.5]The sun goes down slow, and for once, nobody says a word.[/speed]
+Maya: Same time tomorrow? [#sprite=maya:left]
+Rook: ...Hmph. Don't be late. [#sprite=rook:right]
+The three of you watch until the sky burns out. [#box=hide]
+=> END

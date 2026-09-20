@@ -1,0 +1,336 @@
+[gd_scene load_steps=20 format=3]
+
+[ext_resource type="Script" path="res://scenes/vn_balloon.gd" id="1_balloon"]
+[ext_resource type="PackedScene" uid="uid://ckvgyvclnwggo" path="res://addons/dialogue_manager/nodes/dialogue_label/dialogue_label.tscn" id="2_dlabel"]
+[ext_resource type="Script" uid="uid://bb52rsfwhkxbn" path="res://addons/dialogue_manager/nodes/responses_menu/dialogue_responses_menu.gd" id="3_menu"]
+[ext_resource type="FontFile" path="res://assets/fonts/DejaVuSerif.ttf" id="4_serif"]
+[ext_resource type="FontFile" path="res://assets/fonts/DejaVuSerif-Bold.ttf" id="5_serifbold"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/classroom.png" id="6_bg_classroom"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/rooftop.png" id="7_bg_rooftop"]
+[ext_resource type="Texture2D" path="res://assets/characters/maya.png" id="8_maya"]
+[ext_resource type="Texture2D" path="res://assets/characters/maya_smile.png" id="9_maya_smile"]
+[ext_resource type="Texture2D" path="res://assets/characters/rook.png" id="10_rook"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
+bg_color = Color(0.045, 0.06, 0.12, 0.94)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.83, 0.68, 0.36, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_name"]
+bg_color = Color(0.07, 0.09, 0.17, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.83, 0.68, 0.36, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_normal"]
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
+bg_color = Color(0.05, 0.07, 0.14, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.45, 0.47, 0.55, 0.9)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_hot"]
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
+bg_color = Color(0.1, 0.14, 0.26, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.83, 0.68, 0.36, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_disabled"]
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
+bg_color = Color(0.05, 0.06, 0.1, 0.6)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.3, 0.35, 0.5)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="Theme" id="Theme_vn"]
+default_font = ExtResource("4_serif")
+default_font_size = 20
+Button/colors/font_color = Color(0.95, 0.94, 0.9, 1)
+Button/colors/font_disabled_color = Color(0.5, 0.5, 0.55, 1)
+Button/colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+Button/colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+Button/colors/font_pressed_color = Color(1, 0.9, 0.6, 1)
+Button/styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+Button/styles/focus = SubResource("StyleBoxFlat_btn_hot")
+Button/styles/hover = SubResource("StyleBoxFlat_btn_hot")
+Button/styles/normal = SubResource("StyleBoxFlat_btn_normal")
+Button/styles/pressed = SubResource("StyleBoxFlat_btn_hot")
+
+[sub_resource type="Animation" id="Animation_reset"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("NextIndicator:position:y")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [0.0]
+}
+
+[sub_resource type="Animation" id="Animation_bob"]
+resource_name = "bob"
+length = 0.8
+loop_mode = 1
+step = 0.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("NextIndicator:position:y")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [0.0, 8.0, 0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_bob"]
+_data = {
+&"RESET": SubResource("Animation_reset"),
+&"bob": SubResource("Animation_bob")
+}
+
+[node name="VNBalloon" type="CanvasLayer"]
+layer = 100
+script = ExtResource("1_balloon")
+backgrounds = {&"classroom": ExtResource("6_bg_classroom"), &"rooftop": ExtResource("7_bg_rooftop")}
+sprites = {&"maya": ExtResource("8_maya"), &"maya_smile": ExtResource("9_maya_smile"), &"rook": ExtResource("10_rook")}
+
+[node name="Balloon" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Stage" type="Control" parent="Balloon"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Background" type="TextureRect" parent="Balloon/Stage"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="SpriteLeft" type="TextureRect" parent="Balloon/Stage"]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 90.0
+offset_top = -684.0
+offset_right = 710.0
+grow_vertical = 0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="SpriteRight" type="TextureRect" parent="Balloon/Stage"]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -710.0
+offset_top = -684.0
+offset_right = -90.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ResponsesCenter" type="CenterContainer" parent="Balloon"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = SubResource("Theme_vn")
+
+[node name="ResponsesMenu" type="VBoxContainer" parent="Balloon/ResponsesCenter" node_paths=PackedStringArray("response_template")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 8
+theme_override_constants/separation = 12
+alignment = 1
+script = ExtResource("3_menu")
+hide_failed_responses = true
+response_template = NodePath("ResponseButton")
+
+[node name="ResponseButton" type="Button" parent="Balloon/ResponsesCenter/ResponsesMenu"]
+custom_minimum_size = Vector2(460, 44)
+layout_mode = 2
+text = "Choice"
+
+[node name="BottomUI" type="Control" parent="Balloon"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -216.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="DialogueBox" type="PanelContainer" parent="Balloon/BottomUI"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_box")
+
+[node name="BoxMargin" type="MarginContainer" parent="Balloon/BottomUI/DialogueBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 26
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 26
+theme_override_constants/margin_bottom = 18
+
+[node name="VBox" type="VBoxContainer" parent="Balloon/BottomUI/DialogueBox/BoxMargin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="DialogueLabel" parent="Balloon/BottomUI/DialogueBox/BoxMargin/VBox" instance=ExtResource("2_dlabel")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/default_color = Color(0.96, 0.95, 0.9, 1)
+theme_override_font_sizes/font_size = 21
+text = "..."
+
+[node name="NamePlate" type="PanelContainer" parent="Balloon/BottomUI"]
+unique_name_in_owner = true
+layout_mode = 1
+offset_left = 30.0
+offset_top = -42.0
+offset_right = 370.0
+offset_bottom = 6.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_name")
+
+[node name="NameMargin" type="MarginContainer" parent="Balloon/BottomUI/NamePlate"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 5
+
+[node name="CharacterLabel" type="RichTextLabel" parent="Balloon/BottomUI/NamePlate/NameMargin"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+bbcode_enabled = true
+text = "Character"
+fit_content = true
+scroll_active = false
+theme_override_colors/default_color = Color(0.93, 0.78, 0.42, 1)
+theme_override_fonts/font = ExtResource("5_serifbold")
+theme_override_font_sizes/font_size = 19
+
+[node name="IndicatorHolder" type="Control" parent="Balloon/BottomUI"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -66.0
+offset_top = -42.0
+offset_right = -24.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="NextIndicator" type="Polygon2D" parent="Balloon/BottomUI/IndicatorHolder"]
+unique_name_in_owner = true
+polygon = PackedVector2Array(0, 0, 40, 0, 20, 14)
+color = Color(0.93, 0.78, 0.42, 1)
+
+[node name="IndicatorTween" type="AnimationPlayer" parent="Balloon/BottomUI/IndicatorHolder"]
+libraries/ = SubResource("AnimationLibrary_bob")
+autoplay = &"bob"
+
+[node name="MutationCooldown" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 0.1
+one_shot = true
+
+[connection signal="gui_input" from="Balloon" to="." method="_on_balloon_gui_input"]
+[connection signal="response_selected" from="Balloon/ResponsesCenter/ResponsesMenu" to="." method="_on_responses_menu_response_selected"]
