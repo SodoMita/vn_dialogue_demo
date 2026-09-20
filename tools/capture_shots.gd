@@ -160,6 +160,17 @@ func run() -> void:
 	await get_tree().process_frame
 	await shot("09_settings")
 
+	# 12: settings at 150% UI scale with enlarged sprites -- proves the panel
+	# stays usable while the stage keeps its authored size.
+	balloon.ui_scale_slider.value = 1.5
+	balloon.sprite_scale_slider.value = 1.25
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await shot("12_settings_at_150")
+	balloon.ui_scale_slider.value = 1.0
+	balloon.sprite_scale_slider.value = 1.0
+	await get_tree().process_frame
+
 	# 10: pause menu
 	balloon._close_overlay(balloon.settings_panel)
 	balloon.open_pause()

@@ -117,6 +117,10 @@ class_name VNBalloon extends CanvasLayer
 @onready var skip_mode_option: OptionButton = %SkipModeOption
 @onready var auto_delay_slider: HSlider = %AutoDelaySlider
 @onready var ui_scale_slider: HSlider = %UIScaleSlider
+@onready var settings_margin: MarginContainer = %SettingsMargin
+@onready var ui_root: Control = %UIRoot
+@onready var sprite_scale_slider: HSlider = %SpriteScaleSlider
+@onready var sprite_y_slider: HSlider = %SpriteYSlider
 @onready var fullscreen_check: CheckBox = %FullscreenCheck
 @onready var vsync_check: CheckBox = %VsyncCheck
 @onready var resolution_option: OptionButton = %ResolutionOption
@@ -175,6 +179,9 @@ var _seeking_choice: bool = false
 var auto_delay: float = 1.5
 var skip_delay: float = 0.1
 var skip_seen_only: bool = false
+var ui_scale: float = 1.0
+var sprite_scale: float = 1.0
+var sprite_y: float = 0.0
 var save_menu_mode: String = "save"
 var _settings_path: String = "user://settings.json"
 
@@ -187,6 +194,11 @@ var _current_was_seen: bool = false
 const RES_PRESETS: Array = [
 	[1280, 720], [1600, 900], [1920, 1080], [2560, 1440],
 ]
+
+## Authored settings side/top margins; the logical margins shrink as the UI
+## scale grows so the rendered settings column keeps a constant, usable width.
+const SETTINGS_SIDE_MARGIN: float = 340.0
+const SETTINGS_V_MARGIN: float = 40.0
 
 ## Runtime-rendered slot thumbnails, keyed by the stored stage keys.
 var _thumb_cache: Dictionary = {}
@@ -233,6 +245,8 @@ func _ready() -> void:
 	_on_text_size_changed(text_size_slider.value)
 	_on_skip_speed_changed(skip_speed_slider.value)
 	_on_ui_scale_changed(ui_scale_slider.value)
+	_on_sprite_scale_changed(sprite_scale_slider.value)
+	_on_sprite_y_changed(sprite_y_slider.value)
 	Engine.get_singleton("DialogueManager").mutated.connect(_on_mutated)
 
 	# If the responses menu doesn't have a next action set, use this one
@@ -454,6 +468,8 @@ func _set_sprite(spec: String) -> void:
 	elif sprites.has(key):
 		slot.texture = sprites[key]
 		slot.modulate.a = 1.0
+	# New texture => new size; keep the pivot at the bottom centre.
+	_apply_sprite_transform()
 
 
 func _set_focus(slot_name: String) -> void:
@@ -768,6 +784,12 @@ func _load_settings() -> void:
 	if data.has("ui_scale"):
 		ui_scale_slider.value = float(data.ui_scale)
 		_on_ui_scale_changed(float(data.ui_scale))
+	if data.has("sprite_scale"):
+		sprite_scale_slider.value = float(data.sprite_scale)
+		_on_sprite_scale_changed(float(data.sprite_scale))
+	if data.has("sprite_y"):
+		sprite_y_slider.value = float(data.sprite_y)
+		_on_sprite_y_changed(float(data.sprite_y))
 	if data.has("fullscreen"):
 		# Programmatic set_pressed() emits no signal, so apply it by hand.
 		fullscreen_check.button_pressed = bool(data.fullscreen)
@@ -802,6 +824,8 @@ func _save_settings() -> void:
 		"skip_seen_only": skip_seen_only,
 		"auto_delay": auto_delay_slider.value,
 		"ui_scale": ui_scale_slider.value,
+		"sprite_scale": sprite_scale_slider.value,
+		"sprite_y": sprite_y_slider.value,
 		"fullscreen": fullscreen_check.button_pressed,
 		"vsync": vsync_check.button_pressed,
 		"res_w": int(res_width_spin.value),
@@ -855,8 +879,50 @@ func _on_skip_mode_selected(index: int) -> void:
 
 
 func _on_ui_scale_changed(v: float) -> void:
-	get_tree().root.content_scale_factor = v
+	_apply_ui_scale(v)
 	_save_settings()
+
+
+## UI scale touches only the UI subtree (UIRoot): the stage, background and
+## sprites live outside it and keep their authored size at any scale.
+func _apply_ui_scale(s: float) -> void:
+	ui_scale = s
+	ui_root.scale = Vector2(s, s)
+	# Fractional anchors keep UIRoot at window/s logical pixels (the anchors
+	# track window resizes on their own); the render scale then maps it back
+	# to exactly the window size, edge-anchored UI included.
+	ui_root.anchor_right = 1.0 / s
+	ui_root.anchor_bottom = 1.0 / s
+	# Shrink the logical margins so the rendered settings column stays a
+	# constant, usable width no matter how big the UI gets.
+	var m: int = roundi(SETTINGS_SIDE_MARGIN / s)
+	var mv: int = roundi(SETTINGS_V_MARGIN / s)
+	settings_margin.add_theme_constant_override("margin_left", m)
+	settings_margin.add_theme_constant_override("margin_right", m)
+	settings_margin.add_theme_constant_override("margin_top", mv)
+	settings_margin.add_theme_constant_override("margin_bottom", mv)
+
+
+func _on_sprite_scale_changed(v: float) -> void:
+	sprite_scale = v
+	_apply_sprite_transform()
+	_save_settings()
+
+
+func _on_sprite_y_changed(v: float) -> void:
+	sprite_y = v
+	_apply_sprite_transform()
+	_save_settings()
+
+
+## Sprite scale pivots at each sprite's bottom centre; the Y offset shifts the
+## anchored rect so it survives window resizes.
+func _apply_sprite_transform() -> void:
+	for spr: TextureRect in [sprite_left, sprite_right]:
+		spr.pivot_offset = Vector2(spr.size.x * 0.5, spr.size.y)
+		spr.scale = Vector2(sprite_scale, sprite_scale)
+		spr.offset_top = sprite_y
+		spr.offset_bottom = sprite_y
 
 
 func _on_vsync_toggled(on: bool) -> void:

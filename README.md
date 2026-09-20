@@ -21,9 +21,11 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - **auto & skip modes** (skip stops by itself at choices; skip speed configurable; "skip
   seen only" halts with a toast at the first line the player has never read, tracked in
   `user://seen.json`), **full settings screen** (text speed, text size, skip speed,
-  skip-everything-vs-seen, auto delay, UI scaling, fullscreen, V-Sync, resolution presets or
-  any custom positive size, master/music/voice/SFX volumes — applied live, persisted to
-  `user://settings.json`), **pause menu**
+  skip-everything-vs-seen, auto delay, UI scaling scoped to the UI only (the stage and
+  sprites keep their authored size and the settings column keeps a usable width at any
+  scale), fullscreen, V-Sync, resolution presets or any custom positive size,
+  master/music/voice/SFX volumes, and separate sprite scale / Y-offset settings — applied
+  live, persisted to `user://settings.json`), **pause menu**
   (`P` / right click, with Resume/History/Save/Load/Settings/Quit), **panic/boss screen**
   (`F12`) that swaps the whole game for a dry quantum-mechanics lecture page
   (`docs/09_settings.png`, `docs/10_pause.png`, `docs/11_panic.png`)
@@ -31,7 +33,7 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
   taps drive the same click/advance path, an upward swipe opens the history backlog, and
   every control is an authored touch target
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **191/191 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **202/202 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 
@@ -115,13 +117,18 @@ each action.
 
 **Settings** (`Set`): a scrolling, sectioned screen with everything a VN player expects —
 *Text*: speed (typewriter seconds-per-step), size (applied to the dialogue and name labels),
-skip speed, skip-everything vs skip-seen-only, auto delay; *Display*: UI scale (window
-content scale), fullscreen, V-Sync, a resolution dropdown of presets (1280×720 … 2560×1440)
-plus a custom width/height accepting any positive numbers (custom sizes flip the dropdown to
-"Custom", matching sizes re-select their preset); *Audio*: master, music, voice and SFX
-volumes driving runtime-created buses (0 mutes, 100 = 0 dB). Every control applies live and is
+skip speed, skip-everything vs skip-seen-only, auto delay; *Display*: UI scale (scales only
+the UI subtree — the background and character sprites stay untouched — while the settings
+margins shrink with the scale so the panel keeps a constant, usable width at any size),
+fullscreen, V-Sync, a resolution dropdown of presets (1280×720 … 2560×1440) plus a custom
+width/height accepting any positive numbers (custom sizes flip the dropdown to "Custom",
+matching sizes re-select their preset); *Audio*: master, music, voice and SFX volumes
+driving runtime-created buses (0 mutes, 100 = 0 dB); *Sprites*: character-sprite scale
+(pivoted at the bottom centre) and a Y offset, independent of the UI scale. Every control
+applies live and is
 persisted to `user://settings.json`, and lines the player has read are recorded in
-`user://seen.json` so seen-only skip knows where to halt. The panel notes that `Esc` closes it. **Pause** (`P` / right click) freezes the typewriter and offers Resume / History /
+`user://seen.json` so seen-only skip knows where to halt. The panel notes that `Esc` closes
+it; `docs/12_settings_at_150.png` shows it at 150% UI scale, still fully usable. **Pause** (`P` / right click) freezes the typewriter and offers Resume / History /
 Save / Load / Settings / Quit.
 **Panic** (`F12` / `Panic`) overlays an opaque, completely unrelated physics-lecture page and
 swallows every input except the boss key itself, so nothing underneath leaks through.
@@ -170,7 +177,10 @@ size applied to both labels, skip speed driving the skip timer, both skip modes,
 the window, resolution presets ↔ custom spinbox sync with persistence of any custom positive
 size, V-Sync persistence, the runtime audio buses with dB conversion and mute at zero, the
 scrolling settings container, and seen-only skip advancing through read lines and halting
-with a toast on the first unread line.
+with a toast on the first unread line. v1.7 checks that UI scaling touches only the UI
+subtree (the stage and sprites keep their authored size), that the settings column keeps a
+constant rendered width as the scale grows, and that the separate sprite scale / Y offset
+settings apply to both sprites and persist.
 
 Rendered screenshots (under Xvfb + software GL):
 

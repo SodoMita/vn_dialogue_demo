@@ -140,7 +140,7 @@ func run() -> void:
 			user_dir.remove("seen.json")
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SkipTimer"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -614,12 +614,40 @@ func run() -> void:
 	balloon.skip_mode_option.item_selected.emit(0)
 	check(alive() and not balloon.skip_seen_only, "skip mode 'everything' registered")
 
-	# UI scaling
+	# UI scaling: only the UI subtree scales, the stage keeps its authored
+	# size, and the settings column keeps a constant rendered width.
+	var stage_size_before: Vector2 = balloon.background.size
 	balloon.ui_scale_slider.value = 1.25
 	await get_tree().process_frame
-	check(alive() and is_equal_approx(get_tree().root.content_scale_factor, 1.25),
-		"UI scale applied to the window content scale")
+	check(alive() and balloon.ui_root.scale == Vector2(1.25, 1.25), "UI scale applied to the UI root only")
+	check(alive() and is_equal_approx(balloon.ui_root.size.x, 1280.0 / 1.25),
+		"UI root logical size shrinks so edges stay on screen")
+	check(alive() and is_equal_approx(balloon.settings_margin.get_theme_constant("margin_left") * 1.25, 340.0),
+		"settings width responds to the UI scale")
+	check(alive() and balloon.sprite_left.scale == Vector2(1.0, 1.0)
+		and stage_size_before == balloon.background.size,
+		"UI scale leaves the stage and sprites untouched")
 	balloon.ui_scale_slider.value = 1.0
+	await get_tree().process_frame
+	check(alive() and balloon.settings_margin.get_theme_constant("margin_left") == 340,
+		"settings margins restore at scale 1")
+
+	# Sprite scale & Y offset are settings of their own, separate from UI scale
+	balloon.sprite_scale_slider.value = 1.25
+	await get_tree().process_frame
+	check(alive() and balloon.sprite_left.scale == Vector2(1.25, 1.25)
+		and balloon.sprite_right.scale == Vector2(1.25, 1.25),
+		"sprite scale applied to both character sprites")
+	balloon.sprite_y_slider.value = -40
+	check(alive() and balloon.sprite_left.offset_bottom == -40.0
+		and balloon.sprite_right.offset_bottom == -40.0,
+		"sprite Y offset applied to both character sprites")
+	var sprite_data: Variant = JSON.parse_string(FileAccess.get_file_as_string("user://settings.json"))
+	check(sprite_data is Dictionary and is_equal_approx(float(sprite_data.sprite_scale), 1.25)
+		and float(sprite_data.sprite_y) == -40.0,
+		"sprite scale and offset persisted")
+	balloon.sprite_scale_slider.value = 1.0
+	balloon.sprite_y_slider.value = 0
 
 	# Resolution presets and any custom positive size
 	balloon.resolution_option.item_selected.emit(1)
