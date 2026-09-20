@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://scenes/vn_balloon.gd" id="1_balloon"]
 [ext_resource type="PackedScene" uid="uid://ckvgyvclnwggo" path="res://addons/dialogue_manager/nodes/dialogue_label/dialogue_label.tscn" id="2_dlabel"]
@@ -82,6 +82,46 @@ corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_history"]
+bg_color = Color(0.03, 0.04, 0.09, 0.96)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.83, 0.68, 0.36, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hist_normal"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+bg_color = Color(0.06, 0.08, 0.15, 0.55)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.22, 0.3, 0.6)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hist_hot"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+bg_color = Color(0.12, 0.16, 0.28, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.83, 0.68, 0.36, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [sub_resource type="Theme" id="Theme_vn"]
 default_font = ExtResource("4_serif")
@@ -229,6 +269,75 @@ response_template = NodePath("ResponseButton")
 custom_minimum_size = Vector2(460, 44)
 layout_mode = 2
 text = "Choice"
+
+[node name="HistoryPanel" type="PanelContainer" parent="Balloon"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_history")
+
+[node name="HistoryMargin" type="MarginContainer" parent="Balloon/HistoryPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 70
+theme_override_constants/margin_top = 46
+theme_override_constants/margin_right = 70
+theme_override_constants/margin_bottom = 60
+
+[node name="HistoryVBox" type="VBoxContainer" parent="Balloon/HistoryPanel/HistoryMargin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="HistoryHeader" type="HBoxContainer" parent="Balloon/HistoryPanel/HistoryMargin/HistoryVBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="HistoryTitle" type="Label" parent="Balloon/HistoryPanel/HistoryMargin/HistoryVBox/HistoryHeader"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
+theme_override_fonts/font = ExtResource("5_serifbold")
+theme_override_font_sizes/font_size = 26
+text = "History"
+
+[node name="HistoryHint" type="Label" parent="Balloon/HistoryPanel/HistoryMargin/HistoryVBox/HistoryHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.75, 0.75, 0.8, 0.8)
+theme_override_font_sizes/font_size = 15
+text = "Click a line to roll back to it - H or Esc closes"
+horizontal_alignment = 2
+
+[node name="HistoryScroll" type="ScrollContainer" parent="Balloon/HistoryPanel/HistoryMargin/HistoryVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+follow_focus = true
+horizontal_scroll_mode = 0
+
+[node name="HistoryList" type="VBoxContainer" parent="Balloon/HistoryPanel/HistoryMargin/HistoryVBox/HistoryScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="HistoryEntry" type="Button" parent="Balloon/HistoryPanel/HistoryMargin/HistoryVBox/HistoryScroll/HistoryList"]
+unique_name_in_owner = true
+clip_text = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "History entry"
 
 [node name="BottomUI" type="Control" parent="Balloon"]
 layout_mode = 1

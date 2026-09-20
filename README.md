@@ -9,8 +9,10 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - typewriter text via the addon's `DialogueLabel`, skip with `Esc`, advance with `Enter`/click
 - bobbing "next" indicator
 - centred choice buttons via the addon's `DialogueResponsesMenu`
+- **history (backlog) panel with rollback**: `H` opens it, clicking any logged line jumps
+  back to it and restores the story state + stage exactly as they were (`docs/05_history.png`)
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **48/48 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **66/66 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 
@@ -43,6 +45,22 @@ Dialogue also uses v4 features: `{{var}}` interpolation, `do x = true` mutations
 cues (`~ start`, `~ rooftop`), choices, and `[speed=0.5]...[/speed]` bbcode. See
 `dialogue/intro.dialogue`.
 
+## History & rollback
+
+Every shown line is logged into the balloon's `history` (text, character, the line's ID, a
+`GameState` snapshot and the dressed-stage keys). The panel itself is authored in
+`vn_balloon.tscn` (`HistoryPanel` / `HistoryList` / `HistoryEntry` template); entries duplicate
+the template the same way the choices menu does. Clicking an entry:
+
+1. truncates the backlog after that entry,
+2. restores the `GameState` snapshot (`snapshot()`/`restore()` in `autoloads/game_state.gd`),
+3. re-dresses the stage from the stored `#bg`/`#sprite`/`#focus` keys,
+4. re-fetches the line by ID and types it out again.
+
+Scope note: snapshots cover `GameState`'s exported variables; ephemeral balloon `locals` and
+other autoloads are not snapshotted. Save/load (serialising the same data to disk) is the
+planned next step.
+
 ## Run it
 
 ```bash
@@ -54,7 +72,8 @@ Godot_v4.7.2-stable_linux.x86_64 res://scenes/vn_scene.tscn
 ```
 
 Controls: `Enter` / click = advance or pick a focused choice, `↓/↑` = move between choices,
-`Esc` / click = skip typing.
+`Esc` / click = skip typing, `H` = open history, click a history line = roll back to it,
+`Esc` = close history without rolling back.
 
 ## Test & verify
 

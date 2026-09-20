@@ -87,5 +87,19 @@ func run() -> void:
 	await get_tree().process_frame
 	await shot("04_choices")
 
+	# History panel
+	var ev := InputEventKey.new()
+	ev.pressed = true
+	ev.physical_keycode = KEY_H
+	Input.parse_input_event(ev)
+	var rel := InputEventKey.new()
+	rel.keycode = KEY_H
+	Input.parse_input_event(rel)
+	await wait_until(func() -> bool:
+		return is_instance_valid(balloon) and balloon.history_panel.visible
+	)
+	await get_tree().process_frame
+	await shot("05_history")
+
 	await get_tree().process_frame
 	get_tree().quit(0)

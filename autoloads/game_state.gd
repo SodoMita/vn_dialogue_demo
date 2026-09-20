@@ -18,3 +18,18 @@ func reset() -> void:
 	met_maya = false
 	met_rook = false
 	knows_secret = false
+
+
+## Capture every exported story variable (used by the balloon's rollback).
+func snapshot() -> Dictionary:
+	var data: Dictionary = {}
+	for property: Dictionary in get_script().get_script_property_list():
+		if property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			data[property.name] = get(property.name)
+	return data
+
+
+## Restore a snapshot taken with [method snapshot] (used by rollback).
+func restore(data: Dictionary) -> void:
+	for key: String in data:
+		set(key, data[key])

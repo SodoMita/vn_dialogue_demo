@@ -33,6 +33,9 @@ class_name VNBalloon extends CanvasLayer
 ## The action to use to skip typing the dialogue.
 @export var skip_action: StringName = &"ui_cancel"
 
+## The action that toggles the history (backlog) panel.
+@export var history_action: StringName = &"dialogue_history"
+
 ## How many seconds each typed character takes.
 @export var seconds_per_step: float = 0.018
 
@@ -61,6 +64,11 @@ class_name VNBalloon extends CanvasLayer
 ## Choices
 @onready var responses_menu: DialogueResponsesMenu = %ResponsesMenu
 
+## History (backlog) panel - authored in the scene, entries duplicate %HistoryEntry.
+@onready var history_panel: PanelContainer = %HistoryPanel
+@onready var history_list: VBoxContainer = %HistoryList
+@onready var history_entry_template: Button = %HistoryEntry
+
 ## Timer used to briefly hide the box while a mutation runs (authored in the scene).
 @onready var mutation_cooldown: Timer = %MutationCooldown
 
@@ -76,6 +84,18 @@ var will_hide_box: bool = false
 
 ## A dictionary to store any ephemeral variables dialogue can use via `locals.`
 var locals: Dictionary = {}
+
+## Backlog of every line shown this run; clicking an entry rolls back to it.
+var history: Array[Dictionary] = []
+
+## True while a rollback line is being (re)applied, so it isn't logged twice.
+var _restoring: bool = false
+
+## The stage as currently dressed (tag keys), snapshotted into history entries.
+var _current_bg: String = ""
+var _current_left: String = ""
+var _current_right: String = ""
+var _current_focus: String = ""
 
 var _locale: String = TranslationServer.get_locale()
 
@@ -98,6 +118,8 @@ var dialogue_line: DialogueLine:
 
 func _ready() -> void:
 	balloon.hide()
+	history_panel.hide()
+	history_entry_template.hide()
 	Engine.get_singleton("DialogueManager").mutated.connect(_on_mutated)
 
 	# If the responses menu doesn't have a next action set, use this one
@@ -122,6 +144,23 @@ func _process(_delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not (will_block_other_input and is_instance_valid(balloon) and balloon.is_visible_in_tree()):
+		return
+
+	# Toggle the history panel.
+	if event.is_action_pressed(history_action):
+		get_viewport().set_input_as_handled()
+		if history_panel.visible:
+			close_history()
+		else:
+			open_history()
+		return
+
+	# While the history is open, swallow anything the entry buttons didn't take;
+	# the skip action closes the panel without rolling back.
+	if history_panel.visible:
+		get_viewport().set_input_as_handled()
+		if event.is_action_pressed(skip_action):
+			close_history()
 		return
 
 	# Advance via keyboard even when no control currently holds focus
@@ -170,6 +209,24 @@ func apply_dialogue_line() -> void:
 
 	# Stage direction tags first, so the scene is dressed before the text types out.
 	_apply_stage_tags(dialogue_line)
+
+	# Log this line in the backlog (skipped while rolling back to it), capturing
+	# the story state and the dressed stage so rollback can restore both.
+	if not _restoring and (not dialogue_line.text.is_empty() or not dialogue_line.character.is_empty()):
+		var entry: Dictionary = {
+			"id": dialogue_line.id,
+			"character": dialogue_line.character,
+			"text": dialogue_line.text,
+			"bg": _current_bg,
+			"left": _current_left,
+			"right": _current_right,
+			"focus": _current_focus,
+		}
+		var game_state: Node = get_tree().root.get_node_or_null("GameState")
+		if is_instance_valid(game_state) and game_state.has_method("snapshot"):
+			entry.state = game_state.snapshot()
+		history.append(entry)
+	_restoring = false
 
 	character_label.visible = not dialogue_line.character.is_empty()
 	name_plate.visible = character_label.visible
@@ -232,6 +289,7 @@ func _apply_stage_tags(line: DialogueLine) -> void:
 
 
 func _set_background(key: String) -> void:
+	_current_bg = key
 	if key == "none":
 		background.texture = null
 	elif backgrounds.has(key):
@@ -241,7 +299,12 @@ func _set_background(key: String) -> void:
 func _set_sprite(spec: String) -> void:
 	var parts: PackedStringArray = spec.split(":")
 	var key: String = parts[0]
-	var slot: TextureRect = sprite_left if parts.size() == 1 or parts[1] == "left" else sprite_right
+	var is_left: bool = parts.size() == 1 or parts[1] == "left"
+	var slot: TextureRect = sprite_left if is_left else sprite_right
+	if is_left:
+		_current_left = key
+	else:
+		_current_right = key
 	if key == "none":
 		slot.texture = null
 		slot.modulate.a = 0.0
@@ -251,6 +314,7 @@ func _set_sprite(spec: String) -> void:
 
 
 func _set_focus(slot_name: String) -> void:
+	_current_focus = slot_name
 	var dim: float = 0.45
 	sprite_left.modulate.a = 1.0
 	sprite_right.modulate.a = 1.0
@@ -258,6 +322,83 @@ func _set_focus(slot_name: String) -> void:
 		sprite_right.modulate.a = dim
 	elif slot_name == "right" and sprite_left.texture != null:
 		sprite_left.modulate.a = dim
+
+
+## Re-dress the stage exactly as it was when a history entry was shown.
+func _restore_stage(entry: Dictionary) -> void:
+	_set_background(entry.get("bg", ""))
+	_set_sprite("%s:left" % entry.get("left", "none") if entry.get("left", "") != "" else "none:left")
+	_set_sprite("%s:right" % entry.get("right", "none") if entry.get("right", "") != "" else "none:right")
+	if entry.get("focus", "") != "":
+		_set_focus(entry.focus)
+
+
+#endregion
+
+
+#region History / rollback
+
+
+## Rebuild the backlog list from [member history] and show the panel.
+func open_history() -> void:
+	if history.is_empty():
+		return
+
+	for child: Node in history_list.get_children():
+		if child == history_entry_template:
+			continue
+		history_list.remove_child(child)
+		child.queue_free()
+
+	for i: int in history.size():
+		var entry: Dictionary = history[i]
+		var item: Button = history_entry_template.duplicate()
+		item.text = entry.text if entry.character.is_empty() else "%s: %s" % [entry.character, entry.text]
+		item.show()
+		item.pressed.connect(_on_history_entry_pressed.bind(i))
+		history_list.add_child(item)
+
+	is_waiting_for_input = false
+	history_panel.show()
+	# Focus the first entry so keyboard navigation works immediately.
+	for child: Node in history_list.get_children():
+		if child != history_entry_template:
+			child.grab_focus()
+			break
+
+
+func close_history() -> void:
+	history_panel.hide()
+	# If the current line was already waiting for input, let it wait again.
+	if is_instance_valid(dialogue_line) and not dialogue_label.is_typing and dialogue_line.responses.size() == 0:
+		is_waiting_for_input = true
+		balloon.focus_mode = Control.FOCUS_ALL
+		balloon.grab_focus()
+
+
+## Jump back to a previously shown line, restoring the story state snapshot.
+func rollback_to(index: int) -> void:
+	if index < 0 or index >= history.size():
+		return
+
+	var entry: Dictionary = history[index]
+	history = history.slice(0, index + 1)
+	close_history()
+
+	var game_state: Node = get_tree().root.get_node_or_null("GameState")
+	if is_instance_valid(game_state) and game_state.has_method("restore") and entry.has("state"):
+		game_state.restore(entry.state)
+	_restore_stage(entry)
+
+	_restoring = true
+	var line: DialogueLine = await dialogue_resource.get_next_dialogue_line(entry.id, temporary_game_states)
+	if line != null:
+		dialogue_line = line
+	_restoring = false
+
+
+func _on_history_entry_pressed(index: int) -> void:
+	rollback_to(index)
 
 
 #endregion
@@ -281,6 +422,16 @@ func _on_mutated(mutation: Dictionary) -> void:
 
 
 func _on_balloon_gui_input(event: InputEvent) -> void:
+	if history_panel.visible:
+		return
+
+	# The balloon swallows input while waiting, so the history toggle has to be
+	# honoured here as well as in _unhandled_input.
+	if event.is_action_pressed(history_action):
+		get_viewport().set_input_as_handled()
+		open_history()
+		return
+
 	# See if we need to skip typing of the dialogue
 	if dialogue_label.is_typing:
 		var mouse_was_clicked: bool = event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed()

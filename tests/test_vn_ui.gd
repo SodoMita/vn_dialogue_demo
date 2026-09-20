@@ -12,6 +12,15 @@ var gs: Node
 
 
 func _ready() -> void:
+	var watchdog := Timer.new()
+	watchdog.one_shot = true
+	watchdog.wait_time = 120
+	watchdog.timeout.connect(func() -> void:
+		printerr("[FAIL] watchdog timeout")
+		finish()
+	)
+	add_child(watchdog)
+	watchdog.start()
 	await get_tree().process_frame
 	run()
 
@@ -32,8 +41,15 @@ func press(action: StringName) -> void:
 		&"ui_accept": ev.keycode = KEY_ENTER
 		&"ui_cancel": ev.keycode = KEY_ESCAPE
 		&"ui_down": ev.keycode = KEY_DOWN
+		&"dialogue_history": ev.physical_keycode = KEY_H  # action is bound to physical H
 		_: ev.keycode = KEY_ENTER
 	Input.parse_input_event(ev)
+	# Native Controls (Buttons) activate on key release, so send the pair.
+	var rel := InputEventKey.new()
+	rel.pressed = false
+	rel.keycode = ev.keycode
+	rel.physical_keycode = ev.physical_keycode
+	Input.parse_input_event(rel)
 	await get_tree().process_frame
 
 
@@ -103,11 +119,11 @@ func run() -> void:
 	gs = get_tree().root.get_node("GameState")
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
-	check(not ".new()" in gd_text, "vn_balloon.gd creates no nodes in code")
-	check(not "add_child(" in gd_text, "vn_balloon.gd adds no children in code")
+	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
+	check(not "instantiate(" in gd_text, "vn_balloon.gd never instantiates a scene")
 
 	# --- 1: dialogue resource imports ---
 	resource = load("res://dialogue/intro.dialogue")
@@ -201,6 +217,53 @@ func run() -> void:
 	check(ended, "dialogue_ended signal emitted")
 	await wait_until(func() -> bool: return not alive(), 120)
 	check(not alive(), "balloon freed itself at END")
+
+	# --- 10: history & rollback (second balloon run) ---
+	gs.reset()
+	balloon = Engine.get_singleton("DialogueManager").show_dialogue_balloon(resource, "start")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(alive() and balloon is VNBalloon, "second balloon run started")
+
+	# Fast-forward to the first choices, pick one, step once (runs met_maya).
+	var qline: DialogueLine = await run_to_responses()
+	check(qline != null and qline.responses.size() == 3, "run 2 reached the first choices")
+	await choose(0)
+	line = await step()
+	check(gs.met_maya == true, "run 2: met_maya mutation ran")
+
+	# Open the history with the H action.
+	press(&"dialogue_history")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(alive() and balloon.history_panel.visible, "history action opens the history panel")
+	var h_items: Array = []
+	for child: Node in balloon.history_list.get_children():
+		if child != balloon.history_entry_template and child.visible:
+			h_items.append(child)
+	check(h_items.size() == balloon.history.size(), "history list shows one entry per shown line")
+	check(balloon.history.size() >= 8, "history recorded all shown lines")
+
+	# Entry 1 is Rook's first line, before any mutation ran. Jump to it.
+	var target_text: String = balloon.history[1].text
+	h_items[1].grab_focus()
+	press(&"ui_accept")
+	line = await await_line_change()
+	check(line != null and line.text == target_text, "clicking a history line jumps back to it")
+	check(line != null and line.character == "Rook", "rolled back to Rook's first line")
+	check(gs.met_maya == false and gs.met_rook == false, "story state restored to the rollback point")
+	check(alive() and balloon.history.size() == 2, "history truncated after the rollback point")
+	check(alive() and not balloon.history_panel.visible, "history panel closed after rollback")
+	check(alive() and balloon.background.texture != null and balloon.background.texture.resource_path.ends_with("classroom.png"), "stage re-dressed from rolled-back line's tags")
+
+	# The panel can be closed without rolling back.
+	press(&"dialogue_history")
+	await get_tree().process_frame
+	check(alive() and balloon.history_panel.visible, "history action toggles the panel open again")
+	press(&"ui_cancel")
+	await get_tree().process_frame
+	check(alive() and not balloon.history_panel.visible, "skip action closes history without rollback")
+	check(alive() and balloon.history.size() == 2, "history unchanged when closing without rollback")
 
 	finish()
 
