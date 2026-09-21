@@ -115,6 +115,7 @@ class_name VNBalloon extends CanvasLayer
 @onready var text_size_slider: HSlider = %TextSizeSlider
 @onready var skip_speed_slider: HSlider = %SkipSpeedSlider
 @onready var skip_mode_option: OptionButton = %SkipModeOption
+@onready var skip_key_option: OptionButton = %SkipKeyOption
 @onready var auto_delay_slider: HSlider = %AutoDelaySlider
 @onready var ui_scale_slider: HSlider = %UIScaleSlider
 @onready var settings_margin: MarginContainer = %SettingsMargin
@@ -1130,7 +1131,8 @@ const UI_TEXT_KEYS: Array = [
 	["NewSlotButton", "+ New slot"], ["SettingsTitle", "Settings"],
 	["LanguageRowLabel", "Language"], ["TextSpeedRowLabel", "Text speed"],
 	["TextSizeRowLabel", "Text size"], ["SyncVoiceRowLabel", "Sync text to voice"],
-	["SyncVoiceCheck", "on"], ["SkipSpeedRowLabel", "Skip speed"], ["SkipModeRowLabel", "Skip texts"],
+	["SyncVoiceCheck", "on"], ["SkipSpeedRowLabel", "Skip speed"],
+	["SkipKeyRowLabel", "Skip key"], ["SkipModeRowLabel", "Skip texts"],
 	["AutoDelayRowLabel", "Auto delay"], ["UIScaleRowLabel", "UI scale"], ["DisplayHeader", "Display"],
 	["PortraitRowLabel", "Portrait layout"], ["PortraitCheck", "on"], ["RotationRowLabel", "Rotation"],
 	["FullscreenRowLabel", "Fullscreen"], ["FullscreenCheck", "on"], ["VsyncRowLabel", "V-Sync"],
@@ -1518,7 +1520,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# the skip action closes the top-most overlay without side effects.
 	if _any_overlay_open():
 		get_viewport().set_input_as_handled()
-		if event.is_action_pressed(skip_action):
+		if (event.is_action_pressed(skip_action) or event.is_action_pressed(&"dialogue_skip")):
 			if settings_panel.visible:
 				_close_overlay(settings_panel)
 			elif save_menu_panel.visible:
@@ -1607,7 +1609,7 @@ func _on_balloon_gui_input(event: InputEvent) -> void:
 	# See if we need to skip typing of the dialogue
 	if dialogue_label.is_typing:
 		var mouse_was_clicked: bool = event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed()
-		var advance_key_was_pressed: bool = event.is_action_pressed(skip_action) or event.is_action_pressed(next_action)
+		var advance_key_was_pressed: bool = (event.is_action_pressed(skip_action) or event.is_action_pressed(&"dialogue_skip")) or event.is_action_pressed(next_action)
 		if mouse_was_clicked or advance_key_was_pressed:
 			get_viewport().set_input_as_handled()
 			dialogue_label.skip_typing()
