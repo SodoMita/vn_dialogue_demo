@@ -124,6 +124,8 @@ class_name VNBalloon extends CanvasLayer
 @onready var sync_voice_check: CheckBox = %SyncVoiceCheck
 @onready var settings_close_button: Button = %SettingsCloseButton
 @onready var settings_vbox: VBoxContainer = %SettingsVBox
+@onready var portrait_check: CheckBox = %PortraitCheck
+@onready var responses_center: CenterContainer = %ResponsesCenter
 @onready var fullscreen_check: CheckBox = %FullscreenCheck
 @onready var vsync_check: CheckBox = %VsyncCheck
 @onready var resolution_option: OptionButton = %ResolutionOption
@@ -188,6 +190,7 @@ var sprite_scale: float = 1.0
 var sprite_y: float = 0.0
 var sync_voice: bool = false
 var portrait_mode: bool = false
+var force_portrait: bool = false
 ## Authored offset_top/bottom per sprite, captured once so the Y-offset
 ## setting is applied as a delta instead of flattening the rect.
 var _sprite_base_offsets: Dictionary = {}
@@ -206,7 +209,7 @@ const RES_PRESETS: Array = [
 
 ## Authored settings side/top margins; the logical margins shrink as the UI
 ## scale grows so the rendered settings column keeps a constant, usable width.
-const SETTINGS_SIDE_MARGIN: float = 340.0
+const SETTINGS_SIDE_MARGIN: float = 180.0
 const SETTINGS_V_MARGIN: float = 40.0
 
 ## Voice clips per `#voice=` tag; Ogg Vorbis files under assets/voices.
@@ -303,6 +306,7 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_SIZE_CHANGED:
 		# Window rotation/resize may flip portrait<->landscape.
 		call_deferred("_reflow_settings")
+		call_deferred("_layout_responses")
 	# Detect a change of locale and update the current dialogue line to show the new language
 	if what == NOTIFICATION_TRANSLATION_CHANGED and _locale != TranslationServer.get_locale() and is_instance_valid(dialogue_label):
 		_locale = TranslationServer.get_locale()
@@ -398,6 +402,7 @@ func apply_dialogue_line() -> void:
 		skip_button.modulate = Color.WHITE
 		_seeking_choice = false
 		responses_menu.show()
+		call_deferred("_layout_responses")
 	elif dialogue_line.time != "":
 		var time: float = dialogue_line.text.length() * 0.02 if dialogue_line.time == "auto" else dialogue_line.time.to_float()
 		await get_tree().create_timer(time).timeout
@@ -865,6 +870,10 @@ func _load_settings() -> void:
 	if data.has("sync_voice"):
 		sync_voice = bool(data.sync_voice)
 		sync_voice_check.button_pressed = sync_voice
+	if data.has("force_portrait"):
+		force_portrait = bool(data.force_portrait)
+		portrait_check.button_pressed = force_portrait
+		_reflow_settings()
 	if data.has("fullscreen"):
 		# Programmatic set_pressed() emits no signal, so apply it by hand.
 		fullscreen_check.button_pressed = bool(data.fullscreen)
@@ -902,6 +911,7 @@ func _save_settings() -> void:
 		"sprite_scale": sprite_scale_slider.value,
 		"sprite_y": sprite_y_slider.value,
 		"sync_voice": sync_voice_check.button_pressed,
+		"force_portrait": portrait_check.button_pressed,
 		"fullscreen": fullscreen_check.button_pressed,
 		"vsync": vsync_check.button_pressed,
 		"res_w": int(res_width_spin.value),
@@ -986,13 +996,14 @@ func _apply_ui_scale(s: float) -> void:
 ## authored side-by-side rows.
 func _reflow_settings() -> void:
 	var sz: Vector2 = get_viewport().get_visible_rect().size
-	portrait_mode = sz.y > sz.x
+	portrait_mode = force_portrait or sz.y > sz.x
 	_apply_settings_layout()
 
 
 ## Test/override entry point for the portrait layout.
 func set_portrait_mode(on: bool) -> void:
-	portrait_mode = on
+	force_portrait = on
+	portrait_mode = on or get_viewport().get_visible_rect().size.y > get_viewport().get_visible_rect().size.x
 	_apply_settings_layout()
 
 
@@ -1008,6 +1019,26 @@ func _apply_settings_layout() -> void:
 
 func _on_settings_close_pressed() -> void:
 	_close_overlay(settings_panel)
+
+
+func _on_portrait_toggled(on: bool) -> void:
+	force_portrait = on
+	_reflow_settings()
+	_save_settings()
+
+
+## Size the choices band to the menu and park it just above the dialogue box,
+## clamped so it can never escape past the top of the screen.
+func _layout_responses() -> void:
+	if not is_instance_valid(responses_menu) or not responses_menu.visible:
+		return
+	var parent_top: float = responses_center.get_parent().get_global_rect().position.y
+	var box_top: float = dialogue_box.get_global_rect().position.y
+	var h: float = responses_menu.get_combined_minimum_size().y
+	var gap: float = 8.0
+	var top: float = maxf(8.0, box_top - gap - h)
+	responses_center.offset_top = top - parent_top
+	responses_center.offset_bottom = (box_top - gap) - parent_top
 
 
 func _on_sprite_scale_changed(v: float) -> void:

@@ -32,8 +32,9 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - **mobile controls**: with `input_devices/pointing/emulate_mouse_from_touch` enabled,
   taps drive the same click/advance path, an upward swipe opens the history backlog, and
   every control is an authored touch target; settings get an on-screen close button and a
-  portrait layout that wraps each slider under its label, fullscreen-wide
-  (`docs/13_settings_portrait.webp`)
+  portrait layout that wraps each slider under its label, fullscreen-wide — entered
+  automatically when the window is taller than wide, or forced from the "Portrait layout"
+  setting when the engine can't rotate (`docs/13_settings_portrait.webp`)
 - **voiced dialogue**: all fourteen spoken character lines carry `#voice=` tags and play
   per-character clips (Maya and Rook) on the Voice bus, silenced again on unvoiced lines;
   the clips were generated as Opus but ship as tightly packed Ogg Vorbis (mono, 32 kbps)
@@ -44,7 +45,7 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - **styled text**: BBCode (`[b]`, `[i]`, `[color=…]`, …) renders in the typewriter label;
   the backlog and save-slot labels store the same lines without markup
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **221/221 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **223/223 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 
@@ -210,7 +211,10 @@ value and the fallback to the configured text speed. v1.10 enables BBCode-styled
 stripped), ships the user documentation set, and stores the doc screenshots as WebP.
 v1.11 anchors the choice menu in a band above the dialogue box (it could slip behind the
 box on tall/portrait windows), adds the settings close button and the portrait reflow,
-and the repo history was purged of the pre-WebP PNG blobs.
+and the repo history was purged of the pre-WebP PNG blobs. v1.12 sizes the choices band to
+the menu at show time (parked just above the box, clamped on-screen at any window size),
+widens the landscape settings column, and adds the force-portrait setting so the portrait
+layout is testable without window rotation.
 
 ## Documentation
 

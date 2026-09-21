@@ -140,7 +140,7 @@ func run() -> void:
 			user_dir.remove("seen.json")
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -218,9 +218,9 @@ func run() -> void:
 	check(alive() and balloon.responses_menu.visible, "responses menu is visible")
 	var items: Array = balloon.responses_menu.get_menu_items()
 	check(items.size() == 3, "responses menu shows three buttons")
-	check(alive() and balloon.responses_menu.get_global_rect().end.y
-		<= balloon.dialogue_box.get_global_rect().position.y + 1.0,
-		"choices sit above the dialogue box")
+	check(alive() and balloon.responses_menu.get_global_rect().position.y >= 0.0
+		and balloon.responses_menu.get_global_rect().end.y <= balloon.dialogue_box.get_global_rect().position.y + 1.0,
+		"choices sit above the dialogue box, fully on screen")
 	if items.size() > 0:
 		check(items[0].text.begins_with("I'm Alex"), "first choice text correct")
 	else:
@@ -660,14 +660,14 @@ func run() -> void:
 	check(alive() and balloon.ui_root.scale == Vector2(1.25, 1.25), "UI scale applied to the UI root only")
 	check(alive() and is_equal_approx(balloon.ui_root.size.x, 1280.0 / 1.25),
 		"UI root logical size shrinks so edges stay on screen")
-	check(alive() and is_equal_approx(balloon.settings_margin.get_theme_constant("margin_left") * 1.25, 340.0),
+	check(alive() and is_equal_approx(balloon.settings_margin.get_theme_constant("margin_left") * 1.25, 180.0),
 		"settings width responds to the UI scale")
 	check(alive() and balloon.sprite_left.scale == Vector2(1.0, 1.0)
 		and stage_size_before == balloon.background.size,
 		"UI scale leaves the stage and sprites untouched")
 	balloon.ui_scale_slider.value = 1.0
 	await get_tree().process_frame
-	check(alive() and balloon.settings_margin.get_theme_constant("margin_left") == 340,
+	check(alive() and balloon.settings_margin.get_theme_constant("margin_left") == 180,
 		"settings margins restore at scale 1")
 	# Portrait: sliders wrap below their labels and the panel goes wide.
 	balloon.set_portrait_mode(true)
@@ -678,8 +678,15 @@ func run() -> void:
 	balloon.set_portrait_mode(false)
 	await get_tree().process_frame
 	check(alive() and not (balloon.text_size_slider.get_parent() as BoxContainer).vertical
-		and balloon.settings_margin.get_theme_constant("margin_left") == 340,
+		and balloon.settings_margin.get_theme_constant("margin_left") == 180,
 		"landscape restores side-by-side rows")
+	balloon.portrait_check.toggled.emit(true)
+	await get_tree().process_frame
+	check(alive() and balloon.portrait_mode
+		and (balloon.text_size_slider.get_parent() as BoxContainer).vertical,
+		"portrait layout can be forced from settings (editor-friendly)")
+	balloon.portrait_check.toggled.emit(false)
+	await get_tree().process_frame
 
 	# Sprite scale & Y offset are settings of their own, separate from UI scale
 	balloon.sprite_scale_slider.value = 1.25

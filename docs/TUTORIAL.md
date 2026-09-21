@@ -50,7 +50,8 @@ Everything applies live and persists to `user://settings.json`:
   skip speed, skip *Everything* vs *Seen only*, auto delay.
 - *Display*: UI scale (scales only the UI, never the scene; the settings column keeps a
   usable width at any scale), fullscreen, V-Sync, resolution presets or any custom positive
-  width/height.
+  width/height, and "Portrait layout" to force the wrapped portrait settings even when the
+  window can't rotate.
 - *Audio*: master / music / voice / SFX volumes (voices play on the Voice bus).
 - *Sprites*: portrait scale and Y offset.
 
