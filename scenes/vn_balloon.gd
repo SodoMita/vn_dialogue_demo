@@ -269,6 +269,8 @@ var _thumb_cache: Dictionary = {}
 var _touch_from: Vector2 = Vector2.INF
 ## Keyboard skip is momentary: the mode lasts only while the key is held.
 var _skip_key_held: bool = false
+## Set when a held keyboard skip reaches a choice; consumed by its next line.
+var _resume_skip_after_choice: bool = false
 ## Invalidates delayed auto/time continuations when skip advances a line.
 var _line_token: int = 0
 
@@ -468,6 +470,9 @@ func apply_dialogue_line() -> void:
 	# Wait for next line
 	if dialogue_line.responses.size() > 0:
 		balloon.focus_mode = Control.FOCUS_NONE
+		# Keep the held-key intent while the choice menu is open. The choice
+		# itself remains a stop, but the selected branch must resume skipping.
+		_resume_skip_after_choice = _skip_key_held or Input.is_action_pressed(skip_action)
 		skip_mode = false
 		skip_button.modulate = Color.WHITE
 		_seeking_choice = false
@@ -489,8 +494,9 @@ func apply_dialogue_line() -> void:
 		balloon.grab_focus()
 		# A held skip key must carry across a choice. Choices deliberately stop
 		# the current line, but the first line after the selection is skippable.
-		if _skip_key_held and not _any_overlay_open():
+		if (_skip_key_held or _resume_skip_after_choice or Input.is_action_pressed(skip_action)) and not _any_overlay_open():
 			skip_mode = true
+			_resume_skip_after_choice = false
 			skip_button.modulate = Color(1.0, 0.85, 0.5)
 		if skip_mode and not _any_overlay_open():
 			if skip_seen_only and not _current_was_seen:
