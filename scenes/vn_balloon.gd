@@ -269,6 +269,8 @@ var _thumb_cache: Dictionary = {}
 var _touch_from: Vector2 = Vector2.INF
 ## Keyboard skip is momentary: the mode lasts only while the key is held.
 var _skip_key_held: bool = false
+## Invalidates delayed auto/time continuations when skip advances a line.
+var _line_token: int = 0
 
 ## Frames left during which the emulated mouse click of a finished swipe is swallowed.
 var _swipe_guard_frames: int = 0
@@ -396,6 +398,8 @@ func start(with_dialogue_resource: DialogueResource = null, cue: String = "", ex
 
 ## Apply any changes to the balloon given a new [DialogueLine].
 func apply_dialogue_line() -> void:
+	_line_token += 1
+	var this_line_token: int = _line_token
 	mutation_cooldown.stop()
 	auto_timer.stop()
 
@@ -470,9 +474,15 @@ func apply_dialogue_line() -> void:
 		responses_menu.show()
 		call_deferred("_layout_responses")
 	elif dialogue_line.time != "":
-		var time: float = dialogue_line.text.length() * 0.02 if dialogue_line.time == "auto" else dialogue_line.time.to_float()
-		await get_tree().create_timer(time).timeout
-		next(dialogue_line.next_id)
+		# Timed/stage slides used to ignore skip entirely because their own
+		# await bypassed SkipTimer. Skip them immediately when active.
+		if skip_mode or _skip_key_held:
+			next(dialogue_line.next_id)
+		else:
+			var time: float = dialogue_line.text.length() * 0.02 if dialogue_line.time == "auto" else dialogue_line.time.to_float()
+			await get_tree().create_timer(time).timeout
+			if this_line_token == _line_token:
+				next(dialogue_line.next_id)
 	else:
 		is_waiting_for_input = true
 		balloon.focus_mode = Control.FOCUS_ALL
@@ -1634,6 +1644,16 @@ func _set_skip_active(on: bool) -> void:
 	skip_button.modulate = Color(1.0, 0.85, 0.5) if on else Color.WHITE
 	auto_timer.stop()
 	skip_timer.stop()
+	if on and not _any_overlay_open() and is_instance_valid(dialogue_line):
+		# Holding skip should finish the current typewriter immediately, not
+		# wait for the slide to finish at normal text speed.
+		if dialogue_label.is_typing:
+			dialogue_label.skip_typing()
+		elif dialogue_line.time != "" and not is_waiting_for_input:
+			# A timed line may already be in its delay; invalidate its continuation
+			# and advance now instead of waiting for the delay to expire.
+			_line_token += 1
+			next(dialogue_line.next_id)
 	if on and is_waiting_for_input and not _any_overlay_open() \
 		and is_instance_valid(dialogue_line) and dialogue_line.responses.size() == 0:
 		if skip_seen_only and not _current_was_seen:
