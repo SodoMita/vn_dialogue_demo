@@ -15,7 +15,7 @@ typewriter box, centered choices) built on the
 | Action | Input |
 | --- | --- |
 | Advance / finish typing | click or `Enter` (first press finishes the typewriter, next advances) |
-| Toggle skip mode | `Ctrl` |
+| Hold to skip | Hold `Ctrl` (release to stop) |
 | Close the top overlay | `Backspace` |
 | Open history | `H` |
 | Choose an option | `Up`/`Down` then `Enter` (or click) |
@@ -36,7 +36,7 @@ scrolling backlog; `Set` opens settings.
 ## Modes
 
 - **Auto** — the game advances by itself after the configured auto delay.
-- **Skip** — paces through lines at the configured skip speed and always stops at choices.
+- **Skip** — while the keyboard skip key is held, paces through lines at the configured skip speed and always stops at choices.
   In *seen only* mode it halts with a toast at the first line you have never read
   (read lines are remembered in `user://seen.json` across sessions).
 

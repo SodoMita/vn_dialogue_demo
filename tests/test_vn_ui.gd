@@ -734,9 +734,10 @@ func run() -> void:
 	# Skip speed
 	balloon.skip_speed_slider.value += 0.05
 	await get_tree().process_frame
-	check(alive() and is_equal_approx(balloon.skip_delay, balloon.skip_speed_slider.value)
+	check(alive() and is_equal_approx(balloon.skip_delay,
+			balloon.skip_speed_slider.min_value + balloon.skip_speed_slider.max_value - balloon.skip_speed_slider.value)
 		and is_equal_approx(balloon.skip_timer.wait_time, balloon.skip_delay),
-		"skip speed applied to the skip timer")
+		"skip speed applied to the skip timer with faster-right slider semantics")
 
 	# Skip mode
 	balloon.skip_mode_option.item_selected.emit(1)

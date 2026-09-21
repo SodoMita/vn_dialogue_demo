@@ -13,8 +13,8 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - left / right character sprite slots with spotlight dimming (`#sprite=`, `#focus=`)
 - gold-trimmed dialogue box + name plate, serif novel font
 - typewriter text via the addon's `DialogueLabel`; the remappable Advance (`Enter`) key
-  and click finish the typewriter first, then proceed on the next press; the separate
-  Skip (`Ctrl`) key toggles fast-forward mode
+  and click finish the typewriter first, then proceed on the next press; holding the
+  Skip (`Ctrl`) key fast-forwards only while held
 - bobbing "next" indicator
 - centred choice buttons via the addon's `DialogueResponsesMenu`
 - **history (backlog) panel with rollback**: `H` opens it (scrollable with wheel / keys),
@@ -26,7 +26,7 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
   including Kirikiri-style jumps to the previous/next choice), save/load menus that list every
   `user://saves/slot_*.json` with a runtime-rendered thumbnail, a `+ New slot` button, and
   `F5`/`F9` quick save/load into slot 0 (`docs/07_system_row.webp`, `docs/08_save_menu.webp`)
-- **auto & skip modes** (skip stops by itself at choices; skip speed configurable; "skip
+- **auto & skip modes** (skip stops by itself at choices; skip speed configurable (higher slider values are faster); "skip
   seen only" halts with a toast at the first line the player has never read, tracked in
   `user://seen.json`), **full settings screen** (text speed, text size, skip speed,
   skip-everything-vs-seen, auto delay, UI scaling scoped to the UI only (the stage and

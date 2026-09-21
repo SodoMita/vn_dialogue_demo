@@ -115,8 +115,11 @@ class_name VNBalloon extends CanvasLayer
 @onready var settings_panel: PanelContainer = %SettingsPanel
 @onready var settings_scroll: ScrollContainer = %SettingsScroll
 @onready var text_speed_slider: HSlider = %TextSpeedSlider
+@onready var text_speed_value: Label = %TextSpeedValue
 @onready var text_size_slider: HSlider = %TextSizeSlider
+@onready var text_size_value: Label = %TextSizeValue
 @onready var skip_speed_slider: HSlider = %SkipSpeedSlider
+@onready var skip_speed_value: Label = %SkipSpeedValue
 @onready var skip_mode_option: OptionButton = %SkipModeOption
 @onready var advance_key_button: Button = %AdvanceKeyButton
 @onready var skip_key_button: Button = %SkipKeyButton
@@ -127,11 +130,15 @@ class_name VNBalloon extends CanvasLayer
 @onready var pause_key_button: Button = %PauseKeyButton
 @onready var panic_key_button: Button = %PanicKeyButton
 @onready var auto_delay_slider: HSlider = %AutoDelaySlider
+@onready var auto_delay_value: Label = %AutoDelayValue
 @onready var ui_scale_slider: HSlider = %UIScaleSlider
+@onready var ui_scale_value: Label = %UIScaleValue
 @onready var settings_margin: MarginContainer = %SettingsMargin
 @onready var ui_root: Control = %UIRoot
 @onready var sprite_scale_slider: HSlider = %SpriteScaleSlider
+@onready var sprite_scale_value: Label = %SpriteScaleValue
 @onready var sprite_y_slider: HSlider = %SpriteYSlider
+@onready var sprite_y_value: Label = %SpriteYValue
 @onready var sync_voice_check: CheckBox = %SyncVoiceCheck
 @onready var settings_close_button: Button = %SettingsCloseButton
 @onready var settings_vbox: VBoxContainer = %SettingsVBox
@@ -144,9 +151,13 @@ class_name VNBalloon extends CanvasLayer
 @onready var res_width_spin: SpinBox = %ResWidthSpin
 @onready var res_height_spin: SpinBox = %ResHeightSpin
 @onready var master_vol_slider: HSlider = %MasterVolSlider
+@onready var master_vol_value: Label = %MasterVolValue
 @onready var music_vol_slider: HSlider = %MusicVolSlider
+@onready var music_vol_value: Label = %MusicVolValue
 @onready var voice_vol_slider: HSlider = %VoiceVolSlider
+@onready var voice_vol_value: Label = %VoiceVolValue
 @onready var sfx_vol_slider: HSlider = %SfxVolSlider
+@onready var sfx_vol_value: Label = %SfxVolValue
 
 ## Pause + panic
 @onready var pause_panel: PanelContainer = %PausePanel
@@ -256,6 +267,8 @@ var _thumb_cache: Dictionary = {}
 
 ## Mobile swipe tracking: an upward swipe opens the history backlog.
 var _touch_from: Vector2 = Vector2.INF
+## Keyboard skip is momentary: the mode lasts only while the key is held.
+var _skip_key_held: bool = false
 
 ## Frames left during which the emulated mouse click of a finished swipe is swallowed.
 var _swipe_guard_frames: int = 0
@@ -300,6 +313,7 @@ func _ready() -> void:
 	_on_sprite_scale_changed(sprite_scale_slider.value)
 	_on_sprite_y_changed(sprite_y_slider.value)
 	_reflow_settings()
+	_update_slider_value_labels()
 	Engine.get_singleton("DialogueManager").mutated.connect(_on_mutated)
 
 	# If the responses menu doesn't have a next action set, use this one
@@ -463,6 +477,11 @@ func apply_dialogue_line() -> void:
 		is_waiting_for_input = true
 		balloon.focus_mode = Control.FOCUS_ALL
 		balloon.grab_focus()
+		# A held skip key must carry across a choice. Choices deliberately stop
+		# the current line, but the first line after the selection is skippable.
+		if _skip_key_held and not _any_overlay_open():
+			skip_mode = true
+			skip_button.modulate = Color(1.0, 0.85, 0.5)
 		if skip_mode and not _any_overlay_open():
 			if skip_seen_only and not _current_was_seen:
 				_toggle_skip_off_at_unseen()
@@ -954,8 +973,16 @@ func _input(event: InputEvent) -> void:
 		_close_top_overlay()
 		get_viewport().set_input_as_handled()
 		return
-	if not _any_overlay_open() and event.is_action_pressed(skip_action):
-		_toggle_skip()
+	# Keyboard skip is a hold gesture, not a latch. The toolbar button remains
+	# a conventional toggle for mouse/touch users.
+	if event.is_action_pressed(skip_action) and not (event is InputEventKey and (event as InputEventKey).echo):
+		_skip_key_held = true
+		if not _any_overlay_open():
+			_set_skip_active(true)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_released(skip_action):
+		_skip_key_held = false
+		_set_skip_active(false)
 		get_viewport().set_input_as_handled()
 
 
@@ -1130,11 +1157,13 @@ func _save_settings() -> void:
 
 func _on_text_speed_changed(v: float) -> void:
 	dialogue_label.seconds_per_step = v
+	_update_slider_value_labels()
 	_save_settings()
 
 
 func _on_auto_delay_changed(v: float) -> void:
 	auto_delay = v
+	_update_slider_value_labels()
 	_save_settings()
 
 
@@ -1158,8 +1187,11 @@ func _on_text_size_changed(v: float) -> void:
 
 
 func _on_skip_speed_changed(v: float) -> void:
-	skip_delay = v
-	skip_timer.wait_time = v
+	# The control reads as speed: moving right is faster. Internally the timer
+	# needs the inverse quantity, seconds between lines.
+	skip_delay = skip_speed_slider.min_value + skip_speed_slider.max_value - v
+	skip_timer.wait_time = skip_delay
+	_update_slider_value_labels()
 	_save_settings()
 
 
@@ -1170,6 +1202,7 @@ func _on_skip_mode_selected(index: int) -> void:
 
 func _on_ui_scale_changed(v: float) -> void:
 	_apply_ui_scale(v)
+	_update_slider_value_labels()
 	_save_settings()
 
 
@@ -1255,6 +1288,22 @@ func _layout_system_row() -> void:
 	var h := float(rows) * 44.0 + float(rows - 1) * sep
 	system_row.offset_top = system_row.offset_bottom - h
 	bottom_ui.offset_top = -216.0 - (h - 44.0)
+
+
+func _update_slider_value_labels() -> void:
+	if not is_instance_valid(text_speed_value):
+		return
+	text_speed_value.text = "%.3f s" % text_speed_slider.value
+	text_size_value.text = "%d px" % roundi(text_size_slider.value)
+	skip_speed_value.text = "%.2f s" % skip_delay
+	auto_delay_value.text = "%.2f s" % auto_delay_slider.value
+	ui_scale_value.text = "%.2fx" % ui_scale_slider.value
+	sprite_scale_value.text = "%.2fx" % sprite_scale_slider.value
+	sprite_y_value.text = "%d px" % roundi(sprite_y_slider.value)
+	master_vol_value.text = "%d%%" % roundi(master_vol_slider.value)
+	music_vol_value.text = "%d%%" % roundi(music_vol_slider.value)
+	voice_vol_value.text = "%d%%" % roundi(voice_vol_slider.value)
+	sfx_vol_value.text = "%d%%" % roundi(sfx_vol_slider.value)
 
 
 func _on_settings_close_pressed() -> void:
@@ -1388,12 +1437,14 @@ func _layout_responses() -> void:
 func _on_sprite_scale_changed(v: float) -> void:
 	sprite_scale = v
 	_apply_sprite_transform()
+	_update_slider_value_labels()
 	_save_settings()
 
 
 func _on_sprite_y_changed(v: float) -> void:
 	sprite_y = v
 	_apply_sprite_transform()
+	_update_slider_value_labels()
 	_save_settings()
 
 
@@ -1478,21 +1529,25 @@ func _set_bus_volume(bus_name: String, volume: float) -> void:
 
 func _on_master_vol_changed(v: float) -> void:
 	_set_bus_volume("Master", v)
+	_update_slider_value_labels()
 	_save_settings()
 
 
 func _on_music_vol_changed(v: float) -> void:
 	_set_bus_volume("Music", v)
+	_update_slider_value_labels()
 	_save_settings()
 
 
 func _on_voice_vol_changed(v: float) -> void:
 	_set_bus_volume("Voice", v)
+	_update_slider_value_labels()
 	_save_settings()
 
 
 func _on_sfx_vol_changed(v: float) -> void:
 	_set_bus_volume("SFX", v)
+	_update_slider_value_labels()
 	_save_settings()
 
 
@@ -1563,18 +1618,22 @@ func _toggle_auto() -> void:
 		auto_timer.stop()
 
 
-func _toggle_skip() -> void:
-	skip_mode = not skip_mode
-	skip_button.modulate = Color(1.0, 0.85, 0.5) if skip_mode else Color.WHITE
-	_toast(tr("Skip on") if skip_mode else tr("Skip off"))
+func _set_skip_active(on: bool) -> void:
+	skip_mode = on
+	skip_button.modulate = Color(1.0, 0.85, 0.5) if on else Color.WHITE
 	auto_timer.stop()
 	skip_timer.stop()
-	if skip_mode and is_waiting_for_input and not _any_overlay_open() \
+	if on and is_waiting_for_input and not _any_overlay_open() \
 		and is_instance_valid(dialogue_line) and dialogue_line.responses.size() == 0:
 		if skip_seen_only and not _current_was_seen:
 			_toggle_skip_off_at_unseen()
 		else:
 			skip_timer.start(skip_delay)
+
+
+func _toggle_skip() -> void:
+	_set_skip_active(not skip_mode)
+	_toast(tr("Skip on") if skip_mode else tr("Skip off"))
 
 
 func _toggle_skip_off_at_unseen() -> void:
