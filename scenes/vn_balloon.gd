@@ -140,6 +140,12 @@ class_name VNBalloon extends CanvasLayer
 @onready var pause_panel: PanelContainer = %PausePanel
 @onready var resume_button: Button = %ResumeButton
 @onready var panic_screen: Control = %PanicScreen
+@onready var panic_close_button: Button = %PanicCloseButton
+
+## Bottom system row (wraps on narrow aspects / big UI scales)
+@onready var bottom_ui: Control = %BottomUI
+@onready var system_row: GridContainer = %SystemRow
+@onready var pause_button: Button = %PauseButton
 
 ## Timers
 @onready var skip_timer: Timer = %SkipTimer
@@ -1021,6 +1027,40 @@ func _apply_settings_layout() -> void:
 			if first is Label:
 				(first as Label).custom_minimum_size.x = 0.0 if portrait_mode else 170.0
 	_apply_ui_scale(ui_scale)
+	_layout_system_row()
+
+
+## The bottom button row wraps into as many rows as the logical width needs
+## (narrow aspects, big UI scales): the GridContainer's column count drops
+## until every button fits, and the dialogue box grows upward to make room.
+func _layout_system_row() -> void:
+	var btns := system_row.get_children()
+	var count := btns.size()
+	if count == 0:
+		return
+	var sep := 6.0
+	var avail: float = balloon.size.x / ui_scale - 28.0
+	var mins := PackedFloat64Array()
+	for b: Node in btns:
+		mins.push_back((b as Control).custom_minimum_size.x)
+	var cols: int = 1
+	for c: int in range(count, 0, -1):
+		var colw := PackedFloat64Array()
+		colw.resize(c)
+		for i: int in count:
+			var col: int = i % c
+			colw[col] = maxf(colw[col], mins[i])
+		var total := sep * float(c - 1)
+		for w: float in colw:
+			total += w
+		if total <= avail:
+			cols = c
+			break
+	system_row.columns = cols
+	var rows := ceili(float(count) / float(cols))
+	var h := float(rows) * 44.0 + float(rows - 1) * sep
+	system_row.offset_top = system_row.offset_bottom - h
+	bottom_ui.offset_top = -216.0 - (h - 44.0)
 
 
 func _on_settings_close_pressed() -> void:
@@ -1228,6 +1268,19 @@ func toggle_panic() -> void:
 	else:
 		dialogue_label.set_process(true)
 		_restore_waiting()
+
+
+## Touch pause: keyboards have the pause action, phones only get this button.
+func _on_pause_button_pressed() -> void:
+	if pause_panel.visible:
+		close_pause()
+	else:
+		open_pause()
+
+
+## Touch exit for the panic page (the boss key alone is no help on phones).
+func _on_panic_close_pressed() -> void:
+	toggle_panic()
 
 
 func _toggle_auto() -> void:

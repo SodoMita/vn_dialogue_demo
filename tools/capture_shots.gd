@@ -212,6 +212,16 @@ func run() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await shot("14_rotation_90")
+	balloon._close_overlay(balloon.settings_panel)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await shot("15_system_row_wrapped")
+	balloon.toggle_panic()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await shot("16_panic_portrait")
+	balloon.toggle_panic()
+	await get_tree().process_frame
 	balloon._set_rotation(0)
 	await get_tree().process_frame
 

@@ -256,6 +256,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="BottomUI" type="Control" parent="Balloon/UIRoot"]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -353,18 +354,17 @@ color = Color(0.93, 0.78, 0.42, 1)
 libraries/ = SubResource("AnimationLibrary_bob")
 autoplay = &"bob"
 
-[node name="SystemRow" type="HBoxContainer" parent="Balloon/UIRoot/BottomUI"]
+[node name="SystemRow" type="GridContainer" parent="Balloon/UIRoot/BottomUI"]
+unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
+anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -604.0
+offset_left = 14.0
 offset_top = -54.0
 offset_right = -14.0
 offset_bottom = -10.0
-grow_horizontal = 0
 grow_vertical = 0
 theme_override_constants/separation = 6
 
@@ -532,6 +532,21 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
 text = "Panic"
+
+[node name="PauseButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(62, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Pause"
 
 [node name="MutationCooldown" type="Timer" parent="."]
 unique_name_in_owner = true
@@ -1242,24 +1257,47 @@ theme_override_constants/margin_top = 60
 theme_override_constants/margin_right = 90
 theme_override_constants/margin_bottom = 60
 
-[node name="PanicVBox" type="VBoxContainer" parent="Balloon/UIRoot/PanicScreen/PanicMargin"]
+[node name="PanicScroll" type="ScrollContainer" parent="Balloon/UIRoot/PanicScreen/PanicMargin"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="PanicVBox" type="VBoxContainer" parent="Balloon/UIRoot/PanicScreen/PanicMargin/PanicScroll"]
+size_flags_horizontal = 3
 layout_mode = 2
 theme_override_constants/separation = 18
 
-[node name="PanicTitle" type="Label" parent="Balloon/UIRoot/PanicScreen/PanicMargin/PanicVBox"]
+[node name="PanicTitle" type="Label" parent="Balloon/UIRoot/PanicScreen/PanicMargin/PanicScroll/PanicVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.1, 0.1, 0.1, 1)
 theme_override_fonts/font = ExtResource("5_serifbold")
 theme_override_font_sizes/font_size = 30
 text = "PHYS 201 - Quantum Mechanics II"
 
-[node name="PanicBody" type="Label" parent="Balloon/UIRoot/PanicScreen/PanicMargin/PanicVBox"]
+[node name="PanicBody" type="Label" parent="Balloon/UIRoot/PanicScreen/PanicMargin/PanicScroll/PanicVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.15, 0.15, 0.15, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 18
 autowrap_mode = 2
 text = "Lecture 12: The time-independent Schroedinger equation. H psi = E psi, where H is the Hamiltonian operator. For a particle in a 1-D infinite well of width L the energy eigenvalues are E_n = n^2 h^2 / (8 m L^2). Reminder: problem set 4 is due Friday - problems 3.7, 3.9 and the derivation of the uncertainty principle for position and momentum."
+
+[node name="PanicCloseButton" type="Button" parent="Balloon/UIRoot/PanicScreen"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -64.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 52.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.45, 0.45, 0.5, 1)
+theme_override_colors/font_focus_color = Color(0.2, 0.2, 0.25, 1)
+theme_override_colors/font_hover_color = Color(0.2, 0.2, 0.25, 1)
+theme_override_font_sizes/font_size = 22
+text = "X"
 
 [node name="HistoryPanel" type="PanelContainer" parent="Balloon/UIRoot"]
 unique_name_in_owner = true
@@ -1399,6 +1437,8 @@ text = "X"
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/LogButton" to="." method="_on_log_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/SettingsButton" to="." method="_on_settings_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/PanicButton" to="." method="_on_panic_pressed"]
+[connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/PauseButton" to="." method="_on_pause_button_pressed"]
+[connection signal="pressed" from="Balloon/UIRoot/PanicScreen/PanicCloseButton" to="." method="_on_panic_close_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/NewSlotButton" to="." method="_on_new_slot_pressed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow/TextSpeedSlider" to="." method="_on_text_speed_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSizeRow/TextSizeSlider" to="." method="_on_text_size_changed"]

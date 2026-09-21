@@ -140,7 +140,7 @@ func run() -> void:
 			user_dir.remove("seen.json")
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button", "PauseButton", "PanicCloseButton"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -702,6 +702,30 @@ func run() -> void:
 		"rotation back to 0 restores landscape")
 	check(alive() and balloon.balloon.size == Vector2(1280.0, 720.0),
 		"logical resolution unflips at rotation 0")
+
+	# Mobile ergonomics: the bottom row wraps, pause is one tap away, and the
+	# panic page has a touch exit.
+	balloon._set_rotation(90)
+	await get_tree().process_frame
+	check(alive() and balloon.system_row.columns < balloon.system_row.get_child_count()
+		and (balloon.system_row.offset_bottom - balloon.system_row.offset_top) > 44.0,
+		"system row wraps to fit a narrow aspect")
+	balloon._set_rotation(0)
+	await get_tree().process_frame
+	check(alive() and balloon.system_row.columns == balloon.system_row.get_child_count(),
+		"system row restores a single row on wide aspects")
+	balloon.pause_button.pressed.emit()
+	await get_tree().process_frame
+	check(alive() and balloon.pause_panel.visible, "the row's Pause button opens pause on touch devices")
+	balloon.pause_button.pressed.emit()
+	await get_tree().process_frame
+	check(alive() and not balloon.pause_panel.visible, "the Pause button closes pause again")
+	balloon.toggle_panic()
+	await get_tree().process_frame
+	check(alive() and balloon.panic_screen.visible, "panic screen opens")
+	balloon.panic_close_button.pressed.emit()
+	await get_tree().process_frame
+	check(alive() and not balloon.panic_screen.visible, "panic screen has a touch exit for phones")
 
 	# Sprite scale & Y offset are settings of their own, separate from UI scale
 	balloon.sprite_scale_slider.value = 1.25

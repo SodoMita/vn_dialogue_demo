@@ -34,7 +34,10 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
   every control is an authored touch target; settings get an on-screen close button and a
   portrait layout that wraps each slider under its label, fullscreen-wide — entered
   automatically when the window is taller than wide, or forced from the "Portrait layout"
-  setting when the engine can't rotate (`docs/13_settings_portrait.webp`)
+  setting when the engine can't rotate; the bottom system row wraps onto multiple lines
+  on narrow aspects / big UI scales and gains a Pause button; the panic page scrolls and
+  closes from a corner X (`docs/13_settings_portrait.webp`,
+  `docs/15_system_row_wrapped.webp`, `docs/16_panic_portrait.webp`)
 - **voiced dialogue**: all fourteen spoken character lines carry `#voice=` tags and play
   per-character clips (Maya and Rook) on the Voice bus, silenced again on unvoiced lines;
   the clips were generated as Opus but ship as tightly packed Ogg Vorbis (mono, 32 kbps)
@@ -45,7 +48,7 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - **styled text**: BBCode (`[b]`, `[i]`, `[color=…]`, …) renders in the typewriter label;
   the backlog and save-slot labels store the same lines without markup
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **233/233 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **241/241 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 
@@ -219,7 +222,10 @@ the overlay panels (their old top-most z-order silently swallowed taps on the lo
 settings rows, e.g. the sprite sliders) and adds four rotation buttons (0/90/180/270) that
 rotate the whole view — rotation also flips the logical resolution's X/Y, so the turned
 view fills the window exactly (no letterbox gaps), and 90/270 flip the effective
-orientation, giving a true portrait preview on engines/windows that never rotate. The headless suite pins that
+orientation, giving a true portrait preview on engines/windows that never rotate. v1.14 makes
+the bottom system row wrap onto as many lines as the logical width needs (narrow aspects,
+big UI scales), adds a Pause button to it for touch devices, and gives the panic page a
+scrollable layout plus a corner X so portrait phones can always leave it. The headless suite pins that
 layering, and `tools/capture_shots.gd` re-proves with a real pointer tap (under xvfb) that
 the sprite sliders slide again.
 
