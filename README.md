@@ -12,12 +12,12 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - **history (backlog) panel with rollback**: `H` opens it (scrollable with wheel / keys),
   clicking any logged line jumps back to it and restores the story state + stage exactly as
   they were; Ren'Py-style the rollback is non-destructive — the mouse wheel rolls the game
-  back a line and forward again through the kept lines (`docs/05_history.png`)
+  back a line and forward again through the kept lines (`docs/05_history.webp`)
 - **save / load with an arbitrary number of slots**: a Kirikiri/Ren'Py-style **bottom system
   row** under the dialogue box (`QS QL Save Load Auto Skip < Choice Choice > Log Set Panic`,
   including Kirikiri-style jumps to the previous/next choice), save/load menus that list every
   `user://saves/slot_*.json` with a runtime-rendered thumbnail, a `+ New slot` button, and
-  `F5`/`F9` quick save/load into slot 0 (`docs/07_system_row.png`, `docs/08_save_menu.png`)
+  `F5`/`F9` quick save/load into slot 0 (`docs/07_system_row.webp`, `docs/08_save_menu.webp`)
 - **auto & skip modes** (skip stops by itself at choices; skip speed configurable; "skip
   seen only" halts with a toast at the first line the player has never read, tracked in
   `user://seen.json`), **full settings screen** (text speed, text size, skip speed,
@@ -28,7 +28,7 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
   live, persisted to `user://settings.json`), **pause menu**
   (`P` / right click, with Resume/History/Save/Load/Settings/Quit), **panic/boss screen**
   (`F12`) that swaps the whole game for a dry quantum-mechanics lecture page
-  (`docs/09_settings.png`, `docs/10_pause.png`, `docs/11_panic.png`)
+  (`docs/09_settings.webp`, `docs/10_pause.webp`, `docs/11_panic.webp`)
 - **mobile controls**: with `input_devices/pointing/emulate_mouse_from_touch` enabled,
   taps drive the same click/advance path, an upward swipe opens the history backlog, and
   every control is an authored touch target
@@ -38,9 +38,11 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
   because Godot 4.7 has no Opus importer; an optional "Sync text to voice" setting paces
   the typewriter so each voiced line finishes typing when its clip ends
 - **compact art**: backgrounds and portraits ship as lossy WebP at quality 0.9 — ~483 KB
-  instead of ~4 MB of PNG, with no visible quality loss
+  instead of ~4 MB of PNG, with no visible quality loss (doc screenshots are WebP too)
+- **styled text**: BBCode (`[b]`, `[i]`, `[color=…]`, …) renders in the typewriter label;
+  the backlog and save-slot labels store the same lines without markup
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **212/212 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **214/214 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 
@@ -136,7 +138,7 @@ driving runtime-created buses (0 mutes, 100 = 0 dB); *Sprites*: character-sprite
 applies live and is
 persisted to `user://settings.json`, and lines the player has read are recorded in
 `user://seen.json` so seen-only skip knows where to halt. The panel notes that `Esc` closes
-it; `docs/12_settings_at_150.png` shows it at 150% UI scale, still fully usable.
+it; `docs/12_settings_at_150.webp` shows it at 150% UI scale, still fully usable.
 
 **Voices**: every spoken line in `dialogue/intro.dialogue` tags its clip with `#voice=key`;
 the balloon plays it through an authored `VoicePlayer` node routed to the Voice bus (so the
@@ -201,7 +203,17 @@ sprite Y offset is a delta on the authored rect, never a flatten), and settings 
 the scrollable column instead of stopping at their minimum width. v1.9 adds the optional
 "Sync text to voice" pacing: with it on, a voiced line's typewriter speed is derived from
 the clip length so typing ends as the voice does, and the checks assert both the paced
-value and the fallback to the configured text speed.
+value and the fallback to the configured text speed. v1.10 enables BBCode-styled dialogue
+(the typewriter label renders the markup while the backlog and save labels store it
+stripped), ships the user documentation set, and stores the doc screenshots as WebP.
+
+## Documentation
+
+- `docs/TUTORIAL.md` — how to play: controls, modes, saves, settings, styled text.
+- `docs/CUSTOMIZING.md` — swapping art/voices/story content, theming, settings ranges.
+- `docs/RECREATION.md` — rebuilding this balloon from scratch with Dialogue Manager,
+  layout blueprint and the pitfalls list.
+- `docs/ROUTE_GRAPH_DESIGN.md` — the deferred single-pass route-graph renderer design.
 
 Rendered screenshots (under Xvfb + software GL):
 

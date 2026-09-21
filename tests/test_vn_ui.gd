@@ -235,6 +235,9 @@ func run() -> void:
 	check(gs.met_rook == true, "mutation `do met_rook = true` ran")
 	check(alive() and not balloon.voice_player.playing, "unvoiced narration stops the voice")
 	check(line != null and line.text.begins_with("The first bell"), "condition `if day == 1` branch taken")
+	check(alive() and balloon.dialogue_label.bbcode_enabled, "dialogue label renders BBCode-styled text")
+	check(alive() and not "[" in balloon.history[balloon.history_cursor].text,
+		"backlog stores styled lines without raw BBCode markup")
 	line = await step()  # rooftop narration
 	check(line != null and line.text.begins_with("Wind over the chain-link"), "jumped to ~ rooftop cue")
 	check(alive() and balloon.background.texture != null and balloon.background.texture.resource_path.ends_with("rooftop.webp"), "#bg=rooftop switched background")

@@ -339,7 +339,7 @@ func apply_dialogue_line() -> void:
 		var entry: Dictionary = {
 			"id": dialogue_line.id,
 			"character": dialogue_line.character,
-			"text": dialogue_line.text,
+			"text": _strip_bbcode(dialogue_line.text),
 			"bg": _current_bg,
 			"left": _current_left,
 			"right": _current_right,
@@ -539,6 +539,13 @@ func _set_focus(slot_name: String) -> void:
 		sprite_left.modulate.a = dim
 
 
+## Remove BBCode markup for places that show plain text (the backlog rows).
+func _strip_bbcode(source: String) -> String:
+	var rx := RegEx.new()
+	rx.compile("\\[[a-zA-Z/][^\\]]*\\]")
+	return rx.sub(source, "", true)
+
+
 ## Re-dress the stage exactly as it was when a history entry was shown.
 func _restore_stage(entry: Dictionary) -> void:
 	_set_background(str(entry.get("bg", "")))
@@ -644,7 +651,7 @@ func save_to_slot(i: int) -> Error:
 		"history": history,
 		"cursor": history_cursor,
 		"meta": {
-			"label": ("%s: %s" % [current.character, current.text]) if current.character != "" else current.text,
+			"label": _strip_bbcode(("%s: %s" % [current.character, current.text]) if current.character != "" else current.text),
 			"when": Time.get_datetime_string_from_system(),
 			# Stage keys only - the slot menu re-renders a thumbnail from these
 			# at runtime instead of storing image data in the save.

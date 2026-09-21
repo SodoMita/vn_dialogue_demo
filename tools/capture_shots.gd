@@ -45,7 +45,7 @@ func settle() -> void:
 func shot(name: String) -> void:
 	await get_tree().process_frame
 	var img: Image = get_viewport().get_texture().get_image()
-	img.save_png("res://docs/%s.png" % name)
+	img.save_webp("res://docs/%s.webp" % name, 0.9)
 	print("SHOT %s" % name)
 
 

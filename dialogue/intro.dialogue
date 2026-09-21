@@ -21,7 +21,7 @@ Maya: Fine, you win, clock-watch person. I'm {{player_name}}. And you are? [#voi
 Rook: Enjoy the rooftop if you like. Everyone ends up there eventually. [#sprite=rook:right, #focus=right, #voice=r3]
 do met_rook = true
 if day == 1:
-	The first bell of the day finally rings, sharp and bright.
+	The first bell of the day finally rings, [color=#9fd8ff]sharp and bright[/color].
 else:
 	Another day at {{school_name}}. The halls already hum with gossip.
 => rooftop
