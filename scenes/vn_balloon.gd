@@ -121,6 +121,7 @@ class_name VNBalloon extends CanvasLayer
 @onready var ui_root: Control = %UIRoot
 @onready var sprite_scale_slider: HSlider = %SpriteScaleSlider
 @onready var sprite_y_slider: HSlider = %SpriteYSlider
+@onready var sync_voice_check: CheckBox = %SyncVoiceCheck
 @onready var fullscreen_check: CheckBox = %FullscreenCheck
 @onready var vsync_check: CheckBox = %VsyncCheck
 @onready var resolution_option: OptionButton = %ResolutionOption
@@ -183,6 +184,7 @@ var skip_seen_only: bool = false
 var ui_scale: float = 1.0
 var sprite_scale: float = 1.0
 var sprite_y: float = 0.0
+var sync_voice: bool = false
 ## Authored offset_top/bottom per sprite, captured once so the Y-offset
 ## setting is applied as a delta instead of flattening the rect.
 var _sprite_base_offsets: Dictionary = {}
@@ -326,6 +328,7 @@ func apply_dialogue_line() -> void:
 	# Stage direction tags first, so the scene is dressed before the text types out.
 	voice_player.stop()
 	_apply_stage_tags(dialogue_line)
+	_apply_voice_pacing()
 
 	# Was this line already seen before being shown now? (skip-seen-only uses it)
 	_current_was_seen = _seen_ids.has(dialogue_line.id)
@@ -479,6 +482,23 @@ func _play_voice(key: String) -> void:
 		return
 	voice_player.stream = load(path)
 	voice_player.play()
+
+
+## Optional: stretch the typewriter so the line finishes typing when its voice
+## clip ends. Unvoiced lines (or sync off) keep the configured text speed.
+func _apply_voice_pacing() -> void:
+	if sync_voice and voice_player.stream != null and voice_player.playing:
+		var chars: float = max(1.0, float(dialogue_line.text.length()))
+		dialogue_label.seconds_per_step = clampf(voice_player.stream.get_length() / chars, 0.005, 0.5)
+	else:
+		dialogue_label.seconds_per_step = text_speed_slider.value
+
+
+func _on_sync_voice_toggled(on: bool) -> void:
+	sync_voice = on
+	if is_instance_valid(dialogue_line):
+		_apply_voice_pacing()
+	_save_settings()
 
 
 func _set_background(key: String) -> void:
@@ -826,6 +846,9 @@ func _load_settings() -> void:
 	if data.has("sprite_y"):
 		sprite_y_slider.value = float(data.sprite_y)
 		_on_sprite_y_changed(float(data.sprite_y))
+	if data.has("sync_voice"):
+		sync_voice = bool(data.sync_voice)
+		sync_voice_check.button_pressed = sync_voice
 	if data.has("fullscreen"):
 		# Programmatic set_pressed() emits no signal, so apply it by hand.
 		fullscreen_check.button_pressed = bool(data.fullscreen)
@@ -862,6 +885,7 @@ func _save_settings() -> void:
 		"ui_scale": ui_scale_slider.value,
 		"sprite_scale": sprite_scale_slider.value,
 		"sprite_y": sprite_y_slider.value,
+		"sync_voice": sync_voice_check.button_pressed,
 		"fullscreen": fullscreen_check.button_pressed,
 		"vsync": vsync_check.button_pressed,
 		"res_w": int(res_width_spin.value),

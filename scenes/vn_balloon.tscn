@@ -537,6 +537,23 @@ min_value = 14
 max_value = 32
 step = 1
 value = 20
+[node name="SyncVoiceRow" type="HBoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="SyncVoiceRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SyncVoiceRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Sync text to voice"
+[node name="SyncVoiceCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SyncVoiceRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+text = "on"
 [node name="SkipSpeedRow" type="HBoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
 layout_mode = 2
 theme_override_constants/separation = 16
@@ -1342,3 +1359,4 @@ one_shot = true
 [connection signal="timeout" from="SkipTimer" to="." method="_on_skip_timeout"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteScaleRow/SpriteScaleSlider" to="." method="_on_sprite_scale_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteYRow/SpriteYSlider" to="." method="_on_sprite_y_changed"]
+[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SyncVoiceRow/SyncVoiceCheck" to="." method="_on_sync_voice_toggled"]

@@ -140,7 +140,7 @@ func run() -> void:
 			user_dir.remove("seen.json")
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -190,6 +190,18 @@ func run() -> void:
 		if not ResourceLoader.exists(balloon.VOICES[k]):
 			missing_voices += 1
 	check(alive() and missing_voices == 0, "every voiced line has a loadable clip")
+	# Optional typewriter pacing follows the voiced clip.
+	balloon.sync_voice_check.toggled.emit(true)
+	balloon.rollback_to(balloon.history_cursor)  # re-apply Rook's voiced line
+	await wait_ready()
+	var paced: float = clampf(balloon.voice_player.stream.get_length() / max(1.0, float(balloon.dialogue_line.text.length())), 0.005, 0.5)
+	check(alive() and is_equal_approx(balloon.dialogue_label.seconds_per_step, paced),
+		"typewriter paces itself to the voice clip")
+	balloon.sync_voice_check.toggled.emit(false)
+	balloon.rollback_to(balloon.history_cursor)
+	await wait_ready()
+	check(alive() and is_equal_approx(balloon.dialogue_label.seconds_per_step, balloon.text_speed_slider.value),
+		"pacing returns to the text speed when sync is off")
 
 	# --- 6: Maya appears on the left, Rook dimmed by #focus=left ---
 	line = await step()

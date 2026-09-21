@@ -35,11 +35,12 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - **voiced dialogue**: all fourteen spoken character lines carry `#voice=` tags and play
   per-character clips (Maya and Rook) on the Voice bus, silenced again on unvoiced lines;
   the clips were generated as Opus but ship as tightly packed Ogg Vorbis (mono, 32 kbps)
-  because Godot 4.7 has no Opus importer
+  because Godot 4.7 has no Opus importer; an optional "Sync text to voice" setting paces
+  the typewriter so each voiced line finishes typing when its clip ends
 - **compact art**: backgrounds and portraits ship as lossy WebP at quality 0.9 — ~483 KB
   instead of ~4 MB of PNG, with no visible quality loss
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **209/209 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **212/212 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 
@@ -123,6 +124,7 @@ each action.
 
 **Settings** (`Set`): a scrolling, sectioned screen with everything a VN player expects —
 *Text*: speed (typewriter seconds-per-step), size (applied to the dialogue and name labels),
+optional sync of the typewriter to the voice clip length,
 skip speed, skip-everything vs skip-seen-only, auto delay; *Display*: UI scale (scales only
 the UI subtree — the background and character sprites stay untouched — while the settings
 margins shrink with the scale so the panel keeps a constant, usable width at any size),
@@ -196,7 +198,10 @@ the Voice bus, that unvoiced narration stops it, that every `#voice=` clip is lo
 that the WebP-swapped backgrounds still switch and re-dress on rollback. v1.8.1 adds
 regressions for the two field bugs it fixes: portraits keep their authored height (the
 sprite Y offset is a delta on the authored rect, never a flatten), and settings rows fill
-the scrollable column instead of stopping at their minimum width.
+the scrollable column instead of stopping at their minimum width. v1.9 adds the optional
+"Sync text to voice" pacing: with it on, a voiced line's typewriter speed is derived from
+the clip length so typing ends as the voice does, and the checks assert both the paced
+value and the fallback to the configured text speed.
 
 Rendered screenshots (under Xvfb + software GL):
 
