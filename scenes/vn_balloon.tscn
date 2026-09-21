@@ -255,42 +255,313 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="ToastLabel" type="Label" parent="Balloon/UIRoot"]
-unique_name_in_owner = true
-visible = false
+[node name="BottomUI" type="Control" parent="Balloon/UIRoot"]
 layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
+anchors_preset = 12
+anchor_top = 1.0
 anchor_right = 1.0
-offset_left = -320.0
-offset_top = 60.0
-offset_right = -14.0
-offset_bottom = 92.0
-grow_horizontal = 0
-theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
+anchor_bottom = 1.0
+offset_top = -216.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="DialogueBox" type="PanelContainer" parent="Balloon/UIRoot/BottomUI"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_box")
+
+[node name="BoxMargin" type="MarginContainer" parent="Balloon/UIRoot/BottomUI/DialogueBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 26
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 26
+theme_override_constants/margin_bottom = 18
+
+[node name="VBox" type="VBoxContainer" parent="Balloon/UIRoot/BottomUI/DialogueBox/BoxMargin"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="DialogueLabel" parent="Balloon/UIRoot/BottomUI/DialogueBox/BoxMargin/VBox" instance=ExtResource("2_dlabel")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+theme_override_colors/default_color = Color(0.96, 0.95, 0.9, 1)
+theme_override_font_sizes/font_size = 21
+text = "..."
+
+[node name="NamePlate" type="PanelContainer" parent="Balloon/UIRoot/BottomUI"]
+unique_name_in_owner = true
+layout_mode = 1
+offset_left = 30.0
+offset_top = -42.0
+offset_right = 370.0
+offset_bottom = 6.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_name")
+
+[node name="NameMargin" type="MarginContainer" parent="Balloon/UIRoot/BottomUI/NamePlate"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 5
+
+[node name="CharacterLabel" type="RichTextLabel" parent="Balloon/UIRoot/BottomUI/NamePlate/NameMargin"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+bbcode_enabled = true
+text = "Character"
+fit_content = true
+scroll_active = false
+theme_override_colors/default_color = Color(0.93, 0.78, 0.42, 1)
 theme_override_fonts/font = ExtResource("5_serifbold")
-theme_override_font_sizes/font_size = 18
-text = "Saved"
-horizontal_alignment = 2
+theme_override_font_sizes/font_size = 19
 
-[node name="ToastTimer" type="Timer" parent="."]
+[node name="IndicatorHolder" type="Control" parent="Balloon/UIRoot/BottomUI"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 0.0
+offset_left = -58.0
+offset_top = -38.0
+offset_right = -18.0
+offset_bottom = -10.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="NextIndicator" type="Polygon2D" parent="Balloon/UIRoot/BottomUI/IndicatorHolder"]
 unique_name_in_owner = true
-wait_time = 1.2
-one_shot = true
+polygon = PackedVector2Array(0, 0, 40, 0, 20, 14)
+color = Color(0.93, 0.78, 0.42, 1)
 
-[node name="AutoTimer" type="Timer" parent="."]
+[node name="IndicatorTween" type="AnimationPlayer" parent="Balloon/UIRoot/BottomUI/IndicatorHolder"]
+libraries/ = SubResource("AnimationLibrary_bob")
+autoplay = &"bob"
+
+[node name="SystemRow" type="HBoxContainer" parent="Balloon/UIRoot/BottomUI"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -604.0
+offset_top = -54.0
+offset_right = -14.0
+offset_bottom = -10.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_constants/separation = 6
+
+[node name="QSButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
 unique_name_in_owner = true
-wait_time = 1.5
-one_shot = true
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "QS"
 
-[node name="SkipTimer" type="Timer" parent="."]
+[node name="QLButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "QL"
+
+[node name="SaveButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(62, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Save"
+
+[node name="LoadButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(62, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Load"
+
+[node name="AutoButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(62, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Auto"
+
+[node name="SkipButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(62, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Skip"
+
+[node name="PrevChoiceButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(84, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "< Choice"
+
+[node name="NextChoiceButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(84, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Choice >"
+
+[node name="LogButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(56, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Log"
+
+[node name="SettingsButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(56, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Set"
+
+[node name="PanicButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(62, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Panic"
+
+[node name="MutationCooldown" type="Timer" parent="."]
 unique_name_in_owner = true
 wait_time = 0.1
 one_shot = true
 
-[node name="VoicePlayer" type="AudioStreamPlayer" parent="."]
+[node name="ResponsesCenter" type="CenterContainer" parent="Balloon/UIRoot/BottomUI"]
 unique_name_in_owner = true
-bus = &"Voice"
+layout_mode = 1
+anchor_right = 1.0
+offset_top = -560.0
+offset_bottom = -4.0
+grow_horizontal = 2
+mouse_filter = 2
+theme = SubResource("Theme_vn")
+
+[node name="ResponsesMenu" type="VBoxContainer" parent="Balloon/UIRoot/BottomUI/ResponsesCenter" node_paths=PackedStringArray("response_template")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 8
+theme_override_constants/separation = 12
+alignment = 1
+script = ExtResource("3_menu")
+hide_failed_responses = true
+response_template = NodePath("ResponseButton")
+
+[node name="ResponseButton" type="Button" parent="Balloon/UIRoot/BottomUI/ResponsesCenter/ResponsesMenu"]
+custom_minimum_size = Vector2(460, 44)
+layout_mode = 2
+text = "Choice"
 
 [node name="SaveMenuPanel" type="PanelContainer" parent="Balloon/UIRoot"]
 unique_name_in_owner = true
@@ -562,6 +833,37 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 text = "on"
+[node name="RotationRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="RotationRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Rotation"
+[node name="Rot0Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "0"
+[node name="Rot90Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "90"
+[node name="Rot180Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "180"
+[node name="Rot270Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "270"
 [node name="FullscreenRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
 layout_mode = 2
 theme_override_constants/separation = 16
@@ -959,314 +1261,6 @@ theme_override_font_sizes/font_size = 18
 autowrap_mode = 2
 text = "Lecture 12: The time-independent Schroedinger equation. H psi = E psi, where H is the Hamiltonian operator. For a particle in a 1-D infinite well of width L the energy eigenvalues are E_n = n^2 h^2 / (8 m L^2). Reminder: problem set 4 is due Friday - problems 3.7, 3.9 and the derivation of the uncertainty principle for position and momentum."
 
-[node name="BottomUI" type="Control" parent="Balloon/UIRoot"]
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -216.0
-grow_horizontal = 2
-grow_vertical = 0
-mouse_filter = 2
-
-[node name="DialogueBox" type="PanelContainer" parent="Balloon/UIRoot/BottomUI"]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_box")
-
-[node name="BoxMargin" type="MarginContainer" parent="Balloon/UIRoot/BottomUI/DialogueBox"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 26
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 26
-theme_override_constants/margin_bottom = 18
-
-[node name="VBox" type="VBoxContainer" parent="Balloon/UIRoot/BottomUI/DialogueBox/BoxMargin"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 4
-
-[node name="DialogueLabel" parent="Balloon/UIRoot/BottomUI/DialogueBox/BoxMargin/VBox" instance=ExtResource("2_dlabel")]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 3
-bbcode_enabled = true
-theme_override_colors/default_color = Color(0.96, 0.95, 0.9, 1)
-theme_override_font_sizes/font_size = 21
-text = "..."
-
-[node name="NamePlate" type="PanelContainer" parent="Balloon/UIRoot/BottomUI"]
-unique_name_in_owner = true
-layout_mode = 1
-offset_left = 30.0
-offset_top = -42.0
-offset_right = 370.0
-offset_bottom = 6.0
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_name")
-
-[node name="NameMargin" type="MarginContainer" parent="Balloon/UIRoot/BottomUI/NamePlate"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 5
-
-[node name="CharacterLabel" type="RichTextLabel" parent="Balloon/UIRoot/BottomUI/NamePlate/NameMargin"]
-unique_name_in_owner = true
-layout_mode = 2
-mouse_filter = 2
-bbcode_enabled = true
-text = "Character"
-fit_content = true
-scroll_active = false
-theme_override_colors/default_color = Color(0.93, 0.78, 0.42, 1)
-theme_override_fonts/font = ExtResource("5_serifbold")
-theme_override_font_sizes/font_size = 19
-
-[node name="IndicatorHolder" type="Control" parent="Balloon/UIRoot/BottomUI"]
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 0.0
-anchor_right = 1.0
-anchor_bottom = 0.0
-offset_left = -58.0
-offset_top = -38.0
-offset_right = -18.0
-offset_bottom = -10.0
-grow_horizontal = 0
-grow_vertical = 0
-mouse_filter = 2
-
-[node name="NextIndicator" type="Polygon2D" parent="Balloon/UIRoot/BottomUI/IndicatorHolder"]
-unique_name_in_owner = true
-polygon = PackedVector2Array(0, 0, 40, 0, 20, 14)
-color = Color(0.93, 0.78, 0.42, 1)
-
-[node name="IndicatorTween" type="AnimationPlayer" parent="Balloon/UIRoot/BottomUI/IndicatorHolder"]
-libraries/ = SubResource("AnimationLibrary_bob")
-autoplay = &"bob"
-
-[node name="SystemRow" type="HBoxContainer" parent="Balloon/UIRoot/BottomUI"]
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -604.0
-offset_top = -54.0
-offset_right = -14.0
-offset_bottom = -10.0
-grow_horizontal = 0
-grow_vertical = 0
-theme_override_constants/separation = 6
-
-[node name="QSButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(44, 44)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
-theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
-text = "QS"
-
-[node name="QLButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(44, 44)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
-theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
-text = "QL"
-
-[node name="SaveButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(62, 44)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
-theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
-text = "Save"
-
-[node name="LoadButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(62, 44)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
-theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
-text = "Load"
-
-[node name="AutoButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(62, 44)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
-theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
-text = "Auto"
-
-[node name="SkipButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(62, 44)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
-theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
-text = "Skip"
-
-[node name="PrevChoiceButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(84, 44)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
-theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
-text = "< Choice"
-
-[node name="NextChoiceButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(84, 44)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
-theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
-text = "Choice >"
-
-[node name="LogButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(56, 44)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
-theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
-text = "Log"
-
-[node name="SettingsButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(56, 44)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
-theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
-text = "Set"
-
-[node name="PanicButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(62, 44)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
-theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
-text = "Panic"
-
-[node name="MutationCooldown" type="Timer" parent="."]
-unique_name_in_owner = true
-wait_time = 0.1
-one_shot = true
-
-[node name="ResponsesCenter" type="CenterContainer" parent="Balloon/UIRoot/BottomUI"]
-unique_name_in_owner = true
-layout_mode = 1
-anchor_right = 1.0
-offset_top = -560.0
-offset_bottom = -4.0
-grow_horizontal = 2
-mouse_filter = 2
-theme = SubResource("Theme_vn")
-
-[node name="ResponsesMenu" type="VBoxContainer" parent="Balloon/UIRoot/BottomUI/ResponsesCenter" node_paths=PackedStringArray("response_template")]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 8
-theme_override_constants/separation = 12
-alignment = 1
-script = ExtResource("3_menu")
-hide_failed_responses = true
-response_template = NodePath("ResponseButton")
-
-[node name="ResponseButton" type="Button" parent="Balloon/UIRoot/BottomUI/ResponsesCenter/ResponsesMenu"]
-custom_minimum_size = Vector2(460, 44)
-layout_mode = 2
-text = "Choice"
-
 [node name="HistoryPanel" type="PanelContainer" parent="Balloon/UIRoot"]
 unique_name_in_owner = true
 z_index = 10
@@ -1338,6 +1332,43 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
 text = "History entry"
 
+[node name="ToastLabel" type="Label" parent="Balloon/UIRoot"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -320.0
+offset_top = 60.0
+offset_right = -14.0
+offset_bottom = 92.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
+theme_override_fonts/font = ExtResource("5_serifbold")
+theme_override_font_sizes/font_size = 18
+text = "Saved"
+horizontal_alignment = 2
+
+[node name="ToastTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 1.2
+one_shot = true
+
+[node name="AutoTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 1.5
+one_shot = true
+
+[node name="SkipTimer" type="Timer" parent="."]
+unique_name_in_owner = true
+wait_time = 0.1
+one_shot = true
+
+[node name="VoicePlayer" type="AudioStreamPlayer" parent="."]
+unique_name_in_owner = true
+bus = &"Voice"
+
 [node name="SettingsCloseButton" type="Button" parent="Balloon/UIRoot"]
 unique_name_in_owner = true
 visible = false
@@ -1398,3 +1429,7 @@ text = "X"
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SyncVoiceRow/SyncVoiceCheck" to="." method="_on_sync_voice_toggled"]
 [connection signal="pressed" from="Balloon/UIRoot/SettingsCloseButton" to="." method="_on_settings_close_pressed"]
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PortraitRow/PortraitCheck" to="." method="_on_portrait_toggled"]
+[connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot0Button" to="." method="_on_rot_0_pressed"]
+[connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot90Button" to="." method="_on_rot_90_pressed"]
+[connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot180Button" to="." method="_on_rot_180_pressed"]
+[connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot270Button" to="." method="_on_rot_270_pressed"]

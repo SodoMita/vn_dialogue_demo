@@ -160,6 +160,34 @@ func run() -> void:
 	await get_tree().process_frame
 	await shot("09_settings")
 
+	# Real pointer-tap regression proof (needs a display; the headless suite
+	# pins the layering instead because its GUI ignores synthetic taps).
+	balloon.settings_scroll.scroll_vertical = 100000
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var csr: Rect2 = balloon.sprite_scale_slider.get_global_rect()
+	var ctap := Vector2(csr.position.x + csr.size.x * 0.25, csr.position.y + csr.size.y * 0.5)
+	var cbefore: float = balloon.sprite_scale_slider.value
+	var cd := InputEventMouseButton.new()
+	cd.button_index = MOUSE_BUTTON_LEFT
+	cd.pressed = true
+	cd.position = ctap
+	get_viewport().push_input(cd)
+	var cu := InputEventMouseButton.new()
+	cu.button_index = MOUSE_BUTTON_LEFT
+	cu.pressed = false
+	cu.position = ctap
+	get_viewport().push_input(cu)
+	await get_tree().process_frame
+	if balloon.sprite_scale_slider.value == cbefore:
+		print("ASSERT-FAIL sprite slider tap ignored")
+		get_tree().quit(1)
+		return
+	print("ASSERT-OK sprite slider tap moved the value")
+	balloon.sprite_scale_slider.value = 1.0
+	balloon.settings_scroll.scroll_vertical = 0
+	await get_tree().process_frame
+
 	# 12: settings at 150% UI scale with enlarged sprites -- proves the panel
 	# stays usable while the stage keeps its authored size.
 	balloon.ui_scale_slider.value = 1.5
@@ -177,6 +205,14 @@ func run() -> void:
 	await get_tree().process_frame
 	await shot("13_settings_portrait")
 	balloon.set_portrait_mode(false)
+	await get_tree().process_frame
+
+	# 14: 90-degree rotation (portrait preview without OS rotation)
+	balloon._set_rotation(90)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await shot("14_rotation_90")
+	balloon._set_rotation(0)
 	await get_tree().process_frame
 
 	# 10: pause menu

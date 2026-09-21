@@ -45,7 +45,7 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - **styled text**: BBCode (`[b]`, `[i]`, `[color=…]`, …) renders in the typewriter label;
   the backlog and save-slot labels store the same lines without markup
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **223/223 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **233/233 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 
@@ -214,7 +214,14 @@ box on tall/portrait windows), adds the settings close button and the portrait r
 and the repo history was purged of the pre-WebP PNG blobs. v1.12 sizes the choices band to
 the menu at show time (parked just above the box, clamped on-screen at any window size),
 widens the landscape settings column, and adds the force-portrait setting so the portrait
-layout is testable without window rotation.
+layout is testable without window rotation. v1.13 puts the dialogue box/system row *below*
+the overlay panels (their old top-most z-order silently swallowed taps on the lower
+settings rows, e.g. the sprite sliders) and adds four rotation buttons (0/90/180/270) that
+rotate the whole view — rotation also flips the logical resolution's X/Y, so the turned
+view fills the window exactly (no letterbox gaps), and 90/270 flip the effective
+orientation, giving a true portrait preview on engines/windows that never rotate. The headless suite pins that
+layering, and `tools/capture_shots.gd` re-proves with a real pointer tap (under xvfb) that
+the sprite sliders slide again.
 
 ## Documentation
 

@@ -140,7 +140,7 @@ func run() -> void:
 			user_dir.remove("seen.json")
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -688,6 +688,21 @@ func run() -> void:
 	balloon.portrait_check.toggled.emit(false)
 	await get_tree().process_frame
 
+	# Rotation buttons: 90 degrees flips the effective orientation to portrait.
+	balloon._set_rotation(90)
+	await get_tree().process_frame
+	check(alive() and is_equal_approx(balloon.rotation, PI / 2.0) and balloon.portrait_mode,
+		"90 rotation fits the view and swaps to portrait")
+	check(alive() and balloon.balloon.size == Vector2(720.0, 1280.0)
+		and is_equal_approx(balloon.transform.x.length(), 1.0),
+		"rotation flips the logical resolution X/Y so the view fills the window (no gaps)")
+	balloon._set_rotation(0)
+	await get_tree().process_frame
+	check(alive() and balloon.rotation == 0.0 and not balloon.portrait_mode,
+		"rotation back to 0 restores landscape")
+	check(alive() and balloon.balloon.size == Vector2(1280.0, 720.0),
+		"logical resolution unflips at rotation 0")
+
 	# Sprite scale & Y offset are settings of their own, separate from UI scale
 	balloon.sprite_scale_slider.value = 1.25
 	await get_tree().process_frame
@@ -705,6 +720,17 @@ func run() -> void:
 		"sprite scale and offset persisted")
 	balloon.sprite_scale_slider.value = 1.0
 	balloon.sprite_y_slider.value = 0
+
+	# Regression: the bottom UI (dialogue box + system row) must stay the
+	# lowest UIRoot layer, otherwise it paints over the lower settings rows
+	# and swallows their taps (the old "sliders don't slide" bug). Headless
+	# GUIs ignore synthetic taps, so tools/capture_shots.gd proves the tap
+	# for real under xvfb; here we pin the layering that makes it work.
+	var uiroot: Control = balloon.get_node("%UIRoot")
+	check(alive() and uiroot.get_node("BottomUI").get_index() == 0,
+		"dialogue box layer is the lowest UIRoot layer (never covers overlays)")
+	check(alive() and balloon.settings_close_button.get_index() == uiroot.get_child_count() - 1,
+		"the touch close button stays above every panel")
 
 	# Resolution presets and any custom positive size
 	balloon.resolution_option.item_selected.emit(1)

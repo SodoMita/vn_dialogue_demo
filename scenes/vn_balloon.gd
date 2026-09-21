@@ -191,6 +191,7 @@ var sprite_y: float = 0.0
 var sync_voice: bool = false
 var portrait_mode: bool = false
 var force_portrait: bool = false
+var rotation_deg: int = 0
 ## Authored offset_top/bottom per sprite, captured once so the Y-offset
 ## setting is applied as a delta instead of flattening the rect.
 var _sprite_base_offsets: Dictionary = {}
@@ -874,6 +875,8 @@ func _load_settings() -> void:
 		force_portrait = bool(data.force_portrait)
 		portrait_check.button_pressed = force_portrait
 		_reflow_settings()
+	if data.has("rotation"):
+		_set_rotation(int(data.rotation))
 	if data.has("fullscreen"):
 		# Programmatic set_pressed() emits no signal, so apply it by hand.
 		fullscreen_check.button_pressed = bool(data.fullscreen)
@@ -912,6 +915,7 @@ func _save_settings() -> void:
 		"sprite_y": sprite_y_slider.value,
 		"sync_voice": sync_voice_check.button_pressed,
 		"force_portrait": portrait_check.button_pressed,
+		"rotation": rotation_deg,
 		"fullscreen": fullscreen_check.button_pressed,
 		"vsync": vsync_check.button_pressed,
 		"res_w": int(res_width_spin.value),
@@ -995,15 +999,17 @@ func _apply_ui_scale(s: float) -> void:
 ## fullscreen-wide) and the panel margins collapse. Landscape restores the
 ## authored side-by-side rows.
 func _reflow_settings() -> void:
-	var sz: Vector2 = get_viewport().get_visible_rect().size
-	portrait_mode = force_portrait or sz.y > sz.x
+	_apply_rotation()
+	# The logical space is what the UI lays out in, so its shape (not the
+	# window's) decides portrait vs landscape rows.
+	portrait_mode = force_portrait or (balloon.size.y > balloon.size.x)
 	_apply_settings_layout()
 
 
 ## Test/override entry point for the portrait layout.
 func set_portrait_mode(on: bool) -> void:
 	force_portrait = on
-	portrait_mode = on or get_viewport().get_visible_rect().size.y > get_viewport().get_visible_rect().size.x
+	portrait_mode = on or balloon.size.y > balloon.size.x
 	_apply_settings_layout()
 
 
@@ -1025,6 +1031,49 @@ func _on_portrait_toggled(on: bool) -> void:
 	force_portrait = on
 	_reflow_settings()
 	_save_settings()
+
+
+## Four settings buttons rotate the whole game view (the engine itself never
+## rotates the window): 0/90/180/270 degrees. Rotation flips the logical
+## resolution's X/Y, so the turned view fills the window with no letterbox
+## gaps, and flips the effective orientation for a real portrait preview.
+func _on_rot_0_pressed() -> void:
+	_set_rotation(0)
+
+
+func _on_rot_90_pressed() -> void:
+	_set_rotation(90)
+
+
+func _on_rot_180_pressed() -> void:
+	_set_rotation(180)
+
+
+func _on_rot_270_pressed() -> void:
+	_set_rotation(270)
+
+
+func _set_rotation(d: int) -> void:
+	rotation_deg = d
+	_apply_rotation()
+	_reflow_settings()
+	_save_settings()
+
+
+func _apply_rotation() -> void:
+	var win: Vector2 = get_viewport().get_visible_rect().size
+	var r: float = deg_to_rad(float(rotation_deg))
+	var swapped: bool = rotation_deg == 90 or rotation_deg == 270
+	# Rotation also flips the logical resolution's X and Y: the stage and UI
+	# lay out in the flipped space and the layer transform turns it on screen,
+	# so the rotated view fills the window exactly -- no letterbox gaps.
+	var logical: Vector2 = Vector2(win.y, win.x) if swapped else win
+	balloon.anchor_right = 0.0
+	balloon.anchor_bottom = 0.0
+	balloon.size = logical
+	var t := Transform2D().rotated(r)
+	t.origin = (win * 0.5) - (t * (logical * 0.5))
+	transform = t
 
 
 ## Size the choices band to the menu and park it just above the dialogue box,
