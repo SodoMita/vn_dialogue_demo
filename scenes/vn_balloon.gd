@@ -945,6 +945,17 @@ func _begin_rebind(action: StringName) -> void:
 	(_binding_buttons[action] as Button).text = tr("Press any key...")
 
 
+## Use InputMap directly for the two momentary/global controls. This is more
+## reliable than InputEvent.is_action_* when a key is delivered by a focused
+## Control or when a binding was restored at runtime.
+func _action_pressed(event: InputEvent, action: StringName) -> bool:
+	return event.is_pressed() and InputMap.event_is_action(event, action)
+
+
+func _action_released(event: InputEvent, action: StringName) -> bool:
+	return not event.is_pressed() and InputMap.event_is_action(event, action)
+
+
 ## Capture before GUI/unhandled input so even Escape, Enter and the boss key can
 ## become a binding without also closing the panel or triggering their action.
 func _input(event: InputEvent) -> void:
@@ -969,18 +980,18 @@ func _input(event: InputEvent) -> void:
 			open_pause()
 		get_viewport().set_input_as_handled()
 		return
-	if _any_overlay_open() and event.is_action_pressed(close_action):
+	if _any_overlay_open() and _action_pressed(event, close_action):
 		_close_top_overlay()
 		get_viewport().set_input_as_handled()
 		return
 	# Keyboard skip is a hold gesture, not a latch. The toolbar button remains
 	# a conventional toggle for mouse/touch users.
-	if event.is_action_pressed(skip_action) and not (event is InputEventKey and (event as InputEventKey).echo):
+	if _action_pressed(event, skip_action) and not (event is InputEventKey and (event as InputEventKey).echo):
 		_skip_key_held = true
 		if not _any_overlay_open():
 			_set_skip_active(true)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_released(skip_action):
+	elif _action_released(event, skip_action):
 		_skip_key_held = false
 		_set_skip_active(false)
 		get_viewport().set_input_as_handled()
@@ -1701,6 +1712,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_panic()
 		return
 
+	# Handle these here as a fallback as well as in _input. Some embedded
+	# platforms route key events straight to unhandled_input after a focused
+	# control has seen them, which previously made Close and held Skip vanish.
+	if _action_pressed(event, skip_action) and not (event is InputEventKey and (event as InputEventKey).echo):
+		_skip_key_held = true
+		if not _any_overlay_open():
+			_set_skip_active(true)
+		get_viewport().set_input_as_handled()
+		return
+	if _action_released(event, skip_action):
+		_skip_key_held = false
+		_set_skip_active(false)
+		get_viewport().set_input_as_handled()
+		return
+
 	if _try_system_actions(event):
 		return
 
@@ -1737,11 +1763,17 @@ func _unhandled_input(event: InputEvent) -> void:
 				open_history()
 		return
 
-	# While any overlay is open, swallow anything its controls didn't take;
-	# Close dismisses the top-most overlay without toggling skip mode.
+	# Close dismisses the top-most overlay without toggling skip mode. Keep
+	# this outside the overlay's own GUI path so focused controls cannot eat it.
+	if _any_overlay_open() and _action_pressed(event, close_action):
+		get_viewport().set_input_as_handled()
+		_close_top_overlay()
+		return
+
+	# While any overlay is open, swallow anything its controls didn't take.
 	if _any_overlay_open():
 		get_viewport().set_input_as_handled()
-		if event.is_action_pressed(close_action):
+		if _action_pressed(event, close_action):
 			_close_top_overlay()
 		return
 
