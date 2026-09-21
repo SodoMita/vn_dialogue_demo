@@ -55,7 +55,7 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - **styled text**: BBCode (`[b]`, `[i]`, `[color=…]`, …) renders in the typewriter label;
   the backlog and save-slot labels store the same lines without markup
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **249/249 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **251/251 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 

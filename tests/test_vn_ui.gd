@@ -748,6 +748,16 @@ func run() -> void:
 	var ru_clip := FileAccess.file_exists("res://assets/voices/ru/m1.ogg")
 	check(alive() and balloon._voice_path("m1") == ("res://assets/voices/ru/m1.ogg" if ru_clip else "res://assets/voices/en/m1.ogg"),
 		"voices resolve per locale with English fallback")
+	var missing_ru := 0
+	for k: String in ["r1", "r2", "r3", "r4", "r5", "r6", "m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8"]:
+		if not FileAccess.file_exists("res://assets/voices/ru/%s.ogg" % k):
+			missing_ru += 1
+	check(missing_ru == 0, "every voiced line has a Russian clip")
+	balloon._play_voice("r1")
+	check(alive() and balloon.voice_player.stream != null
+		and balloon.voice_player.stream.resource_path.contains("/ru/"),
+		"voiced lines play the localized clip under Russian")
+	balloon.voice_player.stop()
 	balloon.language_option.item_selected.emit(0)
 	await get_tree().process_frame
 	await get_tree().process_frame
