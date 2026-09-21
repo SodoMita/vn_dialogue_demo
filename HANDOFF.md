@@ -15,8 +15,9 @@ Previous release: `v1.16.0` (`d1e12e9`). The project has tags `v1.0.0` through `
 
 The former static `Skip key: Ctrl` display has been replaced by real runtime rebinding:
 
-- Settings has authored binding buttons for Advance, Skip/close, History, Quick save,
-  Quick load, Pause and Panic.
+- Settings has separate authored binding buttons for Advance, Skip mode, Close, History,
+  Quick save, Quick load, Pause and Panic.
+- Defaults are `Ctrl` for Skip mode, `Backspace` for Close, and `Esc` for Pause.
 - Clicking a binding button captures the next keyboard key, updates `InputMap` immediately,
   and persists the choice in `user://settings.json`.
 - Saved bindings are restored at startup; mouse/touch bindings are preserved.

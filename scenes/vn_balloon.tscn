@@ -848,7 +848,7 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
-text = "Skip / close"
+text = "Skip mode"
 [node name="SkipKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipKeyRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
@@ -857,6 +857,26 @@ size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 text = "Ctrl"
+
+[node name="CloseKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="CloseKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/CloseKeyRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Close"
+[node name="CloseKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/CloseKeyRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+text = "Backspace"
 
 [node name="HistoryKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
 layout_mode = 2
@@ -936,7 +956,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
-text = "P"
+text = "Esc"
 
 [node name="PanicKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
 layout_mode = 2
@@ -1277,7 +1297,7 @@ value = 0
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.8, 0.8)
 theme_override_font_sizes/font_size = 14
-text = "Settings are saved automatically. Use Skip / close or X to exit."
+text = "Settings are saved automatically. Use Close or X to exit."
 [node name="PausePanel" type="PanelContainer" parent="Balloon/UIRoot"]
 unique_name_in_owner = true
 z_index = 10

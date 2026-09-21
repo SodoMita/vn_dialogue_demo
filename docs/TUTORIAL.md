@@ -15,12 +15,13 @@ typewriter box, centered choices) built on the
 | Action | Input |
 | --- | --- |
 | Advance / finish typing | click or `Enter` (first press finishes the typewriter, next advances) |
-| Skip typing / close an overlay | `Ctrl` |
+| Toggle skip mode | `Ctrl` |
+| Close the top overlay | `Backspace` |
 | Open history | `H` |
 | Choose an option | `Up`/`Down` then `Enter` (or click) |
 | Roll back one line | mouse wheel up (Ren'Py-style, non-destructive) |
 | Roll forward again | mouse wheel down |
-| Pause menu | `P` or right click (mutes all audio until you resume) |
+| Pause menu | `Esc` or right click (mutes all audio until you resume) |
 | Quick save / quick load (slot 0) | `F5` / `F9` |
 | Panic / boss screen | `F12` or the `Panic` button — instantly silences every sound; press again to return (on touch devices the X in the corner closes it) |
 | Mobile | tap = advance, swipe up = backlog |
@@ -50,7 +51,7 @@ exact line. `QS`/`QL` and `F5`/`F9` always use slot 0.
 
 Everything applies live and persists to `user://settings.json`:
 
-- *Controls*: Advance, Skip/close, History, Quick save, Quick load, Pause and Panic are all
+- *Controls*: Advance, Skip mode, Close, History, Quick save, Quick load, Pause and Panic are all
   remappable. Click a binding button; when it says **Press any key...**, press the new key.
   Mouse, touch and right-click controls remain available alongside keyboard bindings.
 - *Text*: speed, size, **Sync text to voice** (typewriter finishes when the clip ends),

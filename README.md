@@ -12,9 +12,9 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - full-screen background stage (`#bg=` tag)
 - left / right character sprite slots with spotlight dimming (`#sprite=`, `#focus=`)
 - gold-trimmed dialogue box + name plate, serif novel font
-- typewriter text via the addon's `DialogueLabel`; the remappable Advance (`Enter`) and
-  Skip/close (`Ctrl`) keys plus click all finish the typewriter first; Advance/click then
-  proceed on the next press — the keyboard behaves exactly like LMB
+- typewriter text via the addon's `DialogueLabel`; the remappable Advance (`Enter`) key
+  and click finish the typewriter first, then proceed on the next press; the separate
+  Skip (`Ctrl`) key toggles fast-forward mode
 - bobbing "next" indicator
 - centred choice buttons via the addon's `DialogueResponsesMenu`
 - **history (backlog) panel with rollback**: `H` opens it (scrollable with wheel / keys),
@@ -34,7 +34,7 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
   scale), fullscreen, V-Sync, resolution presets or any custom positive size,
   master/music/voice/SFX volumes, separate sprite scale / Y-offset settings, and click-to-listen
   remapping for every keyboard action — applied live, persisted to `user://settings.json`), **pause menu**
-  (`P` / right click, with Resume/History/Save/Load/Settings/Quit; Resume continues a paused
+  (`Esc` / right click, with Resume/History/Save/Load/Settings/Quit; Resume continues a paused
   voice clip from its previous playback position), **panic/boss screen**
   (`F12`) that swaps the whole game for a dry quantum-mechanics lecture page
   (`docs/09_settings.webp`, `docs/10_pause.webp`, `docs/11_panic.webp`)
@@ -125,7 +125,7 @@ control bars of Kirikiri / Ren'Py / Monogatari-style engines: `QS`/`QL` quick-sa
 `Save`/`Load` open the slot menu, `Auto`/`Skip` toggle modes (the button tints gold while on),
 `Log` opens the backlog, `Set` the settings panel, `Panic` the boss screen, and `< Choice` /
 `Choice >` jump back to the previous choice / forward to the next one (Kirikiri-style). The
-same actions work from the keyboard: `F5`/`F9` quick save/load, `P` or right-click pauses,
+same actions work from the keyboard: `F5`/`F9` quick save/load, `Esc` or right-click pauses,
 `F12` panics, mouse wheel rolls the game back/forward through the backlog.
 
 Slots live in `user://saves/slot_<n>.json`, one file each — any number of them:
@@ -165,7 +165,7 @@ it; `docs/12_settings_at_150.webp` shows it at 150% UI scale, still fully usable
 **Voices**: every spoken line in `dialogue/intro.dialogue` tags its clip with `#voice=key`;
 the balloon plays it through an authored `VoicePlayer` node routed to the Voice bus (so the
 Voice volume slider governs it) and stops it whenever an unvoiced line shows. Clips live in
-`assets/voices/*.ogg`, one per character voice; a missing clip simply stays silent. **Pause** (`P` / right click) freezes the typewriter and offers Resume / History /
+`assets/voices/*.ogg`, one per character voice; a missing clip simply stays silent. **Pause** (`Esc` / right click) freezes the typewriter and offers Resume / History /
 Save / Load / Settings / Quit.
 **Panic** (`F12` / `Panic`) overlays an opaque, completely unrelated physics-lecture page and
 swallows every input except the boss key itself, so nothing underneath leaks through.
@@ -185,11 +185,11 @@ Godot_v4.7.2-stable_linux.x86_64 res://scenes/vn_scene.tscn
 ```
 
 Default controls: `Enter` / click / tap = finish the typewriter, then advance, or pick a focused choice, `↓/↑` = move between
-choices, `Ctrl` / click = skip typing, `H` or swipe up = open history, wheel / arrow keys =
-scroll the history, click a history line = roll back to it, wheel up / down in-game = roll
-back / forward one line, `Ctrl` = close any open panel without side effects, `F5` / `QS` =
+choices, `Ctrl` = toggle skip mode, `Backspace` = close the top overlay, `H` or swipe up =
+open history, wheel / arrow keys = scroll the history, click a history line = roll back to it,
+wheel up / down in-game = roll back / forward one line, `F5` / `QS` =
 quick save, `F9` / `QL` = quick load, `Save`/`Load` = slot menus, `Auto`/`Skip` = modes,
-`< Choice`/`Choice >` = jump to previous/next choice, `P` or right-click = pause,
+`< Choice`/`Choice >` = jump to previous/next choice, `Esc` or right-click = pause,
 `F12` / `Panic` = boss screen. Every keyboard action can be rebound in Settings: click its
 binding button, then press the desired key.
 

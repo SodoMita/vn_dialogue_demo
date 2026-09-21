@@ -32,8 +32,11 @@ class_name VNBalloon extends CanvasLayer
 ## The action to use for advancing the dialogue.
 @export var next_action: StringName = &"dialogue_advance"
 
-## The action to use to skip typing the dialogue.
+## The action that toggles fast-forward skip mode.
 @export var skip_action: StringName = &"dialogue_skip"
+
+## The action that closes the top-most overlay without changing modes.
+@export var close_action: StringName = &"dialogue_close"
 
 ## The action that toggles the history (backlog) panel.
 @export var history_action: StringName = &"dialogue_history"
@@ -42,7 +45,7 @@ class_name VNBalloon extends CanvasLayer
 @export var save_action: StringName = &"dialogue_save"
 @export var load_action: StringName = &"dialogue_load"
 
-## The action that toggles the pause menu (P / right click).
+## The action that toggles the pause menu (Esc / right click).
 @export var pause_action: StringName = &"dialogue_pause"
 
 ## The boss-key action that swaps to the panic screen.
@@ -117,6 +120,7 @@ class_name VNBalloon extends CanvasLayer
 @onready var skip_mode_option: OptionButton = %SkipModeOption
 @onready var advance_key_button: Button = %AdvanceKeyButton
 @onready var skip_key_button: Button = %SkipKeyButton
+@onready var close_key_button: Button = %CloseKeyButton
 @onready var history_key_button: Button = %HistoryKeyButton
 @onready var quick_save_key_button: Button = %QuickSaveKeyButton
 @onready var quick_load_key_button: Button = %QuickLoadKeyButton
@@ -226,7 +230,7 @@ const RES_PRESETS: Array = [
 ## Every keyboard-driven VN action is remappable. Mouse/touch bindings remain
 ## alongside the chosen key (for example, right click continues to pause).
 const BINDABLE_ACTIONS: Array[StringName] = [
-	&"dialogue_advance", &"dialogue_skip", &"dialogue_history",
+	&"dialogue_advance", &"dialogue_skip", &"dialogue_close", &"dialogue_history",
 	&"dialogue_save", &"dialogue_load", &"dialogue_pause", &"dialogue_panic",
 ]
 var _binding_buttons: Dictionary = {}
@@ -497,6 +501,17 @@ func _close_overlay(p: Control) -> void:
 		_refresh_binding_labels()
 		settings_close_button.hide()
 	_restore_waiting()
+
+
+func _close_top_overlay() -> void:
+	if pause_panel.visible:
+		close_pause()
+	elif settings_panel.visible:
+		_close_overlay(settings_panel)
+	elif save_menu_panel.visible:
+		_close_overlay(save_menu_panel)
+	elif history_panel.visible:
+		close_history()
 
 
 ## Hand the balloon back its waiting state (and focus) once every overlay is gone.
@@ -892,6 +907,7 @@ func _setup_key_bindings() -> void:
 	_binding_buttons = {
 		&"dialogue_advance": advance_key_button,
 		&"dialogue_skip": skip_key_button,
+		&"dialogue_close": close_key_button,
 		&"dialogue_history": history_key_button,
 		&"dialogue_save": quick_save_key_button,
 		&"dialogue_load": quick_load_key_button,
@@ -913,15 +929,33 @@ func _begin_rebind(action: StringName) -> void:
 ## Capture before GUI/unhandled input so even Escape, Enter and the boss key can
 ## become a binding without also closing the panel or triggering their action.
 func _input(event: InputEvent) -> void:
-	if _listening_for_action.is_empty() or not settings_panel.visible:
+	if not _listening_for_action.is_empty() and settings_panel.visible:
+		if event is InputEventKey and event.pressed and not event.echo:
+			var action := _listening_for_action
+			_listening_for_action = &""
+			_replace_action_key(action, event as InputEventKey)
+			_refresh_binding_labels()
+			_save_settings()
+			(_binding_buttons[action] as Button).grab_focus()
+			get_viewport().set_input_as_handled()
 		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		var action := _listening_for_action
-		_listening_for_action = &""
-		_replace_action_key(action, event as InputEventKey)
-		_refresh_binding_labels()
-		_save_settings()
-		(_binding_buttons[action] as Button).grab_focus()
+	if not is_instance_valid(balloon) or not balloon.is_visible_in_tree() or panic_screen.visible:
+		return
+	# Pause and Close must win before focused GUI controls consume Esc or
+	# Backspace (notably OptionButton and SpinBox/LineEdit).
+	if event.is_action_pressed(pause_action):
+		if pause_panel.visible:
+			close_pause()
+		else:
+			open_pause()
+		get_viewport().set_input_as_handled()
+		return
+	if _any_overlay_open() and event.is_action_pressed(close_action):
+		_close_top_overlay()
+		get_viewport().set_input_as_handled()
+		return
+	if not _any_overlay_open() and event.is_action_pressed(skip_action):
+		_toggle_skip()
 		get_viewport().set_input_as_handled()
 
 
@@ -1253,8 +1287,8 @@ const UI_TEXT_KEYS: Array = [
 	["TextSizeRowLabel", "Text size"], ["SyncVoiceRowLabel", "Sync text to voice"],
 	["SyncVoiceCheck", "on"], ["SkipSpeedRowLabel", "Skip speed"],
 	["SkipModeRowLabel", "Skip texts"], ["ControlsHeader", "Controls"],
-	["AdvanceKeyRowLabel", "Advance"], ["SkipKeyRowLabel", "Skip / close"],
-	["HistoryKeyRowLabel", "History"], ["QuickSaveKeyRowLabel", "Quick save"],
+	["AdvanceKeyRowLabel", "Advance"], ["SkipKeyRowLabel", "Skip mode"],
+	["CloseKeyRowLabel", "Close"], ["HistoryKeyRowLabel", "History"], ["QuickSaveKeyRowLabel", "Quick save"],
 	["QuickLoadKeyRowLabel", "Quick load"], ["PauseKeyRowLabel", "Pause"],
 	["PanicKeyRowLabel", "Panic"], ["AutoDelayRowLabel", "Auto delay"], ["UIScaleRowLabel", "UI scale"], ["DisplayHeader", "Display"],
 	["PortraitRowLabel", "Portrait layout"], ["PortraitCheck", "on"], ["RotationRowLabel", "Rotation"],
@@ -1264,7 +1298,7 @@ const UI_TEXT_KEYS: Array = [
 	["MusicVolRowLabel", "Music volume"], ["VoiceVolRowLabel", "Voice volume"],
 	["SfxVolRowLabel", "SFX volume"], ["SpritesHeader", "Sprites"],
 	["SpriteScaleRowLabel", "Sprite scale"], ["SpriteYRowLabel", "Sprite Y offset"],
-	["SettingsHint", "Settings are saved automatically. Use Skip / close or X to exit."],
+	["SettingsHint", "Settings are saved automatically. Use Close or X to exit."],
 	["PauseTitle", "Paused"], ["ResumeButton", "Resume"], ["PauseHistoryButton", "History"],
 	["PauseSaveButton", "Save"], ["PauseLoadButton", "Load"], ["PauseSettingsButton", "Settings"],
 	["QuitButton", "Quit"], ["PanicTitle", "PHYS 201 - Quantum Mechanics II"],
@@ -1645,18 +1679,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	# While any overlay is open, swallow anything its controls didn't take;
-	# the skip action closes the top-most overlay without side effects.
+	# Close dismisses the top-most overlay without toggling skip mode.
 	if _any_overlay_open():
 		get_viewport().set_input_as_handled()
-		if event.is_action_pressed(skip_action):
-			if settings_panel.visible:
-				_close_overlay(settings_panel)
-			elif save_menu_panel.visible:
-				_close_overlay(save_menu_panel)
-			elif pause_panel.visible:
-				close_pause()
-			elif history_panel.visible:
-				close_history()
+		if event.is_action_pressed(close_action):
+			_close_top_overlay()
 		return
 
 	# Wheel roll-back/forward. The balloon's gui handler does this when it
@@ -1737,7 +1764,7 @@ func _on_balloon_gui_input(event: InputEvent) -> void:
 	# See if we need to skip typing of the dialogue
 	if dialogue_label.is_typing:
 		var mouse_was_clicked: bool = event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed()
-		var advance_key_was_pressed: bool = event.is_action_pressed(skip_action) or event.is_action_pressed(next_action)
+		var advance_key_was_pressed: bool = event.is_action_pressed(next_action)
 		if mouse_was_clicked or advance_key_was_pressed:
 			get_viewport().set_input_as_handled()
 			dialogue_label.skip_typing()

@@ -40,14 +40,16 @@ func press(action: StringName) -> void:
 	ev.pressed = true
 	match action:
 		&"ui_accept": ev.keycode = KEY_ENTER
-		&"ui_cancel": ev.keycode = KEY_CTRL
+		&"ui_cancel": ev.keycode = KEY_ESCAPE
+		&"dialogue_close": ev.keycode = KEY_BACKSPACE
+		&"dialogue_skip": ev.keycode = KEY_CTRL
 		&"ui_down": ev.keycode = KEY_DOWN
 		&"ui_right": ev.keycode = KEY_RIGHT
 		&"ui_left": ev.keycode = KEY_LEFT
 		&"dialogue_history": ev.physical_keycode = KEY_H  # action is bound to physical H
 		&"dialogue_save": ev.keycode = KEY_F5
 		&"dialogue_load": ev.keycode = KEY_F9
-		&"dialogue_pause": ev.physical_keycode = KEY_P  # action is bound to physical P
+		&"dialogue_pause": ev.keycode = KEY_ESCAPE
 		&"dialogue_panic": ev.keycode = KEY_F12
 		_: ev.keycode = KEY_ENTER
 	Input.parse_input_event(ev)
@@ -90,7 +92,7 @@ func await_line_change() -> DialogueLine:
 	if not alive():
 		return null
 	if balloon.dialogue_label.is_typing:
-		press(&"ui_cancel")
+		press(&"ui_accept")
 	await wait_ready()
 	return balloon.dialogue_line
 
@@ -111,6 +113,8 @@ func run_to_responses() -> DialogueLine:
 		guard += 1
 	if not alive():
 		return null
+	# Response placement is deferred until Control minimum sizes settle.
+	await get_tree().process_frame
 	return balloon.dialogue_line
 
 
@@ -143,7 +147,7 @@ func run() -> void:
 	sf.close()
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button", "PauseButton", "PanicCloseButton", "LanguageOption", "AdvanceKeyButton", "SkipKeyButton", "HistoryKeyButton", "QuickSaveKeyButton", "QuickLoadKeyButton", "PauseKeyButton", "PanicKeyButton"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button", "PauseButton", "PanicCloseButton", "LanguageOption", "AdvanceKeyButton", "SkipKeyButton", "CloseKeyButton", "HistoryKeyButton", "QuickSaveKeyButton", "QuickLoadKeyButton", "PauseKeyButton", "PanicKeyButton"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -175,10 +179,10 @@ func run() -> void:
 
 	# --- 4: typewriter types and can be skipped ---
 	check(balloon.dialogue_label.is_typing, "typewriter is typing line 1")
-	press(&"ui_cancel")
+	press(&"ui_accept")
 	await wait_ready()
 	await get_tree().process_frame
-	check(balloon.dialogue_label.visible_ratio == 1.0, "skip action completes typing")
+	check(balloon.dialogue_label.visible_ratio == 1.0, "Advance completes typing")
 	check(balloon.next_indicator.visible, "next indicator shows while waiting")
 
 	# --- 5: Rook's first line and his sprite ---
@@ -327,9 +331,9 @@ func run() -> void:
 	press(&"dialogue_history")
 	await get_tree().process_frame
 	check(alive() and balloon.history_panel.visible, "history action toggles the panel open again")
-	press(&"ui_cancel")
+	press(&"dialogue_close")
 	await get_tree().process_frame
-	check(alive() and not balloon.history_panel.visible, "skip action closes history without rollback")
+	check(alive() and not balloon.history_panel.visible, "Close action closes history without rollback")
 	check(alive() and balloon.history_cursor == 1, "closing without rollback keeps the cursor")
 
 	# --- 11: quick save / quick load (slot 0) ---
@@ -356,7 +360,7 @@ func run() -> void:
 
 	# Play continues from the loaded point.
 	if alive() and balloon.dialogue_label.is_typing:
-		press(&"ui_cancel")
+		press(&"ui_accept")
 	line = await step()
 	check(line != null and line.character == "Maya", "dialogue continues after load")
 
@@ -383,9 +387,9 @@ func run() -> void:
 	check(slot_rows.size() == 2, "slot list shows one row per save file")
 	check(alive() and balloon.save_menu_panel.visible, "save menu stays open after saving")
 
-	press(&"ui_cancel")
+	press(&"dialogue_close")
 	await get_tree().process_frame
-	check(alive() and not balloon.save_menu_panel.visible, "skip action closes the save menu")
+	check(alive() and not balloon.save_menu_panel.visible, "Close action closes the save menu")
 
 	# Advance, then load the older snapshot through the Load menu.
 	line = await step()
@@ -413,7 +417,7 @@ func run() -> void:
 	check(alive() and not balloon.save_menu_panel.visible, "menu closes after loading")
 	check(alive() and balloon.history.size() == saved_size and balloon.history_cursor == saved_cursor, "loaded slot restored its backlog")
 	if alive() and balloon.dialogue_label.is_typing:
-		press(&"ui_cancel")
+		press(&"ui_accept")
 	await wait_ready()
 
 	# --- 13: settings ---
@@ -436,9 +440,9 @@ func run() -> void:
 	await get_tree().process_frame
 	check(alive() and balloon.auto_delay < delay_before, "auto delay slider changed the delay")
 
-	press(&"ui_cancel")
+	press(&"dialogue_close")
 	await get_tree().process_frame
-	check(alive() and not balloon.settings_panel.visible, "skip action closes settings")
+	check(alive() and not balloon.settings_panel.visible, "Close action closes settings")
 	await wait_ready()
 	check(alive() and balloon.is_waiting_for_input, "balloon waits for input again after settings close")
 
@@ -458,6 +462,17 @@ func run() -> void:
 	await get_tree().process_frame
 	check(alive() and not balloon.auto_mode, "Auto button toggles auto mode off")
 
+	# The remappable Ctrl action controls the same mode as the system-row button.
+	# Check synchronously: this particular line is about to expose choices, where
+	# skip mode correctly stops itself on the following frame.
+	var skip_key_event := InputEventKey.new()
+	skip_key_event.pressed = true
+	skip_key_event.keycode = KEY_CTRL
+	balloon._input(skip_key_event)
+	check(alive() and balloon.skip_mode, "Skip key enables skip mode")
+	balloon._input(skip_key_event)
+	check(alive() and not balloon.skip_mode, "Skip key toggles skip mode off")
+
 	# Skip: runs the dialogue to the next choices without further input.
 	balloon.skip_button.grab_focus()
 	press(&"ui_accept")
@@ -470,7 +485,7 @@ func run() -> void:
 	check(alive() and not balloon.skip_mode, "skip mode stops at choices")
 	await choose(0)
 
-	# Pause via the P action. Start a known clip so the regression check proves
+	# Pause via the Esc action. Start a known clip so the regression check proves
 	# Resume continues voice playback instead of merely unmuting the bus.
 	balloon._play_voice("r1")
 	await get_tree().process_frame
@@ -497,7 +512,7 @@ func run() -> void:
 	check(alive() and AudioServer.is_bus_mute(AudioServer.get_bus_index("Master")), "panic silences all audio")
 	var frozen_id: String = balloon.dialogue_line.id
 	press(&"ui_accept")
-	press(&"ui_cancel")
+	press(&"dialogue_close")
 	await get_tree().process_frame
 	check(alive() and balloon.dialogue_line.id == frozen_id, "panic screen swallows dialogue input")
 	check(alive() and balloon.panic_screen.visible, "other keys do not dismiss the panic screen")
@@ -538,7 +553,7 @@ func run() -> void:
 	press(&"ui_accept")
 	await get_tree().process_frame
 	check(alive() and not balloon.fullscreen_check.button_pressed, "fullscreen checkbox toggles back off")
-	press(&"ui_cancel")
+	press(&"dialogue_close")
 	await get_tree().process_frame
 	check(alive() and not balloon.settings_panel.visible, "settings close again")
 	await wait_ready()
@@ -557,7 +572,7 @@ func run() -> void:
 	await get_tree().process_frame
 	check(alive() and balloon.history_panel.visible, "swipe up opens the history (mobile)")
 	check(alive() and balloon.dialogue_line.id == line_before, "the swipe does not advance the dialogue")
-	press(&"ui_cancel")
+	press(&"dialogue_close")
 	await get_tree().process_frame
 	check(alive() and not balloon.history_panel.visible, "history closes after the swipe")
 
@@ -584,7 +599,7 @@ func run() -> void:
 	)
 	check(alive() and balloon.dialogue_line.id != fwd_id, "wheel up rolls the game back one line")
 	if alive() and balloon.dialogue_label.is_typing:
-		press(&"ui_cancel")
+		press(&"ui_accept")
 	var wd := InputEventMouseButton.new()
 	wd.button_index = MOUSE_BUTTON_WHEEL_DOWN
 	wd.pressed = true
@@ -595,7 +610,7 @@ func run() -> void:
 	)
 	check(alive() and balloon.dialogue_line.id == fwd_id, "wheel down rolls forward to the newer line")
 	if alive() and balloon.dialogue_label.is_typing:
-		press(&"ui_cancel")
+		press(&"ui_accept")
 	await wait_ready()
 
 	# Kirikiri-style jumps: next choice ...
@@ -637,7 +652,7 @@ func run() -> void:
 		await get_tree().process_frame
 		await get_tree().process_frame
 	check(alive() and balloon.history_scroll.scroll_vertical > 0, "history panel scrolls down to the focused row")
-	press(&"ui_cancel")
+	press(&"dialogue_close")
 	await get_tree().process_frame
 
 	# Slot rows show runtime-rendered thumbnails; no image data is persisted.
@@ -652,7 +667,7 @@ func run() -> void:
 	check(with_icon >= 2, "filled slot rows show rendered thumbnails")
 	var slot_json: String = FileAccess.get_file_as_string("user://saves/slot_0.json")
 	check(not "\"image\"" in slot_json and not "base64" in slot_json, "saves store stage keys, not image data")
-	press(&"ui_cancel")
+	press(&"dialogue_close")
 	await get_tree().process_frame
 
 	# --- 17: the full settings surface (text, skip, video, audio) ---
@@ -678,9 +693,10 @@ func run() -> void:
 
 	# Every keyboard action has an authored button. Clicking one enters capture
 	# mode; the next key replaces that action immediately and is persisted.
-	check(alive() and balloon.BINDABLE_ACTIONS.size() == 7
+	check(alive() and balloon.BINDABLE_ACTIONS.size() == 8
 		and balloon.advance_key_button is Button and balloon.skip_key_button is Button
-		and balloon.history_key_button is Button and balloon.quick_save_key_button is Button
+		and balloon.close_key_button is Button and balloon.history_key_button is Button
+		and balloon.quick_save_key_button is Button
 		and balloon.quick_load_key_button is Button and balloon.pause_key_button is Button
 		and balloon.panic_key_button is Button,
 		"settings authors a binding button for every keyboard action")
@@ -908,7 +924,7 @@ func run() -> void:
 	# a genuine read/unread boundary right after the current line.
 	DirAccess.remove_absolute(balloon._seen_path)
 	balloon._seen_ids = {}
-	press(&"ui_cancel")
+	press(&"dialogue_close")
 	await get_tree().process_frame
 	check(alive() and not balloon.settings_panel.visible, "settings closed again")
 	await wait_ready()
