@@ -138,9 +138,12 @@ func run() -> void:
 			user_dir.remove("settings.json")
 		if user_dir.file_exists("seen.json"):
 			user_dir.remove("seen.json")
+	var sf := FileAccess.open("user://settings.json", FileAccess.WRITE)
+	sf.store_string('{ "language": "en" }')
+	sf.close()
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button", "PauseButton", "PanicCloseButton"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button", "PauseButton", "PanicCloseButton", "LanguageOption"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -186,8 +189,9 @@ func run() -> void:
 	check(alive() and balloon.voice_player.playing and balloon.voice_player.bus == &"Voice",
 		"Rook's voiced line plays a voice clip on the Voice bus")
 	var missing_voices := 0
-	for k: String in balloon.VOICES.keys():
-		if not ResourceLoader.exists(balloon.VOICES[k]):
+	for k: String in ["r1", "r2", "r3", "r4", "r5", "r6", "m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8"]:
+		var vp: String = balloon._voice_path(k)
+		if not (ResourceLoader.exists(vp) or FileAccess.file_exists(vp)):
 			missing_voices += 1
 	check(alive() and missing_voices == 0, "every voiced line has a loadable clip")
 	# Optional typewriter pacing follows the voiced clip.
@@ -726,6 +730,29 @@ func run() -> void:
 	balloon.panic_close_button.pressed.emit()
 	await get_tree().process_frame
 	check(alive() and not balloon.panic_screen.visible, "panic screen has a touch exit for phones")
+
+	# --- i18n: Russian locale, translated UI/dialogue, localized voices ---
+	check(alive() and balloon.language_option.item_count == 2, "language option offers English and Russian")
+	balloon.language_option.item_selected.emit(1)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(alive() and TranslationServer.get_locale() == "ru", "language option switches the locale to Russian")
+	check(alive() and balloon.save_button.text == "Сохранить", "authored UI strings follow the locale")
+	check(alive() and balloon.skip_mode_option.get_item_text(0) == "Всё", "runtime option items follow the locale")
+	var cyr := false
+	for ch: String in balloon.dialogue_label.text:
+		if ch.unicode_at(0) >= 0x400:
+			cyr = true
+			break
+	check(alive() and cyr, "the visible line repaints in Russian on locale switch")
+	var ru_clip := FileAccess.file_exists("res://assets/voices/ru/m1.ogg")
+	check(alive() and balloon._voice_path("m1") == ("res://assets/voices/ru/m1.ogg" if ru_clip else "res://assets/voices/en/m1.ogg"),
+		"voices resolve per locale with English fallback")
+	balloon.language_option.item_selected.emit(0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(alive() and TranslationServer.get_locale() == "en" and balloon.save_button.text == "Save",
+		"switching back restores English")
 
 	# Sprite scale & Y offset are settings of their own, separate from UI scale
 	balloon.sprite_scale_slider.value = 1.25

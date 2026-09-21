@@ -125,6 +125,7 @@ class_name VNBalloon extends CanvasLayer
 @onready var settings_close_button: Button = %SettingsCloseButton
 @onready var settings_vbox: VBoxContainer = %SettingsVBox
 @onready var portrait_check: CheckBox = %PortraitCheck
+@onready var language_option: OptionButton = %LanguageOption
 @onready var responses_center: CenterContainer = %ResponsesCenter
 @onready var fullscreen_check: CheckBox = %FullscreenCheck
 @onready var vsync_check: CheckBox = %VsyncCheck
@@ -198,6 +199,7 @@ var sync_voice: bool = false
 var portrait_mode: bool = false
 var force_portrait: bool = false
 var rotation_deg: int = 0
+var language: String = "en"
 ## Authored offset_top/bottom per sprite, captured once so the Y-offset
 ## setting is applied as a delta instead of flattening the rect.
 var _sprite_base_offsets: Dictionary = {}
@@ -219,23 +221,15 @@ const RES_PRESETS: Array = [
 const SETTINGS_SIDE_MARGIN: float = 180.0
 const SETTINGS_V_MARGIN: float = 40.0
 
-## Voice clips per `#voice=` tag; Ogg Vorbis files under assets/voices.
-const VOICES: Dictionary = {
-	"r1": "res://assets/voices/r1.ogg",
-	"r2": "res://assets/voices/r2.ogg",
-	"r3": "res://assets/voices/r3.ogg",
-	"r4": "res://assets/voices/r4.ogg",
-	"r5": "res://assets/voices/r5.ogg",
-	"r6": "res://assets/voices/r6.ogg",
-	"m1": "res://assets/voices/m1.ogg",
-	"m2": "res://assets/voices/m2.ogg",
-	"m3": "res://assets/voices/m3.ogg",
-	"m4": "res://assets/voices/m4.ogg",
-	"m5": "res://assets/voices/m5.ogg",
-	"m6": "res://assets/voices/m6.ogg",
-	"m7": "res://assets/voices/m7.ogg",
-	"m8": "res://assets/voices/m8.ogg",
-}
+## Voice clips per `#voice=` tag; per-locale Ogg Vorbis under assets/voices,
+## falling back to English when the active locale lacks a clip.
+func _voice_path(key: String) -> String:
+	var loc: String = TranslationServer.get_locale().left(2)
+	var localized := "res://assets/voices/%s/%s.ogg" % [loc, key]
+	if ResourceLoader.exists(localized) or FileAccess.file_exists(localized):
+		return localized
+	return "res://assets/voices/en/%s.ogg" % key
+
 
 ## Runtime-rendered slot thumbnails, keyed by the stored stage keys.
 var _thumb_cache: Dictionary = {}
@@ -314,13 +308,43 @@ func _notification(what: int) -> void:
 		# Window rotation/resize may flip portrait<->landscape.
 		call_deferred("_reflow_settings")
 		call_deferred("_layout_responses")
-	# Detect a change of locale and update the current dialogue line to show the new language
+	# Detect a change of locale and repaint the current dialogue line (text,
+	# name plate and choices) plus every authored UI string.
 	if what == NOTIFICATION_TRANSLATION_CHANGED and _locale != TranslationServer.get_locale() and is_instance_valid(dialogue_label):
 		_locale = TranslationServer.get_locale()
-		var visible_ratio: float = dialogue_label.visible_ratio
-		await dialogue_line.refresh()
-		if visible_ratio < 1:
-			dialogue_label.skip_typing()
+		await _repaint_current_line()
+		_retranslate_dynamic()
+
+
+## Re-fetch the current line under the new locale and repaint it in place;
+## the engine only translates at instantiation, so a live switch needs this.
+func _repaint_current_line() -> void:
+	if not is_instance_valid(dialogue_line) or not is_instance_valid(dialogue_resource):
+		return
+	var dm: Node = Engine.get_singleton("DialogueManager")
+	# get_line() does not inject the resource's `using` autoloads the way
+	# get_next_dialogue_line() does, so {{player_name}} etc. need them here.
+	var states: Array = temporary_game_states.duplicate()
+	for state_name: String in dialogue_resource.using_states:
+		var autoload: Node = get_tree().root.get_node_or_null(state_name)
+		if is_instance_valid(autoload):
+			states = [autoload] + states
+	var fresh: DialogueLine = await dm.get_line(dialogue_resource, dialogue_line.id, states)
+	if not is_instance_valid(fresh):
+		return
+	dialogue_line.text = fresh.text
+	dialogue_line.character = fresh.character
+	dialogue_line.responses = fresh.responses
+	character_label.text = tr(dialogue_line.character, "dialogue")
+	character_label.visible = not dialogue_line.character.is_empty()
+	name_plate.visible = character_label.visible
+	dialogue_label.dialogue_line = dialogue_line
+	if not dialogue_line.text.is_empty():
+		dialogue_label.type_out()
+		dialogue_label.skip_typing()
+	if responses_menu.visible:
+		responses_menu.responses = dialogue_line.responses
+		call_deferred("_layout_responses")
 
 
 ## Start some dialogue
@@ -498,8 +522,8 @@ func _apply_stage_tags(line: DialogueLine) -> void:
 ## (or a still-missing file) simply stay silent.
 func _play_voice(key: String) -> void:
 	voice_player.stop()
-	var path: String = VOICES.get(key, "")
-	if path == "" or not ResourceLoader.exists(path):
+	var path: String = _voice_path(key)
+	if not (ResourceLoader.exists(path) or FileAccess.file_exists(path)):
 		return
 	voice_player.stream = load(path)
 	voice_player.play()
@@ -663,7 +687,7 @@ func _slot_path(i: int) -> String:
 ## Save the current position (backlog + story state) into slot [param i].
 func save_to_slot(i: int) -> Error:
 	if history.is_empty():
-		_toast("Nothing to save")
+		_toast(tr("Nothing to save"))
 		return ERR_INVALID_DATA
 
 	var current: Dictionary = history[history_cursor] if history_cursor >= 0 else history[history.size() - 1]
@@ -685,11 +709,11 @@ func save_to_slot(i: int) -> Error:
 	_thumb_cache.clear()
 	var file: FileAccess = FileAccess.open(_slot_path(i), FileAccess.WRITE)
 	if file == null:
-		_toast("Save failed")
+		_toast(tr("Save failed"))
 		return FileAccess.get_open_error()
 	file.store_string(JSON.stringify(data))
 	file.close()
-	_toast("Saved to slot %d" % i)
+	_toast(tr("Saved to slot %d") % i)
 	return OK
 
 
@@ -697,12 +721,12 @@ func save_to_slot(i: int) -> Error:
 func load_from_slot(i: int) -> void:
 	var path: String = _slot_path(i)
 	if not FileAccess.file_exists(path):
-		_toast("Empty slot")
+		_toast(tr("Empty slot"))
 		return
 
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if data is not Dictionary or not (data.get("history") is Array) or (data.history as Array).is_empty():
-		_toast("Save is broken")
+		_toast(tr("Save is broken"))
 		return
 
 	var resource_path: String = data.get("resource", "")
@@ -717,7 +741,7 @@ func load_from_slot(i: int) -> void:
 
 	var cursor: int = clampi(int(data.get("cursor", history.size() - 1)), 0, history.size() - 1)
 	rollback_to(cursor)
-	_toast("Loaded slot %d" % i)
+	_toast(tr("Loaded slot %d") % i)
 
 
 func quick_save() -> void:
@@ -756,7 +780,7 @@ func _scan_slots() -> Array:
 
 func open_save_menu(mode: String) -> void:
 	save_menu_mode = mode
-	save_menu_title.text = "Save" if mode == "save" else "Load"
+	save_menu_title.text = tr("Save") if mode == "save" else tr("Load")
 	new_slot_button.visible = mode == "save"
 	_rebuild_slot_list()
 	_open_overlay(save_menu_panel)
@@ -774,7 +798,7 @@ func _rebuild_slot_list() -> void:
 		child.queue_free()
 	for s: Dictionary in _scan_slots():
 		var b: Button = slot_template.duplicate()
-		b.text = "Slot %d - %s  (%s)" % [s.index, s.label, s.when]
+		b.text = tr("Slot %d - %s  (%s)") % [s.index, s.label, s.when]
 		if s.bg != "" or s.left != "" or s.right != "":
 			b.icon = _slot_thumb(s)
 			b.expand_icon = true
@@ -845,10 +869,20 @@ func _on_new_slot_pressed() -> void:
 
 
 func _load_settings() -> void:
-	if not FileAccess.file_exists(_settings_path):
-		return
-	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(_settings_path))
-	if data is not Dictionary:
+	var data: Dictionary = {}
+	if FileAccess.file_exists(_settings_path):
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(_settings_path))
+		if parsed is Dictionary:
+			data = parsed
+	# Language applies even on first run: the saved choice wins, otherwise the
+	# OS locale when we ship it.
+	if data.has("language"):
+		language = "ru" if String(data.language) == "ru" else "en"
+	else:
+		language = "ru" if TranslationServer.get_locale().left(2) == "ru" else "en"
+	language_option.selected = 1 if language == "ru" else 0
+	TranslationServer.set_locale(language)
+	if data.is_empty():
 		return
 	if data.has("text_speed"):
 		text_speed_slider.value = float(data.text_speed)
@@ -883,6 +917,10 @@ func _load_settings() -> void:
 		_reflow_settings()
 	if data.has("rotation"):
 		_set_rotation(int(data.rotation))
+	if data.has("language"):
+		language = "ru" if String(data.language) == "ru" else "en"
+	language_option.selected = 1 if language == "ru" else 0
+	TranslationServer.set_locale(language)
 	if data.has("fullscreen"):
 		# Programmatic set_pressed() emits no signal, so apply it by hand.
 		fullscreen_check.button_pressed = bool(data.fullscreen)
@@ -922,6 +960,7 @@ func _save_settings() -> void:
 		"sync_voice": sync_voice_check.button_pressed,
 		"force_portrait": portrait_check.button_pressed,
 		"rotation": rotation_deg,
+		"language": language,
 		"fullscreen": fullscreen_check.button_pressed,
 		"vsync": vsync_check.button_pressed,
 		"res_w": int(res_width_spin.value),
@@ -1071,6 +1110,59 @@ func _on_portrait_toggled(on: bool) -> void:
 	force_portrait = on
 	_reflow_settings()
 	_save_settings()
+
+
+## Language switch: the engine translates authored strings and the dialogue,
+## and the voice picker follows the locale on the next line.
+func _on_language_changed(idx: int) -> void:
+	language = "ru" if idx == 1 else "en"
+	TranslationServer.set_locale(language)
+	_save_settings()
+
+
+## Authored control texts: Godot translates them once at instantiation but
+## does not repaint them on a live locale switch, so they are re-applied
+## from the catalog here (node name -> English catalog key).
+const UI_TEXT_KEYS: Array = [
+	["SaveButton", "Save"], ["LoadButton", "Load"], ["AutoButton", "Auto"],
+	["SkipButton", "Skip"], ["PrevChoiceButton", "< Choice"], ["NextChoiceButton", "Choice >"],
+	["LogButton", "Log"], ["SettingsButton", "Set"], ["PanicButton", "Panic"], ["PauseButton", "Pause"],
+	["NewSlotButton", "+ New slot"], ["SettingsTitle", "Settings"],
+	["LanguageRowLabel", "Language"], ["TextSpeedRowLabel", "Text speed"],
+	["TextSizeRowLabel", "Text size"], ["SyncVoiceRowLabel", "Sync text to voice"],
+	["SyncVoiceCheck", "on"], ["SkipSpeedRowLabel", "Skip speed"], ["SkipModeRowLabel", "Skip texts"],
+	["AutoDelayRowLabel", "Auto delay"], ["UIScaleRowLabel", "UI scale"], ["DisplayHeader", "Display"],
+	["PortraitRowLabel", "Portrait layout"], ["PortraitCheck", "on"], ["RotationRowLabel", "Rotation"],
+	["FullscreenRowLabel", "Fullscreen"], ["FullscreenCheck", "on"], ["VsyncRowLabel", "V-Sync"],
+	["VsyncCheck", "on"], ["ResolutionRowLabel", "Resolution"], ["ResCustomLabel", "Custom size"],
+	["AudioHeader", "Audio"], ["MasterVolRowLabel", "Master volume"],
+	["MusicVolRowLabel", "Music volume"], ["VoiceVolRowLabel", "Voice volume"],
+	["SfxVolRowLabel", "SFX volume"], ["SpritesHeader", "Sprites"],
+	["SpriteScaleRowLabel", "Sprite scale"], ["SpriteYRowLabel", "Sprite Y offset"],
+	["SettingsHint", "Settings are saved automatically. Esc or the X button closes."],
+	["PauseTitle", "Paused"], ["ResumeButton", "Resume"], ["PauseHistoryButton", "History"],
+	["PauseSaveButton", "Save"], ["PauseLoadButton", "Load"], ["PauseSettingsButton", "Settings"],
+	["QuitButton", "Quit"], ["PanicTitle", "PHYS 201 - Quantum Mechanics II"],
+	["PanicBody", "Lecture 12: The time-independent Schroedinger equation. H psi = E psi, where H is the Hamiltonian operator. For a particle in a 1-D infinite well of width L the energy eigenvalues are E_n = n^2 h^2 / (8 m L^2). Reminder: problem set 4 is due Friday - problems 3.7, 3.9 and the derivation of the uncertainty principle for position and momentum."],
+	["HistoryTitle", "History"],
+	["HistoryHint", "Click a line to roll back to it - H or Esc closes"],
+]
+
+
+## Strings the engine can't auto-translate (option items, runtime titles)
+## are re-set from the .po whenever the locale changes.
+func _retranslate_dynamic() -> void:
+	for entry: Array in UI_TEXT_KEYS:
+		var n: Node = find_child(String(entry[0]), true, false)
+		if n != null and "text" in n:
+			(n as Object).set("text", tr(String(entry[1])))
+	if is_instance_valid(skip_mode_option):
+		skip_mode_option.set_item_text(0, tr("Everything"))
+		skip_mode_option.set_item_text(1, tr("Seen only"))
+	if is_instance_valid(resolution_option):
+		resolution_option.set_item_text(RES_PRESETS.size(), tr("Custom"))
+	if is_instance_valid(save_menu_title) and save_menu_panel.visible:
+		save_menu_title.text = tr("Save") if save_menu_mode == "save" else tr("Load")
 
 
 ## Four settings buttons rotate the whole game view (the engine itself never
@@ -1286,7 +1378,7 @@ func _on_panic_close_pressed() -> void:
 func _toggle_auto() -> void:
 	auto_mode = not auto_mode
 	auto_button.modulate = Color(1.0, 0.85, 0.5) if auto_mode else Color.WHITE
-	_toast("Auto on" if auto_mode else "Auto off")
+	_toast(tr("Auto on") if auto_mode else tr("Auto off"))
 	if auto_mode and is_waiting_for_input and not _any_overlay_open():
 		auto_timer.start(auto_delay)
 	else:
@@ -1296,7 +1388,7 @@ func _toggle_auto() -> void:
 func _toggle_skip() -> void:
 	skip_mode = not skip_mode
 	skip_button.modulate = Color(1.0, 0.85, 0.5) if skip_mode else Color.WHITE
-	_toast("Skip on" if skip_mode else "Skip off")
+	_toast(tr("Skip on") if skip_mode else tr("Skip off"))
 	auto_timer.stop()
 	skip_timer.stop()
 	if skip_mode and is_waiting_for_input and not _any_overlay_open() \
@@ -1311,7 +1403,7 @@ func _toggle_skip_off_at_unseen() -> void:
 	skip_mode = false
 	skip_button.modulate = Color.WHITE
 	skip_timer.stop()
-	_toast("Skip stopped at unseen text")
+	_toast(tr("Skip stopped at unseen text"))
 
 
 func _on_skip_timeout() -> void:
@@ -1580,7 +1672,7 @@ func _on_log_pressed() -> void:
 ## Kirikiri-style jump: fast-forward to the next line that offers choices.
 func _on_next_choice_pressed() -> void:
 	if is_instance_valid(dialogue_line) and dialogue_line.responses.size() > 0:
-		_toast("Already at a choice")
+		_toast(tr("Already at a choice"))
 		_refocus_balloon()
 		return
 	_seeking_choice = true
@@ -1597,7 +1689,7 @@ func _on_prev_choice_pressed() -> void:
 		if bool(history[i].get("choices", false)):
 			rollback_to(i)
 			return
-	_toast("No earlier choice")
+	_toast(tr("No earlier choice"))
 	_refocus_balloon()
 
 

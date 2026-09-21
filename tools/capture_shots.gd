@@ -72,6 +72,9 @@ func run() -> void:
 			user_dir.remove("settings.json")
 		if user_dir.file_exists("seen.json"):
 			user_dir.remove("seen.json")
+	var sf := FileAccess.open("user://settings.json", FileAccess.WRITE)
+	sf.store_string('{ "language": "en" }')
+	sf.close()
 
 	var res: DialogueResource = load("res://dialogue/intro.dialogue")
 	balloon = DialogueManager.show_dialogue_balloon(res, "start")
@@ -223,6 +226,15 @@ func run() -> void:
 	balloon.toggle_panic()
 	await get_tree().process_frame
 	balloon._set_rotation(0)
+
+	# 17: Russian locale - translated UI, dialogue and (localized) voices
+	balloon.language_option.item_selected.emit(1)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await settle()
+	await shot("17_russian")
+	balloon.language_option.item_selected.emit(0)
+	await get_tree().process_frame
 	await get_tree().process_frame
 
 	# 10: pause menu

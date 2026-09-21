@@ -1,0 +1,316 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: vn_dialogue_demo 1.15\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+# --- Dialogue (context "dialogue", as looked up by the Dialogue Manager addon) ---
+
+msgctxt "dialogue"
+msgid "Rook"
+msgstr "Рук"
+
+msgctxt "dialogue"
+msgid "Maya"
+msgstr "Майя"
+
+msgctxt "dialogue"
+msgid "The afternoon light pools between the desks. Somewhere, a chalk tap-taps against the board."
+msgstr "Послеполуденный свет скапливается между партами. Где-то мелок стучит по доске."
+
+msgctxt "dialogue"
+msgid "Another transfer student. Just what this school needed."
+msgstr "Ещё один переводник. Только этого нашей школе не хватало."
+
+msgctxt "dialogue"
+msgid "H-hey! The bell hasn't even rung yet, I'm not late!"
+msgstr "Э-эй! Звонок ещё даже не звенел, я не опоздала!"
+
+msgctxt "dialogue"
+msgid "The bell rang four minutes ago."
+msgstr "Звонок прозвенел четыре минуты назад."
+
+msgctxt "dialogue"
+msgid "..."
+msgstr "..."
+
+msgctxt "dialogue"
+msgid "Fine, you win, clock-watch person. I'm {{player_name}}. And you are?"
+msgstr "Ладно, твоя взяла, человек-часы. Я — {{player_name}}. А ты?"
+
+msgctxt "dialogue"
+msgid "I'm Alex. Nice to meet you."
+msgstr "Я Алекс. Приятно познакомиться."
+
+msgctxt "dialogue"
+msgid "{{player_name}}! That's a solid name. I'm Maya!"
+msgstr "{{player_name}}! Хорошее имя. Я — Майя!"
+
+msgctxt "dialogue"
+msgid "I'd rather not say."
+msgstr "Лучше не скажу."
+
+msgctxt "dialogue"
+msgid "Ooh, the mysterious type. I'm Maya. I'll find out eventually."
+msgstr "О-о, загадочный тип. Я — Майя. Рано или поздно узнаю."
+
+msgctxt "dialogue"
+msgid "(Stay silent)"
+msgstr "(Промолчать)"
+
+msgctxt "dialogue"
+msgid "...You're fun to tease. I'm Maya."
+msgstr "...С тобой весело дразниться. Я — Майя."
+
+msgctxt "dialogue"
+msgid "Enjoy the rooftop if you like. Everyone ends up there eventually."
+msgstr "Крыша в твоём распоряжении. Все там рано или поздно оказываются."
+
+msgctxt "dialogue"
+msgid "The first bell of the day finally rings, [color=#9fd8ff]sharp and bright[/color]."
+msgstr "Наконец звенит первый звонок дня, [color=#9fd8ff]резкий и звонкий[/color]."
+
+msgctxt "dialogue"
+msgid "Another day at {{school_name}}. The halls already hum with gossip."
+msgstr "Ещё один день в {{school_name}}. В коридорах уже гудят от сплетен."
+
+msgctxt "dialogue"
+msgid "Wind over the chain-link fence. The city glitters below like scattered coins."
+msgstr "Ветер над сеткой забора. Внизу блестит город, как рассыпанные монеты."
+
+msgctxt "dialogue"
+msgid "See? Told you the view was worth the stairs."
+msgstr "Видишь? Я же говорила, что вид стоит лестницы."
+
+msgctxt "dialogue"
+msgid "You brought a witness to my hiding spot. Unforgivable."
+msgstr "Ты привела свидетеля в моё убежище. Непростительно."
+
+msgctxt "dialogue"
+msgid "Ask what Rook hides up here."
+msgstr "Спросить, что Рук прячет здесь наверху."
+
+msgctxt "dialogue"
+msgid "Quiet. It's the only currency this school respects."
+msgstr "Тише. Это единственная валюта, которую уважает эта школа."
+
+msgctxt "dialogue"
+msgid "Ask Maya why she's so kind."
+msgstr "Спросить Майю, почему она такая добрая."
+
+msgctxt "dialogue"
+msgid "Kind? I just collect interesting people. You're exhibit A."
+msgstr "Добрая? Я просто коллекционирую интересных людей. Ты — экспонат А."
+
+msgctxt "dialogue"
+msgid "(Say nothing. Watch the sunset.)"
+msgstr "(Промолчать. Смотреть на закат.)"
+
+msgctxt "dialogue"
+msgid "The sun goes down slow, and for once, nobody says a word."
+msgstr "Солнце садится медленно, и хоть раз никто не говорит ни слова."
+
+msgctxt "dialogue"
+msgid "Same time tomorrow?"
+msgstr "Завтра в то же время?"
+
+msgctxt "dialogue"
+msgid "...Hmph. Don't be late."
+msgstr "...Хмпф. Не опаздывай."
+
+msgctxt "dialogue"
+msgid "The three of you watch until the sky burns out."
+msgstr "Вы втроём смотрите, пока небо не догорит."
+
+# --- Authored UI strings (engine auto-translates controls) ---
+
+msgid "Save"
+msgstr "Сохранить"
+
+msgid "Load"
+msgstr "Загрузить"
+
+msgid "Auto"
+msgstr "Авто"
+
+msgid "Skip"
+msgstr "Пропуск"
+
+msgid "< Choice"
+msgstr "< Выбор"
+
+msgid "Choice >"
+msgstr "Выбор >"
+
+msgid "Log"
+msgstr "Лог"
+
+msgid "Set"
+msgstr "Настр."
+
+msgid "Panic"
+msgstr "Паника"
+
+msgid "Pause"
+msgstr "Пауза"
+
+msgid "Settings"
+msgstr "Настройки"
+
+msgid "Text speed"
+msgstr "Скорость текста"
+
+msgid "Text size"
+msgstr "Размер текста"
+
+msgid "Sync text to voice"
+msgstr "Текст в такт голосу"
+
+msgid "Skip speed"
+msgstr "Скорость пропуска"
+
+msgid "Skip texts"
+msgstr "Пропуск текстов"
+
+msgid "Everything"
+msgstr "Всё"
+
+msgid "Seen only"
+msgstr "Только виденное"
+
+msgid "Auto delay"
+msgstr "Автозадержка"
+
+msgid "UI scale"
+msgstr "Масштаб интерфейса"
+
+msgid "Language"
+msgstr "Язык"
+
+msgid "Display"
+msgstr "Экран"
+
+msgid "Portrait layout"
+msgstr "Портретная раскладка"
+
+msgid "Rotation"
+msgstr "Поворот"
+
+msgid "Fullscreen"
+msgstr "Во весь экран"
+
+msgid "V-Sync"
+msgstr "Верт. синхр."
+
+msgid "Resolution"
+msgstr "Разрешение"
+
+msgid "Custom size"
+msgstr "Свой размер"
+
+msgid "Custom"
+msgstr "Своё"
+
+msgid "Audio"
+msgstr "Звук"
+
+msgid "on"
+msgstr "вкл"
+
+msgid "History"
+msgstr "История"
+
+msgid "Click a line to roll back to it - H or Esc closes"
+msgstr "Нажми на строку, чтобы откатиться - H или Esc закрывает"
+
+msgid "Resume"
+msgstr "Продолжить"
+
+msgid "Quit"
+msgstr "Выйти"
+
+msgid "Character"
+msgstr "Персонаж"
+
+msgid "PHYS 201 - Quantum Mechanics II"
+msgstr "ФИЗ 201 - Квантовая механика II"
+
+msgid "Lecture 12: The time-independent Schroedinger equation. H psi = E psi, where H is the Hamiltonian operator. For a particle in a 1-D infinite well of width L the energy eigenvalues are E_n = n^2 h^2 / (8 m L^2). Reminder: problem set 4 is due Friday - problems 3.7, 3.9 and the derivation of the uncertainty principle for position and momentum."
+msgstr "Лекция 12: Стационарное уравнение Шрёдингера. H psi = E psi, где H — оператор Гамильтона. Для частицы в одномерной бесконечно глубокой яме ширины L уровни энергии E_n = n^2 h^2 / (8 m L^2). Напоминание: до пятницы сдать набор задач 4 — задачи 3.7, 3.9 и вывод принципа неопределённости для координаты и импульса."
+
+# --- Runtime strings wrapped in tr() ---
+
+msgid "Nothing to save"
+msgstr "Нечего сохранять"
+
+msgid "Save failed"
+msgstr "Ошибка сохранения"
+
+msgid "Saved to slot %d"
+msgstr "Сохранено в слот %d"
+
+msgid "Empty slot"
+msgstr "Слот пуст"
+
+msgid "Save is broken"
+msgstr "Сохранение повреждено"
+
+msgid "Loaded slot %d"
+msgstr "Загружен слот %d"
+
+msgid "Slot %d - %s  (%s)"
+msgstr "Слот %d - %s  (%s)"
+
+msgid "Auto on"
+msgstr "Авто вкл"
+
+msgid "Auto off"
+msgstr "Авто выкл"
+
+msgid "Skip on"
+msgstr "Пропуск вкл"
+
+msgid "Skip off"
+msgstr "Пропуск выкл"
+
+msgid "Skip stopped at unseen text"
+msgstr "Пропуск остановился на новом тексте"
+
+msgid "Already at a choice"
+msgstr "Вы уже на выборе"
+
+msgid "No earlier choice"
+msgstr "Раньше выбора нет"
+
+msgid "Master volume"
+msgstr "Общая громкость"
+
+msgid "Music volume"
+msgstr "Громкость музыки"
+
+msgid "Voice volume"
+msgstr "Громкость голоса"
+
+msgid "SFX volume"
+msgstr "Громкость эффектов"
+
+msgid "Sprites"
+msgstr "Спрайты"
+
+msgid "Sprite scale"
+msgstr "Масштаб спрайтов"
+
+msgid "Sprite Y offset"
+msgstr "Смещение спрайтов по Y"
+
+msgid "Settings are saved automatically. Esc or the X button closes."
+msgstr "Настройки сохраняются автоматически. Esc или кнопка X закрывает."
+
+msgid "Paused"
+msgstr "Пауза"
+
+msgid "+ New slot"
+msgstr "+ Новый слот"

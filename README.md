@@ -37,10 +37,17 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
   setting when the engine can't rotate; the bottom system row wraps onto multiple lines
   on narrow aspects / big UI scales and gains a Pause button; the panic page scrolls and
   closes from a corner X (`docs/13_settings_portrait.webp`,
-  `docs/15_system_row_wrapped.webp`, `docs/16_panic_portrait.webp`)
+  `docs/15_system_row_wrapped.webp`, `docs/16_panic_portrait.webp`). v1.15 adds the
+  Russian localization with localized character voices.
 - **voiced dialogue**: all fourteen spoken character lines carry `#voice=` tags and play
   per-character clips (Maya and Rook) on the Voice bus, silenced again on unvoiced lines;
   the clips were generated as Opus but ship as tightly packed Ogg Vorbis (mono, 32 kbps)
+- **internationalization**: a Language setting (English / Русский) persisted in
+  `user://settings.json`, following the OS locale on first launch; `i18n/ru.po` translates
+  the dialogue (via the addon's `dialogue` context), every authored UI string and the
+  runtime toasts/titles, and the current line, name plate and choices repaint live on
+  switch; voices live per locale in `assets/voices/{en,ru}` with English fallback
+  (`docs/17_russian.webp`)
   because Godot 4.7 has no Opus importer; an optional "Sync text to voice" setting paces
   the typewriter so each voiced line finishes typing when its clip ends
 - **compact art**: backgrounds and portraits ship as lossy WebP at quality 0.9 — ~483 KB
@@ -48,7 +55,7 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - **styled text**: BBCode (`[b]`, `[i]`, `[color=…]`, …) renders in the typewriter label;
   the backlog and save-slot labels store the same lines without markup
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **241/241 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **249/249 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 

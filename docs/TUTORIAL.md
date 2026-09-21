@@ -52,9 +52,11 @@ Everything applies live and persists to `user://settings.json`:
   skip speed, skip *Everything* vs *Seen only*, auto delay.
 - *Display*: UI scale (scales only the UI, never the scene; the settings column keeps a
   usable width at any scale), fullscreen, V-Sync, resolution presets or any custom positive
-  width/height, "Portrait layout" to force the wrapped portrait settings, and Rotation
+  width/height, "Portrait layout" to force the wrapped portrait settings, Rotation
   (0/90/180/270): the whole view turns and its logical resolution flips X/Y so it fills
-  the window with no gaps — a portrait preview on platforms whose window never rotates.
+  the window with no gaps — a portrait preview on platforms whose window never rotates,
+  and Language (English / Русский — dialogue, interface and character voices all switch,
+  and the choice is remembered).
 - *Audio*: master / music / voice / SFX volumes (voices play on the Voice bus).
 - *Sprites*: portrait scale and Y offset.
 

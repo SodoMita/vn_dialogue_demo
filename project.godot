@@ -69,4 +69,5 @@ pointing/emulate_mouse_from_touch=true
 
 [internationalization]
 
+locale/translations=PackedStringArray("res://i18n/ru.po")
 locale/translations_pot_files=PackedStringArray("res://dialogue/intro.dialogue")
