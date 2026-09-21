@@ -33,7 +33,8 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
   scale), fullscreen, V-Sync, resolution presets or any custom positive size,
   master/music/voice/SFX volumes, and separate sprite scale / Y-offset settings — applied
   live, persisted to `user://settings.json`), **pause menu**
-  (`P` / right click, with Resume/History/Save/Load/Settings/Quit), **panic/boss screen**
+  (`P` / right click, with Resume/History/Save/Load/Settings/Quit; Resume continues a paused
+  voice clip from its previous playback position), **panic/boss screen**
   (`F12`) that swaps the whole game for a dry quantum-mechanics lecture page
   (`docs/09_settings.webp`, `docs/10_pause.webp`, `docs/11_panic.webp`)
 - **mobile controls**: with `input_devices/pointing/emulate_mouse_from_touch` enabled,

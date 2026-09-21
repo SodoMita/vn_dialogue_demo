@@ -1368,13 +1368,14 @@ func toggle_panic() -> void:
 		_restore_waiting()
 
 
-## Pause and the boss screen silence everything: the voice clip stops and the
-## master bus mutes until the game resumes.
+## Pause and the boss screen silence everything.  Pause the current voice in
+## place instead of stopping it, so Resume continues the line from the same
+## playback position.  The Master bus remains muted while either overlay is up.
 func _silence_audio(on: bool) -> void:
-	if on:
-		voice_player.stop()
-	# Leaving one of them while the other is still up keeps the game silent.
+	# Leaving one overlay while the other is still up must keep both the bus and
+	# the current voice paused.
 	var silent: bool = on or pause_panel.visible or panic_screen.visible
+	voice_player.stream_paused = silent
 	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), silent)
 
 

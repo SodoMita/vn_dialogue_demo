@@ -27,22 +27,20 @@ Added input binding support for Skip:
 
 The test runner still reports Godot resource-leak warnings at shutdown, but the process exit code is 0 and all assertions pass.
 
-## Known remaining problem
+## Audio-resume follow-up
 
-**Audio does not resume after Resume.**
+The Pause/Resume audio issue has been fixed after the original handoff:
 
-Current audio behavior in `scenes/vn_balloon.gd`:
+- `_silence_audio(true)` now pauses `VoicePlayer` in place and mutes the Master bus.
+- Resume unpauses the same clip, continuing from its previous playback position.
+- Nested Pause/Panic state keeps both the voice and Master bus paused until both overlays are closed.
+- The headless UI suite includes a regression assertion for voice playback across Resume.
 
-- `_silence_audio(true)` stops the voice player and mutes the Master bus when Pause or Panic is active.
-- `_silence_audio(false)` is called when leaving Pause/Panic and should restore the Master bus.
-- The unresolved behavior is that audio does not resume correctly after pressing Resume. Investigate the pause/resume interaction before a future patch or release follow-up.
-
-Important audio details:
+Audio details:
 
 - There is no music player in the project.
 - Dialogue audio uses `VoicePlayer` on the `Voice` bus.
 - `Music`, `Voice`, and `SFX` route to `Master`.
-- The current v1.16 implementation intentionally stops the current voice clip when pausing; resuming may therefore require replaying or restarting the current line's voice rather than only unmuting the bus.
 
 ## Relevant files
 

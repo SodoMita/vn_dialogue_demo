@@ -470,16 +470,23 @@ func run() -> void:
 	check(alive() and not balloon.skip_mode, "skip mode stops at choices")
 	await choose(0)
 
-	# Pause via the P action.
+	# Pause via the P action. Start a known clip so the regression check proves
+	# Resume continues voice playback instead of merely unmuting the bus.
+	balloon._play_voice("r1")
+	await get_tree().process_frame
+	check(alive() and balloon.voice_player.playing, "voice is playing before pause")
 	press(&"dialogue_pause")
 	await get_tree().process_frame
 	check(alive() and balloon.pause_panel.visible, "pause action opens the pause menu")
 	check(alive() and AudioServer.is_bus_mute(AudioServer.get_bus_index("Master")), "pause silences all audio")
+	check(alive() and balloon.voice_player.stream_paused, "pause suspends the current voice clip")
 	check(alive() and not balloon.is_waiting_for_input, "input blocked while paused")
 	press(&"ui_accept")  # Resume owns focus when the menu opens
 	await get_tree().process_frame
 	check(alive() and not balloon.pause_panel.visible, "Resume closes the pause menu")
 	check(alive() and not AudioServer.is_bus_mute(AudioServer.get_bus_index("Master")), "resume restores audio")
+	check(alive() and balloon.voice_player.playing and not balloon.voice_player.stream_paused,
+		"Resume continues the current voice clip")
 	await wait_ready()
 	check(alive() and balloon.is_waiting_for_input, "balloon waits for input again after resume")
 
