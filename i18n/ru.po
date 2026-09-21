@@ -306,8 +306,29 @@ msgstr "Масштаб спрайтов"
 msgid "Sprite Y offset"
 msgstr "Смещение спрайтов по Y"
 
-msgid "Settings are saved automatically. Esc or the X button closes."
-msgstr "Настройки сохраняются автоматически. Esc или кнопка X закрывает."
+msgid "Settings are saved automatically. Use Skip / close or X to exit."
+msgstr "Настройки сохраняются автоматически. Используйте «Пропуск / закрыть» или X для выхода."
+
+msgid "Controls"
+msgstr "Управление"
+
+msgid "Advance"
+msgstr "Далее"
+
+msgid "Skip / close"
+msgstr "Пропуск / закрыть"
+
+msgid "Quick save"
+msgstr "Быстрое сохранение"
+
+msgid "Quick load"
+msgstr "Быстрая загрузка"
+
+msgid "Press any key..."
+msgstr "Нажмите любую клавишу..."
+
+msgid "Unbound"
+msgstr "Не назначено"
 
 msgid "Paused"
 msgstr "Пауза"

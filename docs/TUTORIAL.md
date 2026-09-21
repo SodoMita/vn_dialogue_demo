@@ -14,7 +14,9 @@ typewriter box, centered choices) built on the
 
 | Action | Input |
 | --- | --- |
-| Advance / finish typing | click, `Space`, `Enter` (first press finishes the typewriter, next advances) |
+| Advance / finish typing | click or `Enter` (first press finishes the typewriter, next advances) |
+| Skip typing / close an overlay | `Ctrl` |
+| Open history | `H` |
 | Choose an option | `Up`/`Down` then `Enter` (or click) |
 | Roll back one line | mouse wheel up (Ren'Py-style, non-destructive) |
 | Roll forward again | mouse wheel down |
@@ -48,6 +50,9 @@ exact line. `QS`/`QL` and `F5`/`F9` always use slot 0.
 
 Everything applies live and persists to `user://settings.json`:
 
+- *Controls*: Advance, Skip/close, History, Quick save, Quick load, Pause and Panic are all
+  remappable. Click a binding button; when it says **Press any key...**, press the new key.
+  Mouse, touch and right-click controls remain available alongside keyboard bindings.
 - *Text*: speed, size, **Sync text to voice** (typewriter finishes when the clip ends),
   skip speed, skip *Everything* vs *Seen only*, auto delay.
 - *Display*: UI scale (scales only the UI, never the scene; the settings column keeps a

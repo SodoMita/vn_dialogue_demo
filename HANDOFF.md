@@ -11,15 +11,16 @@ The project is ready for the user's release. The working tree was clean after co
 
 Previous release: `v1.16.0` (`d1e12e9`). The project has tags `v1.0.0` through `v1.16.0`; the Ctrl binding change has not been tagged yet.
 
-## Latest change
+## Latest input-binding change
 
-Added input binding support for Skip:
+The former static `Skip key: Ctrl` display has been replaced by real runtime rebinding:
 
-- Settings now contains a `Skip key` row displaying `Ctrl`.
-- `project.godot` defines the `dialogue_skip` action mapped to Ctrl.
-- Ctrl is accepted in the typewriter skip, dialogue advance, and overlay-close paths.
-- The existing `ui_cancel` skip action remains supported for compatibility.
-- Authored scene remains editable; no scene-builder script was introduced.
+- Settings has authored binding buttons for Advance, Skip/close, History, Quick save,
+  Quick load, Pause and Panic.
+- Clicking a binding button captures the next keyboard key, updates `InputMap` immediately,
+  and persists the choice in `user://settings.json`.
+- Saved bindings are restored at startup; mouse/touch bindings are preserved.
+- The authored scene remains editable; no scene-builder script was introduced.
 
 ## Verification
 

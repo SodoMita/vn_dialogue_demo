@@ -40,7 +40,7 @@ func press(action: StringName) -> void:
 	ev.pressed = true
 	match action:
 		&"ui_accept": ev.keycode = KEY_ENTER
-		&"ui_cancel": ev.keycode = KEY_ESCAPE
+		&"ui_cancel": ev.keycode = KEY_CTRL
 		&"ui_down": ev.keycode = KEY_DOWN
 		&"ui_right": ev.keycode = KEY_RIGHT
 		&"ui_left": ev.keycode = KEY_LEFT
@@ -143,7 +143,7 @@ func run() -> void:
 	sf.close()
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button", "PauseButton", "PanicCloseButton", "LanguageOption"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button", "PauseButton", "PanicCloseButton", "LanguageOption", "AdvanceKeyButton", "SkipKeyButton", "HistoryKeyButton", "QuickSaveKeyButton", "QuickLoadKeyButton", "PauseKeyButton", "PanicKeyButton"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -675,6 +675,37 @@ func run() -> void:
 	check(alive() and balloon.settings_panel.visible, "settings reopened after close-button exit")
 	check(alive() and balloon.skip_mode_option.item_count == 2 and balloon.resolution_option.item_count == 5,
 		"the skip-mode and resolution dropdowns carry their authored items")
+
+	# Every keyboard action has an authored button. Clicking one enters capture
+	# mode; the next key replaces that action immediately and is persisted.
+	check(alive() and balloon.BINDABLE_ACTIONS.size() == 7
+		and balloon.advance_key_button is Button and balloon.skip_key_button is Button
+		and balloon.history_key_button is Button and balloon.quick_save_key_button is Button
+		and balloon.quick_load_key_button is Button and balloon.pause_key_button is Button
+		and balloon.panic_key_button is Button,
+		"settings authors a binding button for every keyboard action")
+	var old_skip_key := (InputMap.action_get_events(&"dialogue_skip")[0] as InputEventKey).duplicate() as InputEventKey
+	balloon._begin_rebind(&"dialogue_skip")
+	check(balloon.skip_key_button.text == "Press any key...", "binding button waits for the next key")
+	var rebound := InputEventKey.new()
+	rebound.pressed = true
+	rebound.keycode = KEY_K
+	Input.parse_input_event(rebound)
+	await get_tree().process_frame
+	var rebound_events := InputMap.action_get_events(&"dialogue_skip")
+	var binding_data: Variant = JSON.parse_string(FileAccess.get_file_as_string("user://settings.json"))
+	check(rebound_events.size() == 1 and (rebound_events[0] as InputEventKey).keycode == KEY_K
+		and balloon.skip_key_button.text == "K",
+		"next key replaces the selected action binding")
+	check(binding_data is Dictionary and int(binding_data.key_bindings.dialogue_skip.keycode) == KEY_K,
+		"custom key binding persists in settings")
+	balloon._replace_action_key(&"dialogue_skip", old_skip_key)
+	balloon._load_key_bindings(binding_data.key_bindings)
+	check((InputMap.action_get_events(&"dialogue_skip")[0] as InputEventKey).keycode == KEY_K,
+		"saved key binding restores into InputMap")
+	balloon._replace_action_key(&"dialogue_skip", old_skip_key)
+	balloon._refresh_binding_labels()
+	balloon._save_settings()
 
 	# Text size
 	balloon.text_size_slider.value += 4  # set_value() emits value_changed

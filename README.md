@@ -12,8 +12,9 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - full-screen background stage (`#bg=` tag)
 - left / right character sprite slots with spotlight dimming (`#sprite=`, `#focus=`)
 - gold-trimmed dialogue box + name plate, serif novel font
-- typewriter text via the addon's `DialogueLabel`; `Enter`/`Space`/`Esc`/click all finish
-  the typewriter first and advance on the next press — the keyboard behaves exactly like LMB
+- typewriter text via the addon's `DialogueLabel`; the remappable Advance (`Enter`) and
+  Skip/close (`Ctrl`) keys plus click all finish the typewriter first; Advance/click then
+  proceed on the next press — the keyboard behaves exactly like LMB
 - bobbing "next" indicator
 - centred choice buttons via the addon's `DialogueResponsesMenu`
 - **history (backlog) panel with rollback**: `H` opens it (scrollable with wheel / keys),
@@ -31,8 +32,8 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
   skip-everything-vs-seen, auto delay, UI scaling scoped to the UI only (the stage and
   sprites keep their authored size and the settings column keeps a usable width at any
   scale), fullscreen, V-Sync, resolution presets or any custom positive size,
-  master/music/voice/SFX volumes, and separate sprite scale / Y-offset settings — applied
-  live, persisted to `user://settings.json`), **pause menu**
+  master/music/voice/SFX volumes, separate sprite scale / Y-offset settings, and click-to-listen
+  remapping for every keyboard action — applied live, persisted to `user://settings.json`), **pause menu**
   (`P` / right click, with Resume/History/Save/Load/Settings/Quit; Resume continues a paused
   voice clip from its previous playback position), **panic/boss screen**
   (`F12`) that swaps the whole game for a dry quantum-mechanics lecture page
@@ -183,13 +184,14 @@ Godot_v4.7.2-stable_linux.x86_64 --headless --import
 Godot_v4.7.2-stable_linux.x86_64 res://scenes/vn_scene.tscn
 ```
 
-Controls: `Enter` / `Space` / click / tap = finish the typewriter, then advance, or pick a focused choice, `↓/↑` = move between
-choices, `Esc` / click = skip typing, `H` or swipe up = open history, wheel / arrow keys =
+Default controls: `Enter` / click / tap = finish the typewriter, then advance, or pick a focused choice, `↓/↑` = move between
+choices, `Ctrl` / click = skip typing, `H` or swipe up = open history, wheel / arrow keys =
 scroll the history, click a history line = roll back to it, wheel up / down in-game = roll
-back / forward one line, `Esc` = close any open panel without side effects, `F5` / `QS` =
+back / forward one line, `Ctrl` = close any open panel without side effects, `F5` / `QS` =
 quick save, `F9` / `QL` = quick load, `Save`/`Load` = slot menus, `Auto`/`Skip` = modes,
 `< Choice`/`Choice >` = jump to previous/next choice, `P` or right-click = pause,
-`F12` / `Panic` = boss screen.
+`F12` / `Panic` = boss screen. Every keyboard action can be rebound in Settings: click its
+binding button, then press the desired key.
 
 ## Test & verify
 

@@ -30,10 +30,10 @@ class_name VNBalloon extends CanvasLayer
 @export var will_block_other_input: bool = true
 
 ## The action to use for advancing the dialogue.
-@export var next_action: StringName = &"ui_accept"
+@export var next_action: StringName = &"dialogue_advance"
 
 ## The action to use to skip typing the dialogue.
-@export var skip_action: StringName = &"ui_cancel"
+@export var skip_action: StringName = &"dialogue_skip"
 
 ## The action that toggles the history (backlog) panel.
 @export var history_action: StringName = &"dialogue_history"
@@ -115,7 +115,13 @@ class_name VNBalloon extends CanvasLayer
 @onready var text_size_slider: HSlider = %TextSizeSlider
 @onready var skip_speed_slider: HSlider = %SkipSpeedSlider
 @onready var skip_mode_option: OptionButton = %SkipModeOption
-@onready var skip_key_option: OptionButton = %SkipKeyOption
+@onready var advance_key_button: Button = %AdvanceKeyButton
+@onready var skip_key_button: Button = %SkipKeyButton
+@onready var history_key_button: Button = %HistoryKeyButton
+@onready var quick_save_key_button: Button = %QuickSaveKeyButton
+@onready var quick_load_key_button: Button = %QuickLoadKeyButton
+@onready var pause_key_button: Button = %PauseKeyButton
+@onready var panic_key_button: Button = %PanicKeyButton
 @onready var auto_delay_slider: HSlider = %AutoDelaySlider
 @onready var ui_scale_slider: HSlider = %UIScaleSlider
 @onready var settings_margin: MarginContainer = %SettingsMargin
@@ -217,6 +223,15 @@ const RES_PRESETS: Array = [
 	[1280, 720], [1600, 900], [1920, 1080], [2560, 1440],
 ]
 
+## Every keyboard-driven VN action is remappable. Mouse/touch bindings remain
+## alongside the chosen key (for example, right click continues to pause).
+const BINDABLE_ACTIONS: Array[StringName] = [
+	&"dialogue_advance", &"dialogue_skip", &"dialogue_history",
+	&"dialogue_save", &"dialogue_load", &"dialogue_pause", &"dialogue_panic",
+]
+var _binding_buttons: Dictionary = {}
+var _listening_for_action: StringName = &""
+
 ## Authored settings side/top margins; the logical margins shrink as the UI
 ## scale grows so the rendered settings column keeps a constant, usable width.
 const SETTINGS_SIDE_MARGIN: float = 180.0
@@ -271,6 +286,7 @@ func _ready() -> void:
 	panic_screen.hide()
 	DirAccess.make_dir_recursive_absolute(saves_dir)
 	_ensure_audio_buses()
+	_setup_key_bindings()
 	_load_seen()
 	_load_settings()
 	# Apply slider defaults even on a fresh install (set_value-less first run).
@@ -477,6 +493,8 @@ func _open_overlay(p: Control) -> void:
 func _close_overlay(p: Control) -> void:
 	p.hide()
 	if p == settings_panel:
+		_listening_for_action = &""
+		_refresh_binding_labels()
 		settings_close_button.hide()
 	_restore_waiting()
 
@@ -869,6 +887,106 @@ func _on_new_slot_pressed() -> void:
 #region Settings
 
 
+## Wire the authored binding buttons to one generic capture path.
+func _setup_key_bindings() -> void:
+	_binding_buttons = {
+		&"dialogue_advance": advance_key_button,
+		&"dialogue_skip": skip_key_button,
+		&"dialogue_history": history_key_button,
+		&"dialogue_save": quick_save_key_button,
+		&"dialogue_load": quick_load_key_button,
+		&"dialogue_pause": pause_key_button,
+		&"dialogue_panic": panic_key_button,
+	}
+	for action: StringName in BINDABLE_ACTIONS:
+		(_binding_buttons[action] as Button).pressed.connect(_begin_rebind.bind(action))
+	_refresh_binding_labels()
+
+
+func _begin_rebind(action: StringName) -> void:
+	if not _listening_for_action.is_empty():
+		_refresh_binding_labels()
+	_listening_for_action = action
+	(_binding_buttons[action] as Button).text = tr("Press any key...")
+
+
+## Capture before GUI/unhandled input so even Escape, Enter and the boss key can
+## become a binding without also closing the panel or triggering their action.
+func _input(event: InputEvent) -> void:
+	if _listening_for_action.is_empty() or not settings_panel.visible:
+		return
+	if event is InputEventKey and event.pressed and not event.echo:
+		var action := _listening_for_action
+		_listening_for_action = &""
+		_replace_action_key(action, event as InputEventKey)
+		_refresh_binding_labels()
+		_save_settings()
+		(_binding_buttons[action] as Button).grab_focus()
+		get_viewport().set_input_as_handled()
+
+
+## Replace only keyboard events; mouse/touch affordances stay active.
+func _replace_action_key(action: StringName, source: InputEventKey) -> void:
+	var non_key_events: Array[InputEvent] = []
+	for old_event: InputEvent in InputMap.action_get_events(action):
+		if not old_event is InputEventKey:
+			non_key_events.append(old_event)
+	InputMap.action_erase_events(action)
+	var key := source.duplicate() as InputEventKey
+	key.pressed = false
+	key.echo = false
+	key.unicode = 0
+	InputMap.action_add_event(action, key)
+	for old_event: InputEvent in non_key_events:
+		InputMap.action_add_event(action, old_event)
+
+
+func _binding_label(action: StringName) -> String:
+	for event: InputEvent in InputMap.action_get_events(action):
+		if event is InputEventKey:
+			var key_event := event as InputEventKey
+			var code: Key = key_event.keycode if key_event.keycode != 0 else key_event.physical_keycode
+			return OS.get_keycode_string(code)
+	return tr("Unbound")
+
+
+func _refresh_binding_labels() -> void:
+	for action: StringName in BINDABLE_ACTIONS:
+		(_binding_buttons[action] as Button).text = _binding_label(action)
+
+
+func _serialize_key_bindings() -> Dictionary:
+	var result: Dictionary = {}
+	for action: StringName in BINDABLE_ACTIONS:
+		for event: InputEvent in InputMap.action_get_events(action):
+			if event is InputEventKey:
+				var key := event as InputEventKey
+				result[String(action)] = {
+					"keycode": int(key.keycode),
+					"physical_keycode": int(key.physical_keycode),
+					"alt": key.alt_pressed, "shift": key.shift_pressed,
+					"ctrl": key.ctrl_pressed, "meta": key.meta_pressed,
+				}
+				break
+	return result
+
+
+func _load_key_bindings(saved: Variant) -> void:
+	if saved is Dictionary:
+		for action: StringName in BINDABLE_ACTIONS:
+			var item: Variant = saved.get(String(action))
+			if item is Dictionary and (int(item.get("keycode", 0)) != 0 or int(item.get("physical_keycode", 0)) != 0):
+				var key := InputEventKey.new()
+				key.keycode = int(item.get("keycode", 0)) as Key
+				key.physical_keycode = int(item.get("physical_keycode", 0)) as Key
+				key.alt_pressed = bool(item.get("alt", false))
+				key.shift_pressed = bool(item.get("shift", false))
+				key.ctrl_pressed = bool(item.get("ctrl", false))
+				key.meta_pressed = bool(item.get("meta", false))
+				_replace_action_key(action, key)
+	_refresh_binding_labels()
+
+
 func _load_settings() -> void:
 	var data: Dictionary = {}
 	if FileAccess.file_exists(_settings_path):
@@ -883,6 +1001,7 @@ func _load_settings() -> void:
 		language = "ru" if TranslationServer.get_locale().left(2) == "ru" else "en"
 	language_option.selected = 1 if language == "ru" else 0
 	TranslationServer.set_locale(language)
+	_load_key_bindings(data.get("key_bindings", {}))
 	if data.is_empty():
 		return
 	if data.has("text_speed"):
@@ -950,6 +1069,7 @@ func _save_settings() -> void:
 	if file == null:
 		return
 	file.store_string(JSON.stringify({
+		"key_bindings": _serialize_key_bindings(),
 		"text_speed": text_speed_slider.value,
 		"text_size": text_size_slider.value,
 		"skip_speed": skip_speed_slider.value,
@@ -1132,8 +1252,11 @@ const UI_TEXT_KEYS: Array = [
 	["LanguageRowLabel", "Language"], ["TextSpeedRowLabel", "Text speed"],
 	["TextSizeRowLabel", "Text size"], ["SyncVoiceRowLabel", "Sync text to voice"],
 	["SyncVoiceCheck", "on"], ["SkipSpeedRowLabel", "Skip speed"],
-	["SkipKeyRowLabel", "Skip key"], ["SkipModeRowLabel", "Skip texts"],
-	["AutoDelayRowLabel", "Auto delay"], ["UIScaleRowLabel", "UI scale"], ["DisplayHeader", "Display"],
+	["SkipModeRowLabel", "Skip texts"], ["ControlsHeader", "Controls"],
+	["AdvanceKeyRowLabel", "Advance"], ["SkipKeyRowLabel", "Skip / close"],
+	["HistoryKeyRowLabel", "History"], ["QuickSaveKeyRowLabel", "Quick save"],
+	["QuickLoadKeyRowLabel", "Quick load"], ["PauseKeyRowLabel", "Pause"],
+	["PanicKeyRowLabel", "Panic"], ["AutoDelayRowLabel", "Auto delay"], ["UIScaleRowLabel", "UI scale"], ["DisplayHeader", "Display"],
 	["PortraitRowLabel", "Portrait layout"], ["PortraitCheck", "on"], ["RotationRowLabel", "Rotation"],
 	["FullscreenRowLabel", "Fullscreen"], ["FullscreenCheck", "on"], ["VsyncRowLabel", "V-Sync"],
 	["VsyncCheck", "on"], ["ResolutionRowLabel", "Resolution"], ["ResCustomLabel", "Custom size"],
@@ -1141,7 +1264,7 @@ const UI_TEXT_KEYS: Array = [
 	["MusicVolRowLabel", "Music volume"], ["VoiceVolRowLabel", "Voice volume"],
 	["SfxVolRowLabel", "SFX volume"], ["SpritesHeader", "Sprites"],
 	["SpriteScaleRowLabel", "Sprite scale"], ["SpriteYRowLabel", "Sprite Y offset"],
-	["SettingsHint", "Settings are saved automatically. Esc or the X button closes."],
+	["SettingsHint", "Settings are saved automatically. Use Skip / close or X to exit."],
 	["PauseTitle", "Paused"], ["ResumeButton", "Resume"], ["PauseHistoryButton", "History"],
 	["PauseSaveButton", "Save"], ["PauseLoadButton", "Load"], ["PauseSettingsButton", "Settings"],
 	["QuitButton", "Quit"], ["PanicTitle", "PHYS 201 - Quantum Mechanics II"],
@@ -1165,6 +1288,10 @@ func _retranslate_dynamic() -> void:
 		resolution_option.set_item_text(RES_PRESETS.size(), tr("Custom"))
 	if is_instance_valid(save_menu_title) and save_menu_panel.visible:
 		save_menu_title.text = tr("Save") if save_menu_mode == "save" else tr("Load")
+	if is_instance_valid(advance_key_button):
+		_refresh_binding_labels()
+		if not _listening_for_action.is_empty():
+			(_binding_buttons[_listening_for_action] as Button).text = tr("Press any key...")
 
 
 ## Four settings buttons rotate the whole game view (the engine itself never
@@ -1521,7 +1648,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# the skip action closes the top-most overlay without side effects.
 	if _any_overlay_open():
 		get_viewport().set_input_as_handled()
-		if (event.is_action_pressed(skip_action) or event.is_action_pressed(&"dialogue_skip")):
+		if event.is_action_pressed(skip_action):
 			if settings_panel.visible:
 				_close_overlay(settings_panel)
 			elif save_menu_panel.visible:
@@ -1610,7 +1737,7 @@ func _on_balloon_gui_input(event: InputEvent) -> void:
 	# See if we need to skip typing of the dialogue
 	if dialogue_label.is_typing:
 		var mouse_was_clicked: bool = event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed()
-		var advance_key_was_pressed: bool = (event.is_action_pressed(skip_action) or event.is_action_pressed(&"dialogue_skip")) or event.is_action_pressed(next_action)
+		var advance_key_was_pressed: bool = event.is_action_pressed(skip_action) or event.is_action_pressed(next_action)
 		if mouse_was_clicked or advance_key_was_pressed:
 			get_viewport().set_input_as_handled()
 			dialogue_label.skip_typing()

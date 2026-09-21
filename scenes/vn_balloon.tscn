@@ -811,6 +811,33 @@ popup/item_0/id = 0
 popup/item_1/text = "Seen only"
 popup/item_1/id = 1
 selected = 0
+[node name="ControlsHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 20
+text = "Controls"
+
+[node name="AdvanceKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="AdvanceKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AdvanceKeyRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Advance"
+[node name="AdvanceKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AdvanceKeyRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+text = "Enter"
+
 [node name="SkipKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
 layout_mode = 2
 theme_override_constants/separation = 16
@@ -821,17 +848,115 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
-text = "Skip key"
-[node name="SkipKeyOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipKeyRow"]
+text = "Skip / close"
+[node name="SkipKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipKeyRow"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
-item_count = 1
-popup/item_0/text = "Ctrl"
-popup/item_0/id = 0
-selected = 0
+text = "Ctrl"
+
+[node name="HistoryKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="HistoryKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/HistoryKeyRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "History"
+[node name="HistoryKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/HistoryKeyRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+text = "H"
+
+[node name="QuickSaveKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="QuickSaveKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/QuickSaveKeyRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Quick save"
+[node name="QuickSaveKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/QuickSaveKeyRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+text = "F5"
+
+[node name="QuickLoadKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="QuickLoadKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/QuickLoadKeyRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Quick load"
+[node name="QuickLoadKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/QuickLoadKeyRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+text = "F9"
+
+[node name="PauseKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="PauseKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PauseKeyRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Pause"
+[node name="PauseKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PauseKeyRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+text = "P"
+
+[node name="PanicKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="PanicKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PanicKeyRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Panic"
+[node name="PanicKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PanicKeyRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+text = "F12"
 
 [node name="AutoDelayRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
 layout_mode = 2
@@ -1152,7 +1277,7 @@ value = 0
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.8, 0.8)
 theme_override_font_sizes/font_size = 14
-text = "Settings are saved automatically. Esc or the X button closes."
+text = "Settings are saved automatically. Use Skip / close or X to exit."
 [node name="PausePanel" type="PanelContainer" parent="Balloon/UIRoot"]
 unique_name_in_owner = true
 z_index = 10
