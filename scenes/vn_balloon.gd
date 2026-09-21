@@ -1342,12 +1342,14 @@ func _on_sfx_vol_changed(v: float) -> void:
 func open_pause() -> void:
 	_open_overlay(pause_panel)
 	dialogue_label.set_process(false)
+	_silence_audio(true)
 	resume_button.grab_focus()
 
 
 func close_pause() -> void:
 	pause_panel.hide()
 	dialogue_label.set_process(true)
+	_silence_audio(false)
 	_restore_waiting()
 
 
@@ -1357,9 +1359,21 @@ func toggle_panic() -> void:
 		auto_timer.stop()
 		is_waiting_for_input = false
 		dialogue_label.set_process(false)
+		_silence_audio(true)
 	else:
 		dialogue_label.set_process(true)
+		_silence_audio(false)
 		_restore_waiting()
+
+
+## Pause and the boss screen silence everything: the voice clip stops and the
+## master bus mutes until the game resumes.
+func _silence_audio(on: bool) -> void:
+	if on:
+		voice_player.stop()
+	# Leaving one of them while the other is still up keeps the game silent.
+	var silent: bool = on or pause_panel.visible or panic_screen.visible
+	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), silent)
 
 
 ## Touch pause: keyboards have the pause action, phones only get this button.
@@ -1527,19 +1541,20 @@ func _unhandled_input(event: InputEvent) -> void:
 			roll_forward()
 		return
 
-	# Advance via keyboard even when no control currently holds focus
-	# (the gui_input handler already covers the focused-balloon and mouse cases).
-	# Only when the balloon (or nothing) owns focus - a focused Button handles
-	# its own activation on key release and must not advance the dialogue.
+	# Enter/Space mirror the left mouse button: skip the typewriter first, then
+	# advance. Only when the balloon (or nothing) owns focus - a focused Button
+	# activates on key *release*, so acting here would steal its focus first and
+	# swallow the click.
 	var focus_owner: Control = get_viewport().gui_get_focus_owner()
-	if is_waiting_for_input \
-		and is_instance_valid(dialogue_line) \
-		and dialogue_line.responses.size() == 0 \
-		and not dialogue_label.is_typing \
-		and (focus_owner == balloon or focus_owner == null) \
-		and event.is_action_pressed(next_action):
+	if event.is_action_pressed(next_action) \
+		and (focus_owner == balloon or focus_owner == null):
 		get_viewport().set_input_as_handled()
-		next(dialogue_line.next_id)
+		if dialogue_label.is_typing:
+			dialogue_label.skip_typing()
+		elif is_waiting_for_input \
+			and is_instance_valid(dialogue_line) \
+			and dialogue_line.responses.size() == 0:
+			next(dialogue_line.next_id)
 		return
 
 	# Only the balloon is allowed to handle input while it's showing
@@ -1592,8 +1607,8 @@ func _on_balloon_gui_input(event: InputEvent) -> void:
 	# See if we need to skip typing of the dialogue
 	if dialogue_label.is_typing:
 		var mouse_was_clicked: bool = event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.is_pressed()
-		var skip_button_was_pressed: bool = event.is_action_pressed(skip_action)
-		if mouse_was_clicked or skip_button_was_pressed:
+		var advance_key_was_pressed: bool = event.is_action_pressed(skip_action) or event.is_action_pressed(next_action)
+		if mouse_was_clicked or advance_key_was_pressed:
 			get_viewport().set_input_as_handled()
 			dialogue_label.skip_typing()
 			return

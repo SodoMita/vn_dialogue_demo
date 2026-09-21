@@ -6,7 +6,8 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - full-screen background stage (`#bg=` tag)
 - left / right character sprite slots with spotlight dimming (`#sprite=`, `#focus=`)
 - gold-trimmed dialogue box + name plate, serif novel font
-- typewriter text via the addon's `DialogueLabel`, skip with `Esc`, advance with `Enter`/click
+- typewriter text via the addon's `DialogueLabel`; `Enter`/`Space`/`Esc`/click all finish
+  the typewriter first and advance on the next press — the keyboard behaves exactly like LMB
 - bobbing "next" indicator
 - centred choice buttons via the addon's `DialogueResponsesMenu`
 - **history (backlog) panel with rollback**: `H` opens it (scrollable with wheel / keys),
@@ -55,7 +56,7 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - **styled text**: BBCode (`[b]`, `[i]`, `[color=…]`, …) renders in the typewriter label;
   the backlog and save-slot labels store the same lines without markup
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **251/251 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **259/259 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 
@@ -175,7 +176,7 @@ Godot_v4.7.2-stable_linux.x86_64 --headless --import
 Godot_v4.7.2-stable_linux.x86_64 res://scenes/vn_scene.tscn
 ```
 
-Controls: `Enter` / click / tap = advance or pick a focused choice, `↓/↑` = move between
+Controls: `Enter` / `Space` / click / tap = finish the typewriter, then advance, or pick a focused choice, `↓/↑` = move between
 choices, `Esc` / click = skip typing, `H` or swipe up = open history, wheel / arrow keys =
 scroll the history, click a history line = roll back to it, wheel up / down in-game = roll
 back / forward one line, `Esc` = close any open panel without side effects, `F5` / `QS` =

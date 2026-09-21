@@ -207,6 +207,20 @@ func run() -> void:
 	check(alive() and is_equal_approx(balloon.dialogue_label.seconds_per_step, balloon.text_speed_slider.value),
 		"pacing returns to the text speed when sync is off")
 
+	# --- 5b: Enter/Space are as reliable as the left mouse button ---
+	var kb_before: String = balloon.dialogue_line.id
+	press(&"ui_accept")
+	await wait_until(func() -> bool:
+		return not alive() or (balloon.dialogue_line != null and balloon.dialogue_line.id != kb_before)
+	)
+	check(alive() and balloon.dialogue_line.id != kb_before, "Enter advances the dialogue when waiting")
+	await wait_until(func() -> bool: return not alive() or balloon.dialogue_label.is_typing)
+	press(&"ui_accept")
+	await get_tree().process_frame
+	check(alive() and not balloon.dialogue_label.is_typing, "Enter skips the typewriter exactly like a click")
+	balloon.rollback_to(balloon.history_cursor - 1)
+	await wait_ready()
+
 	# --- 6: Maya appears on the left, Rook dimmed by #focus=left ---
 	line = await step()
 	check(line != null and line.character == "Maya", "line 3 is Maya")
@@ -460,10 +474,12 @@ func run() -> void:
 	press(&"dialogue_pause")
 	await get_tree().process_frame
 	check(alive() and balloon.pause_panel.visible, "pause action opens the pause menu")
+	check(alive() and AudioServer.is_bus_mute(AudioServer.get_bus_index("Master")), "pause silences all audio")
 	check(alive() and not balloon.is_waiting_for_input, "input blocked while paused")
 	press(&"ui_accept")  # Resume owns focus when the menu opens
 	await get_tree().process_frame
 	check(alive() and not balloon.pause_panel.visible, "Resume closes the pause menu")
+	check(alive() and not AudioServer.is_bus_mute(AudioServer.get_bus_index("Master")), "resume restores audio")
 	await wait_ready()
 	check(alive() and balloon.is_waiting_for_input, "balloon waits for input again after resume")
 
@@ -471,6 +487,7 @@ func run() -> void:
 	press(&"dialogue_panic")
 	await get_tree().process_frame
 	check(alive() and balloon.panic_screen.visible, "panic action shows the panic screen")
+	check(alive() and AudioServer.is_bus_mute(AudioServer.get_bus_index("Master")), "panic silences all audio")
 	var frozen_id: String = balloon.dialogue_line.id
 	press(&"ui_accept")
 	press(&"ui_cancel")
@@ -480,6 +497,23 @@ func run() -> void:
 	press(&"dialogue_panic")
 	await get_tree().process_frame
 	check(alive() and not balloon.panic_screen.visible, "panic action hides the panic screen again")
+	check(alive() and not AudioServer.is_bus_mute(AudioServer.get_bus_index("Master")), "leaving panic restores audio")
+
+	# Panic raised from inside the pause menu: closing it must stay silent.
+	press(&"dialogue_pause")
+	await get_tree().process_frame
+	press(&"dialogue_panic")
+	await get_tree().process_frame
+	press(&"dialogue_panic")
+	await get_tree().process_frame
+	check(alive() and balloon.pause_panel.visible
+		and AudioServer.is_bus_mute(AudioServer.get_bus_index("Master")),
+		"leaving panic keeps audio silent while still paused")
+	balloon.close_pause()
+	await get_tree().process_frame
+	check(alive() and not AudioServer.is_bus_mute(AudioServer.get_bus_index("Master")),
+		"audio returns once pause is closed too")
+	await wait_ready()
 	check(alive() and balloon.is_waiting_for_input, "dialogue resumes waiting after panic")
 
 	# --- 15: fullscreen setting, swipe-up history, quit entry ---

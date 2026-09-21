@@ -14,13 +14,13 @@ typewriter box, centered choices) built on the
 
 | Action | Input |
 | --- | --- |
-| Advance / finish typing | click, `Space`, `Enter` |
+| Advance / finish typing | click, `Space`, `Enter` (first press finishes the typewriter, next advances) |
 | Choose an option | `Up`/`Down` then `Enter` (or click) |
 | Roll back one line | mouse wheel up (Ren'Py-style, non-destructive) |
 | Roll forward again | mouse wheel down |
-| Pause menu | `P` or right click |
+| Pause menu | `P` or right click (mutes all audio until you resume) |
 | Quick save / quick load (slot 0) | `F5` / `F9` |
-| Panic / boss screen | `F12` or the `Panic` button (press again to return; on touch devices the X in the corner closes it) |
+| Panic / boss screen | `F12` or the `Panic` button — instantly silences every sound; press again to return (on touch devices the X in the corner closes it) |
 | Mobile | tap = advance, swipe up = backlog |
 
 The bottom system row mirrors Kirikiri/Ren'Py toolbars:
