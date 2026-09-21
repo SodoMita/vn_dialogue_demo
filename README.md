@@ -1,8 +1,14 @@
 # VN Dialogue Demo — classical visual-novel UI on Nathan Hoad's Dialogue Manager
 
 A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.1.0**
-(the release built for Godot 4.7) with a fully custom, classical visual-novel balloon:
+(the release built for Godot 4.7) with a fully custom, classical visual-novel balloon.
 
+### Why if Dialogic exists?
+- Godot 4.7.2, unlike 4.5
+- easier to customize
+- no binary files
+
+### Features:
 - full-screen background stage (`#bg=` tag)
 - left / right character sprite slots with spotlight dimming (`#sprite=`, `#focus=`)
 - gold-trimmed dialogue box + name plate, serif novel font
