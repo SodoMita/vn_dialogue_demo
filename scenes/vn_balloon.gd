@@ -472,9 +472,9 @@ func apply_dialogue_line() -> void:
 		balloon.focus_mode = Control.FOCUS_NONE
 		# Keep the held-key intent while the choice menu is open. The choice
 		# itself remains a stop, but the selected branch must resume skipping.
-		_resume_skip_after_choice = _skip_key_held or Input.is_action_pressed(skip_action)
-		skip_mode = false
-		skip_button.modulate = Color.WHITE
+		_resume_skip_after_choice = _skip_key_held or Input.is_action_pressed(skip_action) or skip_mode
+		# Choices pause progression, but Skip remains enabled. Once a response
+		# is selected, the branch resumes skipping automatically.
 		_seeking_choice = false
 		responses_menu.show()
 		call_deferred("_layout_responses")
