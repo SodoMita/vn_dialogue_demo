@@ -122,6 +122,8 @@ class_name VNBalloon extends CanvasLayer
 @onready var sprite_scale_slider: HSlider = %SpriteScaleSlider
 @onready var sprite_y_slider: HSlider = %SpriteYSlider
 @onready var sync_voice_check: CheckBox = %SyncVoiceCheck
+@onready var settings_close_button: Button = %SettingsCloseButton
+@onready var settings_vbox: VBoxContainer = %SettingsVBox
 @onready var fullscreen_check: CheckBox = %FullscreenCheck
 @onready var vsync_check: CheckBox = %VsyncCheck
 @onready var resolution_option: OptionButton = %ResolutionOption
@@ -185,6 +187,7 @@ var ui_scale: float = 1.0
 var sprite_scale: float = 1.0
 var sprite_y: float = 0.0
 var sync_voice: bool = false
+var portrait_mode: bool = false
 ## Authored offset_top/bottom per sprite, captured once so the Y-offset
 ## setting is applied as a delta instead of flattening the rect.
 var _sprite_base_offsets: Dictionary = {}
@@ -271,6 +274,7 @@ func _ready() -> void:
 	_on_ui_scale_changed(ui_scale_slider.value)
 	_on_sprite_scale_changed(sprite_scale_slider.value)
 	_on_sprite_y_changed(sprite_y_slider.value)
+	_reflow_settings()
 	Engine.get_singleton("DialogueManager").mutated.connect(_on_mutated)
 
 	# If the responses menu doesn't have a next action set, use this one
@@ -296,6 +300,9 @@ func _process(_delta: float) -> void:
 
 
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_SIZE_CHANGED:
+		# Window rotation/resize may flip portrait<->landscape.
+		call_deferred("_reflow_settings")
 	# Detect a change of locale and update the current dialogue line to show the new language
 	if what == NOTIFICATION_TRANSLATION_CHANGED and _locale != TranslationServer.get_locale() and is_instance_valid(dialogue_label):
 		_locale = TranslationServer.get_locale()
@@ -432,6 +439,8 @@ func _open_overlay(p: Control) -> void:
 
 func _close_overlay(p: Control) -> void:
 	p.hide()
+	if p == settings_panel:
+		settings_close_button.hide()
 	_restore_waiting()
 
 
@@ -961,13 +970,44 @@ func _apply_ui_scale(s: float) -> void:
 	ui_root.anchor_right = 1.0 / s
 	ui_root.anchor_bottom = 1.0 / s
 	# Shrink the logical margins so the rendered settings column stays a
-	# constant, usable width no matter how big the UI gets.
-	var m: int = roundi(SETTINGS_SIDE_MARGIN / s)
+	# constant, usable width no matter how big the UI gets; in portrait the
+	# panel goes (nearly) fullscreen-wide instead.
+	var side: float = 16.0 if portrait_mode else SETTINGS_SIDE_MARGIN
+	var m: int = roundi(side / s)
 	var mv: int = roundi(SETTINGS_V_MARGIN / s)
 	settings_margin.add_theme_constant_override("margin_left", m)
 	settings_margin.add_theme_constant_override("margin_right", m)
 	settings_margin.add_theme_constant_override("margin_top", mv)
 	settings_margin.add_theme_constant_override("margin_bottom", mv)
+
+
+## Portrait/narrow layout: rows flip vertical (slider wraps below its label,
+## fullscreen-wide) and the panel margins collapse. Landscape restores the
+## authored side-by-side rows.
+func _reflow_settings() -> void:
+	var sz: Vector2 = get_viewport().get_visible_rect().size
+	portrait_mode = sz.y > sz.x
+	_apply_settings_layout()
+
+
+## Test/override entry point for the portrait layout.
+func set_portrait_mode(on: bool) -> void:
+	portrait_mode = on
+	_apply_settings_layout()
+
+
+func _apply_settings_layout() -> void:
+	for child: Node in settings_vbox.get_children():
+		if child is BoxContainer:
+			(child as BoxContainer).vertical = portrait_mode
+			var first: Node = child.get_child(0)
+			if first is Label:
+				(first as Label).custom_minimum_size.x = 0.0 if portrait_mode else 170.0
+	_apply_ui_scale(ui_scale)
+
+
+func _on_settings_close_pressed() -> void:
+	_close_overlay(settings_panel)
 
 
 func _on_sprite_scale_changed(v: float) -> void:
@@ -1430,6 +1470,7 @@ func _on_prev_choice_pressed() -> void:
 
 func _on_settings_pressed() -> void:
 	_open_overlay(settings_panel)
+	settings_close_button.show()
 	text_speed_slider.grab_focus()
 
 

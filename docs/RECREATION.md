@@ -64,6 +64,11 @@ Balloon (Control, full rect, gui_input = advance/click/wheel)
 - **Headless CI**: guard every `DisplayServer.window_*` call with a `headless` name check.
 - **Scrolling lists**: `ScrollContainer.follow_focus` only scrolls when content actually
   overflows.
+- **Choices placement**: anchor the responses menu in a band *above* the dialogue box
+  (child of the bottom UI with negative top offset), not centered on the screen — with a
+  tall/wrapped box the centered menu slips behind it.
+- **Portrait**: settings rows authored as `BoxContainer` so the runtime can flip
+  `vertical` and wrap sliders under their labels.
 
 ## 5. Verification
 

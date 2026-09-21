@@ -171,6 +171,14 @@ func run() -> void:
 	balloon.sprite_scale_slider.value = 1.0
 	await get_tree().process_frame
 
+	# 13: settings in portrait layout (rows wrap, near-fullscreen wide)
+	balloon.set_portrait_mode(true)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await shot("13_settings_portrait")
+	balloon.set_portrait_mode(false)
+	await get_tree().process_frame
+
 	# 10: pause menu
 	balloon._close_overlay(balloon.settings_panel)
 	balloon.open_pause()
