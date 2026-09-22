@@ -17,6 +17,7 @@ typewriter box, centered choices) built on the
 | Advance / finish typing | click or `Enter` (first press finishes the typewriter, next advances) |
 | Hold to skip | Hold `Ctrl` (release to stop) |
 | Close the top overlay | `Backspace`, or press-and-hold the empty space around any menu |
+| Story map | `Map` on the system row. Drag to pan, wheel to zoom. A gold ring marks where you are. A port click jumps to the other side of that line; an edge click (including the arrow) jumps to the further of that edge's two nodes; a header click goes to that place in the game. **Visited only** is on by default — turning it off asks before revealing unread routes. `Esc` or Close leaves the map |
 | Open history | `H` |
 | Choose an option | `Up`/`Down` then `Enter` (or click) |
 | Roll back one line | mouse wheel up (Ren'Py-style, non-destructive) |
@@ -27,7 +28,7 @@ typewriter box, centered choices) built on the
 | Mobile | tap = advance, swipe up = backlog |
 
 The bottom system row mirrors Kirikiri/Ren'Py toolbars:
-`QS QL Save Load Auto Skip < Choice Choice > Log Set Panic Pause`
+`QS QL Save Load Auto Skip < Choice Choice > Log Set Panic Pause Map`
 (`Pause` covers touch devices that have no pause key). On narrow aspects or
 big UI scales the row wraps onto as many lines as it needs.
 `< Choice` / `Choice >` jump straight to the previous/next decision point; `Log` opens the
@@ -63,7 +64,7 @@ Everything applies live and persists to `user://settings.json`:
   skip speed, skip *Everything* vs *Seen only*, auto delay.
 - *Display*: UI scale (scales only the UI, never the scene; the settings column keeps a
   usable width at any scale), fullscreen, V-Sync, resolution presets or any custom positive
-  width/height, "Portrait layout" to force the wrapped portrait settings, Rotation
+  width/height, **Glyph scale** (1× Low … 4× Ultra — sharper map symbols cost more memory), **Game filter** and **Map filter** (nearest, linear, or mipmapped), "Portrait layout" to force the wrapped portrait settings, Rotation
   (0/90/180/270): the whole view turns and its logical resolution flips X/Y so it fills
   the window with no gaps — a portrait preview on platforms whose window never rotates,
   and Language (English / Русский — dialogue, interface and character voices all switch,

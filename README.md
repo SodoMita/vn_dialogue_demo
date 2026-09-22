@@ -133,7 +133,7 @@ other autoloads are not snapshotted.
 The bottom system row (authored in `vn_balloon.tscn`, `Balloon/BottomUI/SystemRow`) mirrors the
 control bars of Kirikiri / Ren'Py / Monogatari-style engines: `QS`/`QL` quick-save/load slot 0,
 `Save`/`Load` open the slot menu, `Auto`/`Skip` toggle modes (the button tints gold while on),
-`Log` opens the backlog, `Set` the settings panel, `Panic` the boss screen, and `< Choice` /
+`Log` opens the backlog, `Set` the settings panel, `Panic` the boss screen, `Map` the optional story map, and `< Choice` /
 `Choice >` jump back to the previous choice / forward to the next one (Kirikiri-style). The
 same actions work from the keyboard: `F5`/`F9` quick save/load, `Esc` or right-click pauses,
 `F12` panics, mouse wheel rolls the game back/forward through the backlog.
@@ -164,7 +164,7 @@ the UI subtree — the background and character sprites stay untouched — while
 margins shrink with the scale so the panel keeps a constant, usable width at any size),
 fullscreen, V-Sync, a resolution dropdown of presets (1280×720 … 2560×1440) plus a custom
 width/height accepting any positive numbers (custom sizes flip the dropdown to "Custom",
-matching sizes re-select their preset); *Audio*: the **Generated music** toggle
+matching sizes re-select their preset), **Glyph scale** for the story map (1×–4×, how many texels each symbol is baked with; the atlas grows to fit, capped at 4096), and texture filtering for the game art and for the map (nearest, linear, or with mipmaps); *Audio*: the **Generated music** toggle
 (procedural engine vs. bundled OGG loops), **Typewriter sound** and **Button sound**
 toggles, plus master, music, voice and SFX volumes driving runtime-created buses
 (0 mutes, 100 = 0 dB); *Sprites*: character-sprite scale
@@ -238,7 +238,7 @@ binding button, then press the desired key.
 ## Test & verify
 
 ```bash
-./run_tests.sh            # import + per-script checks + headless UI test-suite (exit 0 = pass)
+./run_tests.sh            # import + per-script checks + headless UI and route-graph suites
 ```
 
 The suite (`tests/test_vn_ui.gd`) drives the *real* balloon with synthetic keyboard input and
@@ -303,7 +303,7 @@ menu (and non-left clicks don't), and that the save/load menu `X` closes it.
 - `docs/CUSTOMIZING.md` — swapping art/voices/story content, theming, settings ranges.
 - `docs/RECREATION.md` — rebuilding this balloon from scratch with Dialogue Manager,
   layout blueprint and the pitfalls list.
-- `docs/ROUTE_GRAPH_DESIGN.md` — the deferred single-pass route-graph renderer design.
+- `docs/ROUTE_GRAPH_DESIGN.md` — the optional story-map renderer (single-pass, one atlas fetch). The map marks where you are; a header click travels there; an edge click pans to the further of that edge's two nodes; **Visited only** hides unread routes until you approve spoilers.
 
 Rendered screenshots (under Xvfb + software GL):
 

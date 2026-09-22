@@ -84,3 +84,9 @@ All music and SFX live in the `AudioDirector` autoload (`autoloads/audio_directo
 Slots are plain JSON in `user://saves/slot_N.json` (resource, history, cursor, meta). The
 menu lists whatever files exist; `+ New slot` just uses the next free number — rename or
 delete files freely.
+
+## Story map
+
+The map is optional. The rest of the VN does not instantiate it and does not require
+`scenes/route_graph/`. Open it from the **Map** button. Glyph scale and the two texture
+filters live in Settings; see `docs/ROUTE_GRAPH_DESIGN.md`.

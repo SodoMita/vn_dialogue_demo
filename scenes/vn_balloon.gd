@@ -152,6 +152,9 @@ class_name VNBalloon extends CanvasLayer
 @onready var resolution_option: OptionButton = %ResolutionOption
 @onready var res_width_spin: SpinBox = %ResWidthSpin
 @onready var res_height_spin: SpinBox = %ResHeightSpin
+@onready var glyph_scale_option: OptionButton = %GlyphScaleOption
+@onready var game_filter_option: OptionButton = %GameFilterOption
+@onready var map_filter_option: OptionButton = %MapFilterOption
 @onready var master_vol_slider: HSlider = %MasterVolSlider
 @onready var master_vol_value: Label = %MasterVolValue
 @onready var music_vol_slider: HSlider = %MusicVolSlider
@@ -174,6 +177,10 @@ class_name VNBalloon extends CanvasLayer
 @onready var bottom_ui: Control = %BottomUI
 @onready var system_row: GridContainer = %SystemRow
 @onready var pause_button: Button = %PauseButton
+@onready var route_button: Button = %RouteButton
+
+## Route graph overlay (optional feature, single-pass renderer)
+@onready var route_graph_panel: PanelContainer = %RouteGraphPanel
 
 ## Timers
 @onready var skip_timer: Timer = %SkipTimer
@@ -258,6 +265,11 @@ var portrait_mode: bool = false
 var force_portrait: bool = false
 var rotation_deg: int = 0
 var language: String = "en"
+var glyph_scale: int = 2
+var game_filter: int = 1
+var map_filter: int = 1
+const GLYPH_SCALE_LABELS: Array[String] = ["1× Low", "2× Medium", "3× High", "4× Ultra"]
+const FILTER_LABELS: Array[String] = ["Nearest", "Linear", "Nearest mipmaps", "Linear mipmaps"]
 ## Authored offset_top/bottom per sprite, captured once so the Y-offset
 ## setting is applied as a delta instead of flattening the rect.
 var _sprite_base_offsets: Dictionary = {}
@@ -342,6 +354,10 @@ func _ready() -> void:
 	pause_panel.hide()
 	panic_screen.hide()
 	hold_indicator.hide()
+	if is_instance_valid(route_graph_panel):
+		route_graph_panel.hide()
+		if route_graph_panel.has_signal("travel_requested") and not route_graph_panel.travel_requested.is_connected(_on_route_travel_requested):
+			route_graph_panel.travel_requested.connect(_on_route_travel_requested)
 	DirAccess.make_dir_recursive_absolute(saves_dir)
 	_ensure_audio_buses()
 	audio = get_node_or_null("/root/AudioDirector")
@@ -351,6 +367,8 @@ func _ready() -> void:
 	_setup_key_bindings()
 	_load_seen()
 	_load_settings()
+	_sync_quality_controls()
+	_apply_display_quality()
 	if audio != null:
 		audio.set_procedural_enabled(procedural_music)
 	# Apply slider defaults even on a fresh install (set_value-less first run).
@@ -582,7 +600,7 @@ func next(next_id: String) -> void:
 
 func _any_overlay_open() -> bool:
 	return history_panel.visible or save_menu_panel.visible or settings_panel.visible \
-		or pause_panel.visible or panic_screen.visible
+		or pause_panel.visible or panic_screen.visible or route_graph_panel.visible
 
 
 func _open_overlay(p: Control) -> void:
@@ -605,6 +623,8 @@ func _close_overlay(p: Control) -> void:
 func _close_top_overlay() -> void:
 	if pause_panel.visible:
 		close_pause()
+	elif route_graph_panel.visible:
+		_close_route_graph()
 	elif settings_panel.visible:
 		_close_overlay(settings_panel)
 	elif save_menu_panel.visible:
@@ -1099,6 +1119,8 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed(pause_action):
 		if pause_panel.visible:
 			close_pause()
+		elif is_instance_valid(route_graph_panel) and route_graph_panel.visible:
+			_close_route_graph()
 		else:
 			open_pause()
 		get_viewport().set_input_as_handled()
@@ -1248,6 +1270,13 @@ func _load_settings() -> void:
 		res_height_spin.value = float(data.res_h)
 		_sync_resolution_option()
 		_apply_resolution(int(data.res_w), int(data.res_h))
+	if data.has("glyph_scale"):
+		glyph_scale = clampi(int(data.glyph_scale), 1, 4)
+	if data.has("game_filter"):
+		game_filter = clampi(int(data.game_filter), 0, FILTER_LABELS.size() - 1)
+	if data.has("map_filter"):
+		map_filter = clampi(int(data.map_filter), 0, FILTER_LABELS.size() - 1)
+	_sync_quality_controls()
 	for key: String in ["vol_master", "vol_music", "vol_voice", "vol_sfx"]:
 		if data.has(key):
 			var slider: HSlider = {"vol_master": master_vol_slider, "vol_music": music_vol_slider,
@@ -1290,6 +1319,9 @@ func _save_settings() -> void:
 		"vsync": vsync_check.button_pressed,
 		"res_w": int(res_width_spin.value),
 		"res_h": int(res_height_spin.value),
+		"glyph_scale": glyph_scale,
+		"game_filter": game_filter,
+		"map_filter": map_filter,
 		"vol_master": master_vol_slider.value,
 		"vol_music": music_vol_slider.value,
 		"vol_voice": voice_vol_slider.value,
@@ -1476,7 +1508,7 @@ func _on_language_changed(idx: int) -> void:
 const UI_TEXT_KEYS: Array = [
 	["SaveButton", "Save"], ["LoadButton", "Load"], ["AutoButton", "Auto"],
 	["SkipButton", "Skip"], ["PrevChoiceButton", "< Choice"], ["NextChoiceButton", "Choice >"],
-	["LogButton", "Log"], ["SettingsButton", "Set"], ["PanicButton", "Panic"], ["PauseButton", "Pause"],
+	["LogButton", "Log"], ["SettingsButton", "Set"], ["PanicButton", "Panic"], ["PauseButton", "Pause"], ["RouteButton", "Map"],
 	["NewSlotButton", "+ New slot"], ["SettingsTitle", "Settings"],
 	["LanguageRowLabel", "Language"], ["TextSpeedRowLabel", "Text speed"],
 	["TextSizeRowLabel", "Text size"], ["SyncVoiceRowLabel", "Sync text to voice"],
@@ -1489,6 +1521,8 @@ const UI_TEXT_KEYS: Array = [
 	["PortraitRowLabel", "Portrait layout"], ["PortraitCheck", "on"], ["RotationRowLabel", "Rotation"],
 	["FullscreenRowLabel", "Fullscreen"], ["FullscreenCheck", "on"], ["VsyncRowLabel", "V-Sync"],
 	["VsyncCheck", "on"], ["ResolutionRowLabel", "Resolution"], ["ResCustomLabel", "Custom size"],
+	["GlyphScaleRowLabel", "Glyph scale"],
+	["GameFilterRowLabel", "Game filter"], ["MapFilterRowLabel", "Map filter"],
 	["AudioHeader", "Audio"], ["MasterVolRowLabel", "Master volume"],
 	["MusicVolRowLabel", "Music volume"], ["VoiceVolRowLabel", "Voice volume"],
 	["SfxVolRowLabel", "SFX volume"], ["ProceduralMusicRowLabel", "Generated music"],
@@ -1518,8 +1552,17 @@ func _retranslate_dynamic() -> void:
 		skip_mode_option.set_item_text(1, tr("Seen only"))
 	if is_instance_valid(resolution_option):
 		resolution_option.set_item_text(RES_PRESETS.size(), tr("Custom"))
+	if is_instance_valid(glyph_scale_option):
+		for i in GLYPH_SCALE_LABELS.size():
+			glyph_scale_option.set_item_text(i, tr(GLYPH_SCALE_LABELS[i]))
+	for option in [game_filter_option, map_filter_option]:
+		if is_instance_valid(option):
+			for i in FILTER_LABELS.size():
+				option.set_item_text(i, tr(FILTER_LABELS[i]))
 	if is_instance_valid(save_menu_title) and save_menu_panel.visible:
 		save_menu_title.text = tr("Save") if save_menu_mode == "save" else tr("Load")
+	if is_instance_valid(route_graph_panel) and route_graph_panel.has_method("refresh_locale"):
+		route_graph_panel.refresh_locale()
 	if is_instance_valid(advance_key_button):
 		_refresh_binding_labels()
 		if not _listening_for_action.is_empty():
@@ -1666,6 +1709,69 @@ func _on_res_height_changed(_v: float) -> void:
 	_sync_resolution_option()
 	_apply_resolution(int(res_width_spin.value), int(res_height_spin.value))
 	_save_settings()
+
+
+func _sync_quality_controls() -> void:
+	if is_instance_valid(glyph_scale_option):
+		glyph_scale_option.set_block_signals(true)
+		glyph_scale_option.selected = clampi(glyph_scale - 1, 0, GLYPH_SCALE_LABELS.size() - 1)
+		glyph_scale_option.set_block_signals(false)
+	if is_instance_valid(game_filter_option):
+		game_filter_option.set_block_signals(true)
+		game_filter_option.selected = game_filter
+		game_filter_option.set_block_signals(false)
+	if is_instance_valid(map_filter_option):
+		map_filter_option.set_block_signals(true)
+		map_filter_option.selected = map_filter
+		map_filter_option.set_block_signals(false)
+
+
+func _apply_display_quality() -> void:
+	_apply_game_filter()
+	if is_instance_valid(route_graph_panel):
+		if route_graph_panel.has_method("set_glyph_scale"):
+			route_graph_panel.set_glyph_scale(glyph_scale, false)
+		if route_graph_panel.has_method("set_map_filter"):
+			route_graph_panel.set_map_filter(map_filter, false)
+
+
+func _apply_game_filter() -> void:
+	var mode := _canvas_filter(game_filter)
+	for node in [background, sprite_left, sprite_right]:
+		if is_instance_valid(node):
+			node.texture_filter = mode
+
+
+func _canvas_filter(index: int) -> CanvasItem.TextureFilter:
+	match clampi(index, 0, 3):
+		0:
+			return CanvasItem.TEXTURE_FILTER_NEAREST
+		2:
+			return CanvasItem.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+		3:
+			return CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		_:
+			return CanvasItem.TEXTURE_FILTER_LINEAR
+
+
+func _on_glyph_scale_selected(idx: int) -> void:
+	glyph_scale = clampi(idx, 0, 3) + 1
+	_save_settings()
+	if is_instance_valid(route_graph_panel) and route_graph_panel.has_method("set_glyph_scale"):
+		route_graph_panel.set_glyph_scale(glyph_scale)
+
+
+func _on_game_filter_selected(idx: int) -> void:
+	game_filter = clampi(idx, 0, FILTER_LABELS.size() - 1)
+	_apply_game_filter()
+	_save_settings()
+
+
+func _on_map_filter_selected(idx: int) -> void:
+	map_filter = clampi(idx, 0, FILTER_LABELS.size() - 1)
+	_save_settings()
+	if is_instance_valid(route_graph_panel) and route_graph_panel.has_method("set_map_filter"):
+		route_graph_panel.set_map_filter(map_filter)
 
 
 func _apply_resolution(w: int, h: int) -> void:
@@ -2030,6 +2136,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		if pause_panel.visible:
 			close_pause()
+		elif is_instance_valid(route_graph_panel) and route_graph_panel.visible:
+			_close_route_graph()
 		else:
 			open_pause()
 		return
@@ -2256,6 +2364,93 @@ func _on_settings_pressed() -> void:
 	_open_overlay(settings_panel)
 	settings_close_button.show()
 	text_speed_slider.grab_focus()
+
+
+func _on_route_button_pressed() -> void:
+	# Optional route graph overlay - single-pass renderer
+	if is_instance_valid(route_graph_panel):
+		_open_overlay(route_graph_panel)
+		if route_graph_panel.has_method("show_graph"):
+			if route_graph_panel.has_method("set_map_filter"):
+				route_graph_panel.set_map_filter(map_filter, false)
+			route_graph_panel.show_graph(dialogue_resource, _route_player_state(), glyph_scale)
+	else:
+		_toast("Route graph not available")
+
+
+func _close_route_graph() -> void:
+	if not is_instance_valid(route_graph_panel):
+		return
+	if route_graph_panel.has_method("dismiss_spoiler") and route_graph_panel.dismiss_spoiler():
+		return
+	_close_overlay(route_graph_panel)
+
+
+func _route_player_state() -> Dictionary:
+	var history_ids: Array = []
+	var visited_ids: Array = []
+	for entry in history:
+		var lid := str(entry.get("id", ""))
+		history_ids.append(lid)
+		visited_ids.append(lid)
+	var line_id := ""
+	var response_ids: Array = []
+	var ended := not is_instance_valid(dialogue_line)
+	if not ended:
+		line_id = str(dialogue_line.id)
+		visited_ids.append(line_id)
+		for response in dialogue_line.responses:
+			if response is Object and "id" in response:
+				response_ids.append(str(response.id))
+	return {
+		"line_id": line_id,
+		"visited_ids": visited_ids,
+		"history_ids": history_ids,
+		"response_ids": response_ids,
+		"ended": ended,
+	}
+
+
+func _on_route_travel_requested(target: Dictionary) -> void:
+	_close_route_graph()
+	_halt_modes_for_travel()
+	var title := str(target.get("title", ""))
+	var index := int(target.get("history_index", -1))
+	if index >= 0 and index < history.size():
+		rollback_to(index)
+		_toast(tr("Moved to %s") % title)
+		return
+	_jump_to_route_key(str(target.get("jump_key", "")), str(target.get("file_path", "")), title)
+
+
+func _halt_modes_for_travel() -> void:
+	auto_mode = false
+	_seeking_choice = false
+	auto_timer.stop()
+	if is_instance_valid(auto_button):
+		auto_button.modulate = Color.WHITE
+	_set_skip_active(false)
+
+
+func _jump_to_route_key(jump_key: String, file_path: String, title: String) -> void:
+	if jump_key == "" or jump_key == "END" or jump_key == "end":
+		_toast(tr("Nothing to show there"))
+		return
+	if file_path != "" and (not is_instance_valid(dialogue_resource) or str(dialogue_resource.resource_path) != file_path):
+		var loaded = load(file_path)
+		if loaded != null:
+			dialogue_resource = loaded
+	if not is_instance_valid(dialogue_resource):
+		_toast(tr("Nothing to show there"))
+		return
+	if history_cursor < history.size() - 1:
+		history = history.slice(0, history_cursor + 1)
+	var line: DialogueLine = await dialogue_resource.get_next_dialogue_line(jump_key, temporary_game_states)
+	if line == null:
+		_toast(tr("Nothing to show there"))
+		return
+	dialogue_line = line
+	_toast(tr("Moved to %s") % title)
 
 
 func _on_panic_pressed() -> void:

@@ -347,3 +347,102 @@ msgstr "Пауза"
 
 msgid "+ New slot"
 msgstr "+ Новый слот"
+
+msgid "Map"
+msgstr "Карта"
+
+msgid "Story map"
+msgstr "Карта истории"
+
+msgid "Here: %s"
+msgstr "Здесь: %s"
+
+msgid "Here: —"
+msgstr "Здесь: —"
+
+msgid "You are here"
+msgstr "Вы здесь"
+
+msgid "Visited only"
+msgstr "Только пройденное"
+
+msgid "Full map"
+msgstr "Вся карта"
+
+msgid "Spoilers ahead"
+msgstr "Впереди спойлеры"
+
+msgid "Turning this off shows the whole story map, including paths you have not visited."
+msgstr "Если выключить, карта покажет всю историю, включая непройденные пути."
+
+msgid "Show spoilers"
+msgstr "Показать спойлеры"
+
+msgid "Keep hidden"
+msgstr "Оставить скрытым"
+
+msgid "Moved to %s"
+msgstr "Переход: %s"
+
+msgid "Nothing to show there"
+msgstr "Там нечего показать"
+
+msgid "Drag to pan  ·  Wheel to zoom  ·  Port → other side  ·  Edge → furthest of its two nodes  ·  Header → play there"
+msgstr "Тяните, чтобы двигать  ·  Колёсико — масштаб  ·  Порт → другая сторона  ·  Ребро → дальнейший из двух узлов  ·  Заголовок → перейти в игру"
+
+msgid "Map atlas"
+msgstr "Атлас карты"
+
+msgid "Start"
+msgstr "Старт"
+
+msgid "Rooftop"
+msgstr "Крыша"
+
+msgid "END"
+msgstr "Конец"
+
+msgid "No routes"
+msgstr "Нет маршрутов"
+
+msgid "%d in / %d out"
+msgstr "%d вх. / %d вых."
+
+msgid "else"
+msgstr "иначе"
+
+msgid "Choice %s"
+msgstr "Выбор %s"
+
+msgid "Glyph scale"
+msgstr "Масштаб глифов"
+
+msgid "Game filter"
+msgstr "Фильтр игры"
+
+msgid "Map filter"
+msgstr "Фильтр карты"
+
+msgid "1× Low"
+msgstr "1× низкое"
+
+msgid "2× Medium"
+msgstr "2× среднее"
+
+msgid "3× High"
+msgstr "3× высокое"
+
+msgid "4× Ultra"
+msgstr "4× ультра"
+
+msgid "Nearest"
+msgstr "Ближайший"
+
+msgid "Linear"
+msgstr "Линейный"
+
+msgid "Nearest mipmaps"
+msgstr "Ближайший, мипмапы"
+
+msgid "Linear mipmaps"
+msgstr "Линейный, мипмапы"

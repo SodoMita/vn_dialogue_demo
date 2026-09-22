@@ -11,6 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://brfqr6wi2ryrl" path="res://assets/characters/maya_smile.webp" id="9_maya_smile"]
 [ext_resource type="Texture2D" uid="uid://y2c8c23cqlm6" path="res://assets/characters/rook.webp" id="10_rook"]
 [ext_resource type="Script" uid="uid://dvxki2gr62k4a" path="res://scenes/hold_indicator.gd" id="11_hold"]
+[ext_resource type="PackedScene" uid="uid://ba4pj5dj4gjtc" path="res://scenes/route_graph/route_graph_panel.tscn" id="12_route"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
 bg_color = Color(0.045, 0.06, 0.12, 0.94)
@@ -549,6 +550,22 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Pause"
+
+
+[node name="RouteButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(62, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+text = "Map"
 
 [node name="ResponsesCenter" type="CenterContainer" parent="Balloon/UIRoot/BottomUI" unique_id=1165762510]
 unique_name_in_owner = true
@@ -1273,6 +1290,93 @@ min_value = 1.0
 max_value = 4320.0
 value = 720.0
 
+[node name="GlyphScaleRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="GlyphScaleRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/GlyphScaleRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Glyph scale"
+
+[node name="GlyphScaleOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/GlyphScaleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+item_count = 4
+popup/item_0/text = "1× Low"
+popup/item_0/id = 0
+popup/item_1/text = "2× Medium"
+popup/item_1/id = 1
+popup/item_2/text = "3× High"
+popup/item_2/id = 2
+popup/item_3/text = "4× Ultra"
+popup/item_3/id = 3
+selected = 1
+
+[node name="GameFilterRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="GameFilterRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/GameFilterRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Game filter"
+
+[node name="GameFilterOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/GameFilterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+item_count = 4
+popup/item_0/text = "Nearest"
+popup/item_0/id = 0
+popup/item_1/text = "Linear"
+popup/item_1/id = 1
+popup/item_2/text = "Nearest mipmaps"
+popup/item_2/id = 2
+popup/item_3/text = "Linear mipmaps"
+popup/item_3/id = 3
+selected = 1
+
+[node name="MapFilterRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="MapFilterRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MapFilterRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Map filter"
+
+[node name="MapFilterOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MapFilterRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+item_count = 4
+popup/item_0/text = "Nearest"
+popup/item_0/id = 0
+popup/item_1/text = "Linear"
+popup/item_1/id = 1
+popup/item_2/text = "Nearest mipmaps"
+popup/item_2/id = 2
+popup/item_3/text = "Linear mipmaps"
+popup/item_3/id = 3
+selected = 1
+
 [node name="AudioHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1390737954]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
@@ -1821,6 +1925,17 @@ theme_override_font_sizes/font_size = 18
 text = "Saved"
 horizontal_alignment = 2
 
+[node name="RouteGraphPanel" parent="Balloon/UIRoot" instance=ExtResource("12_route")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+z_index = 15
+
 [node name="SettingsCloseButton" type="Button" parent="Balloon/UIRoot" unique_id=1725658527]
 unique_name_in_owner = true
 visible = false
@@ -1873,6 +1988,7 @@ unique_name_in_owner = true
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/SettingsButton" to="." method="_on_settings_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/PanicButton" to="." method="_on_panic_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/PauseButton" to="." method="_on_pause_button_pressed"]
+[connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/RouteButton" to="." method="_on_route_button_pressed"]
 [connection signal="response_selected" from="Balloon/UIRoot/BottomUI/ResponsesCenter/ResponsesMenu" to="." method="_on_responses_menu_response_selected"]
 [connection signal="gui_input" from="Balloon/UIRoot/SaveMenuPanel" to="." method="_on_menu_empty_press"]
 [connection signal="pressed" from="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SaveMenuTitleRow/SaveCloseButton" to="." method="_on_save_close_pressed"]
@@ -1896,6 +2012,9 @@ unique_name_in_owner = true
 [connection signal="item_selected" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResolutionRow/ResolutionOption" to="." method="_on_resolution_selected"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow/ResWidthSpin" to="." method="_on_res_width_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow/ResHeightSpin" to="." method="_on_res_height_changed"]
+[connection signal="item_selected" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/GlyphScaleRow/GlyphScaleOption" to="." method="_on_glyph_scale_selected"]
+[connection signal="item_selected" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/GameFilterRow/GameFilterOption" to="." method="_on_game_filter_selected"]
+[connection signal="item_selected" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MapFilterRow/MapFilterOption" to="." method="_on_map_filter_selected"]
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ProceduralMusicRow/ProceduralMusicCheck" to="." method="_on_procedural_music_toggled"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MasterVolRow/MasterVolSlider" to="." method="_on_master_vol_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MusicVolRow/MusicVolSlider" to="." method="_on_music_vol_changed"]

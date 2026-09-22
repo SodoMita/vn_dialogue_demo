@@ -21,7 +21,7 @@ echo "== Importing project (editor headless) =="
 
 echo
 echo "== Script checks =="
-for s in scenes/vn_balloon.gd scenes/hold_indicator.gd scenes/vn_scene.gd autoloads/game_state.gd autoloads/audio_director.gd tests/test_vn_ui.gd; do
+for s in scenes/vn_balloon.gd scenes/hold_indicator.gd scenes/vn_scene.gd autoloads/game_state.gd autoloads/audio_director.gd tests/test_vn_ui.gd scenes/route_graph/route_graph_view.gd scenes/route_graph/route_graph_compiler.gd scenes/route_graph/route_graph_mesh_builder.gd scenes/route_graph/route_graph_atlas.gd scenes/route_graph/route_graph_panel.gd; do
   if "$GODOT" --headless --check-only --script "res://$s" >/tmp/vn_check.log 2>&1; then
     echo "  [OK]   $s"
   else
@@ -35,9 +35,18 @@ echo "== Running headless UI test-suite =="
 TEST_EXIT=${PIPESTATUS[0]}
 
 echo
-echo "== Scanning logs for runtime errors =="
-grep -nE "SCRIPT ERROR|Parse Error|ERROR:" /tmp/vn_test.log /tmp/vn_import.log | grep -v "errors_panel" || echo "  no script/parse errors found"
+echo "== Running route-graph check =="
+"$GODOT" --headless res://tests/test_route_graph.tscn 2>&1 | tee /tmp/vn_route.log
+ROUTE_EXIT=${PIPESTATUS[0]}
 
 echo
-echo "test exit code: $TEST_EXIT"
-exit "$TEST_EXIT"
+echo "== Scanning logs for runtime errors =="
+grep -nE "SCRIPT ERROR|Parse Error|ERROR:" /tmp/vn_test.log /tmp/vn_route.log /tmp/vn_import.log | grep -v "errors_panel" || echo "  no script/parse errors found"
+
+echo
+echo "ui exit code: $TEST_EXIT"
+echo "route-graph exit code: $ROUTE_EXIT"
+if [ "$TEST_EXIT" -ne 0 ] || [ "$ROUTE_EXIT" -ne 0 ]; then
+  exit 1
+fi
+exit 0
