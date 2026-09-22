@@ -1,10 +1,9 @@
 extends Node
-## Runtime audio: procedural music, tiny OGG loops and SFX.
-## play_theme() renders a runtime score (THEMES below is the whole score);
-## play_music_loop() crossfades to a seamless OGG loop; "Generated music" off
-## swaps themes for mood-matched loops. play_sfx() plays an OGG or synthesizes
-## the blip; typing_tick() ticks the typewriter. Music->Music bus, SFX->SFX
-## bus; Pause/Panic mute Master without touching state.
+## Runtime audio: procedural music, tiny OGG loops and SFX. play_theme()
+## renders a runtime score (THEMES is the whole score); play_music_loop()
+## crossfades to a seamless loop; "Generated music" off swaps themes for
+## mood-matched loops. play_sfx() plays an OGG or synthesizes the blip.
+## Music->Music bus, SFX->SFX; Pause/Panic mute Master, state untouched.
 
 
 const SAMPLE_RATE: int = 22050        ## rate of every generated stream
@@ -237,7 +236,7 @@ func stop_music(fade: float = 0.8) -> void:
 			tw.tween_callback(p.stop)
 
 
-## Fade out and stop whichever loop player is sounding.
+## Fade out and stop the sounding loop player.
 func _fade_out_loops() -> void:
 	_loop_path = ""
 	for p: AudioStreamPlayer in [_loop_a, _loop_b]:
@@ -410,7 +409,7 @@ func _trim_voices() -> void:
 		a.resize(_voice_count)
 
 
-## Scale degree -> MIDI note (degrees wrap across octaves).
+## Scale degree -> MIDI note (wraps across octaves).
 func _degree_midi(deg: int, root: int, scale: Array) -> int:
 	var n: int = scale.size()
 	var oct: int = deg / n if deg >= 0 else -((-deg + n - 1) / n)
@@ -511,6 +510,8 @@ func _synth_stream(kind: String) -> AudioStream:
 		samples = _synth_chime([523.25, 659.25, 783.99], 0.1)
 	elif kind == "error":
 		samples = _synth_buzz()
+	elif kind == "hold":
+		samples = _synth_hold()
 	elif kind == "click":
 		samples = _synth_click()
 	else:
@@ -581,6 +582,19 @@ func _synth_buzz() -> PackedFloat32Array:
 		var v: float = (0.6 if fposmod(196.0 * t, 1.0) < 0.5 else -0.6) + sin(TAU * 196.0 * t) * 0.5
 		out[i] = v * e * 0.7
 		out[beep + gap + i] = v * e * 0.7
+	return out
+
+
+## Rising blip announcing a hold gesture (~90 ms).
+func _synth_hold() -> PackedFloat32Array:
+	var n: int = int(0.09 * SAMPLE_RATE)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	var phase: float = 0.0
+	for i: int in n:
+		var x: float = float(i) / n
+		phase += TAU * (220.0 + 140.0 * x) / SAMPLE_RATE
+		out[i] = sin(phase) * (0.25 + 0.45 * x) * 0.8
 	return out
 
 

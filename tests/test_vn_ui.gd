@@ -147,7 +147,7 @@ func run() -> void:
 	sf.close()
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "ProceduralMusicCheck", "TypewriterSfxCheck", "ButtonSfxCheck", "SaveMenuTitleRow", "SaveCloseButton", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button", "PauseButton", "PanicCloseButton", "LanguageOption", "AdvanceKeyButton", "SkipKeyButton", "CloseKeyButton", "HistoryKeyButton", "QuickSaveKeyButton", "QuickLoadKeyButton", "PauseKeyButton", "PanicKeyButton"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "ProceduralMusicCheck", "TypewriterSfxCheck", "ButtonSfxCheck", "SaveMenuTitleRow", "SaveCloseButton", "HoldIndicator", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button", "PauseButton", "PanicCloseButton", "LanguageOption", "AdvanceKeyButton", "SkipKeyButton", "CloseKeyButton", "HistoryKeyButton", "QuickSaveKeyButton", "QuickLoadKeyButton", "PauseKeyButton", "PanicKeyButton"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -1127,38 +1127,76 @@ func run() -> void:
 		"a #sfx= tag on a response overrides the choice sound")
 	balloon.dialogue_line.responses = saved_responses
 
-	# Clicking empty space dismisses any menu; the save menu also has an X.
-	var click: InputEventMouseButton = InputEventMouseButton.new()
-	click.pressed = true
-	click.button_index = MOUSE_BUTTON_LEFT
+	# --- Hold-to-close: long tap on empty space, quick taps ignored, swipes cancel ---
+	var press: InputEventMouseButton = InputEventMouseButton.new()
+	press.pressed = true
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.position = Vector2(30, 30)
+	var release: InputEventMouseButton = InputEventMouseButton.new()
+	release.pressed = false
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.position = press.position
+	# Quick tap: nothing happens (accidental-tap protection).
 	balloon.open_save_menu("load")
 	check(alive() and balloon.save_menu_panel.visible, "the load menu opens")
-	balloon.save_menu_panel.gui_input.emit(click)
-	check(alive() and not balloon.save_menu_panel.visible, "an empty click closes the load menu")
+	balloon.save_menu_panel.gui_input.emit(press)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	balloon._input(release)
+	check(alive() and balloon.save_menu_panel.visible and not balloon._hold_active,
+		"a quick tap does not dismiss a menu")
+	# Long hold: ring + sound announce it, release completes the close.
+	var hold_sfx0: int = ad.sfx_played
+	balloon.save_menu_panel.gui_input.emit(press)
+	await wait_until(func() -> bool: return not balloon._hold_active or balloon.hold_indicator.visible, 200)
+	check(alive() and balloon.hold_indicator.visible, "holding empty space shows the animated indicator")
+	check(ad.sfx_played == hold_sfx0 + 1 and ad.last_sfx == "hold", "the hold gesture is announced with sound")
+	check(alive() and balloon.hold_indicator.progress > 0.0, "the indicator fills toward the close")
+	await wait_until(func() -> bool: return not balloon._hold_active or balloon._hold_elapsed >= balloon.HOLD_SECONDS, 300)
+	balloon._input(release)
+	check(alive() and not balloon.save_menu_panel.visible and not balloon._hold_active and not balloon.hold_indicator.visible,
+		"a long tap closes the menu and clears the indicator")
+	# A swipe cancels the hold so touch scrolling still works.
+	balloon.open_history()
+	check(alive() and balloon.history_panel.visible, "the history panel opens")
+	balloon.history_panel.gui_input.emit(press)
+	await wait_until(func() -> bool: return not balloon._hold_active or balloon.hold_indicator.visible, 200)
+	var swipe: InputEventMouseMotion = InputEventMouseMotion.new()
+	swipe.position = press.position + Vector2(40, 0)
+	swipe.relative = Vector2(40, 0)
+	balloon._input(swipe)
+	check(not balloon._hold_active and not balloon.hold_indicator.visible, "a swipe cancels the hold")
+	for i: int in 80:
+		await get_tree().process_frame
+	balloon._input(release)
+	check(alive() and balloon.history_panel.visible, "a swiping drag does not dismiss the menu")
+	balloon._close_overlay(balloon.history_panel)
+	# Long hold works on settings and pause too (top-overlay close path).
+	balloon._on_settings_pressed()
+	check(alive() and balloon.settings_panel.visible, "the settings panel opens")
+	balloon.settings_panel.gui_input.emit(press)
+	await wait_until(func() -> bool: return not balloon._hold_active or balloon._hold_elapsed >= balloon.HOLD_SECONDS, 300)
+	balloon._input(release)
+	check(alive() and not balloon.settings_panel.visible and not balloon.settings_close_button.visible,
+		"a long tap closes the settings")
+	balloon.open_pause()
+	check(alive() and balloon.pause_panel.visible, "the pause menu opens")
+	balloon.pause_panel.gui_input.emit(press)
+	await wait_until(func() -> bool: return not balloon._hold_active or balloon._hold_elapsed >= balloon.HOLD_SECONDS, 300)
+	balloon._input(release)
+	check(alive() and not balloon.pause_panel.visible, "a long tap closes the pause menu")
+	# The save menu keeps its own X; non-left presses never start a hold.
 	balloon.open_save_menu("save")
 	check(alive() and balloon.save_menu_panel.visible, "the save menu opens")
 	balloon.save_close_button.pressed.emit()
 	check(alive() and not balloon.save_menu_panel.visible, "the save menu close button closes it")
-	balloon.open_history()
-	check(alive() and balloon.history_panel.visible, "the history panel opens")
-	balloon.history_panel.gui_input.emit(click)
-	check(alive() and not balloon.history_panel.visible, "an empty click closes the history")
-	balloon._on_settings_pressed()
-	check(alive() and balloon.settings_panel.visible, "the settings panel opens")
-	balloon.settings_panel.gui_input.emit(click)
-	check(alive() and not balloon.settings_panel.visible and not balloon.settings_close_button.visible,
-		"an empty click closes the settings")
-	balloon.open_pause()
-	check(alive() and balloon.pause_panel.visible, "the pause menu opens")
-	balloon.pause_panel.gui_input.emit(click)
-	check(alive() and not balloon.pause_panel.visible, "an empty click closes the pause menu")
-	# Clicks on real controls (right button) do not dismiss.
 	balloon.open_save_menu("load")
 	var rclick: InputEventMouseButton = InputEventMouseButton.new()
 	rclick.pressed = true
 	rclick.button_index = MOUSE_BUTTON_RIGHT
 	balloon.save_menu_panel.gui_input.emit(rclick)
-	check(alive() and balloon.save_menu_panel.visible, "non-left clicks do not dismiss a menu")
+	check(alive() and balloon.save_menu_panel.visible and not balloon._hold_active,
+		"non-left presses do not start the hold")
 	balloon._close_overlay(balloon.save_menu_panel)
 
 	finish()

@@ -101,6 +101,7 @@ class_name VNBalloon extends CanvasLayer
 @onready var prev_choice_button: Button = %PrevChoiceButton
 @onready var next_choice_button: Button = %NextChoiceButton
 @onready var toast_label: Label = %ToastLabel
+@onready var hold_indicator: HoldIndicator = %HoldIndicator
 @onready var toast_timer: Timer = %ToastTimer
 @onready var auto_timer: Timer = %AutoTimer
 
@@ -235,6 +236,18 @@ var button_sfx: bool = true
 
 ## Distinct pitch per selected choice (wrap-around), so options sound different.
 const CHOICE_PITCHES: Array[float] = [1.0, 1.12, 1.26, 1.33, 1.5]
+
+## Hold-to-close on menu empty space: a long tap confirms, a quick tap is
+## ignored (accidental-tap protection) and a swipe/move cancels so dragging to
+## scroll still works. The ring appears after HOLD_APPEAR and closes the menu
+## when released at/after HOLD_SECONDS.
+const HOLD_SECONDS: float = 0.55
+const HOLD_APPEAR: float = 0.12
+const HOLD_CANCEL_DIST: float = 10.0
+
+var _hold_active: bool = false
+var _hold_elapsed: float = 0.0
+var _hold_from: Vector2 = Vector2.ZERO
 var portrait_mode: bool = false
 var force_portrait: bool = false
 var rotation_deg: int = 0
@@ -322,6 +335,7 @@ func _ready() -> void:
 	settings_panel.hide()
 	pause_panel.hide()
 	panic_screen.hide()
+	hold_indicator.hide()
 	DirAccess.make_dir_recursive_absolute(saves_dir)
 	_ensure_audio_buses()
 	audio = get_node_or_null("/root/AudioDirector")
@@ -356,9 +370,19 @@ func _ready() -> void:
 		start()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _swipe_guard_frames > 0:
 		_swipe_guard_frames -= 1
+	if _hold_active:
+		if not _any_overlay_open():
+			_cancel_hold()
+		else:
+			_hold_elapsed += delta
+			if _hold_elapsed >= HOLD_APPEAR:
+				if not hold_indicator.visible:
+					hold_indicator.show_at(_hold_from)
+					_sfx("hold")
+				hold_indicator.progress = _hold_elapsed / HOLD_SECONDS
 	if is_instance_valid(dialogue_line):
 		next_indicator.visible = not dialogue_label.is_typing \
 			and dialogue_line.responses.size() == 0 \
@@ -1013,6 +1037,21 @@ func _action_released(event: InputEvent, action: StringName) -> bool:
 ## Capture before GUI/unhandled input so even Escape, Enter and the boss key can
 ## become a binding without also closing the panel or triggering their action.
 func _input(event: InputEvent) -> void:
+	# Hold-to-close bookkeeping runs first so scrolling drags that the GUI
+	# consumes later still cancel the gesture (and the release can be swallowed).
+	if _hold_active:
+		if event is InputEventMouseMotion and ((event as InputEventMouseMotion).position - _hold_from).length() > HOLD_CANCEL_DIST:
+			_cancel_hold()
+		elif event is InputEventScreenDrag and ((event as InputEventScreenDrag).position - _hold_from).length() > HOLD_CANCEL_DIST:
+			_cancel_hold()
+		elif event is InputEventMouseButton:
+			var mb_hold: InputEventMouseButton = event
+			if not mb_hold.pressed and mb_hold.button_index == MOUSE_BUTTON_LEFT:
+				if _hold_elapsed >= HOLD_SECONDS:
+					get_viewport().set_input_as_handled()
+					_finish_hold()
+				else:
+					_cancel_hold()
 	if not _listening_for_action.is_empty() and settings_panel.visible:
 		if event is InputEventKey and event.pressed and not event.echo:
 			var action := _listening_for_action
@@ -1689,14 +1728,31 @@ func _on_response_selected_sfx(response: DialogueResponse) -> void:
 	_sfx(key, pitch)
 
 
-## Clicking the empty area around a menu's content dismisses it (containers and
-## labels pass the click up to the full-rect panel). Touch taps included via
-## mouse emulation. The panic screen deliberately has no empty-click close.
-func _on_menu_panel_empty_click(event: InputEvent) -> void:
+## Press-and-hold on empty menu space runs the hold-to-close gesture
+## (containers and labels pass the press up to the full-rect panel). The panic
+## screen deliberately has no hold-to-close: it must swallow everything.
+func _on_menu_empty_press(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb: InputEventMouseButton = event
 		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
-			_close_top_overlay()
+			_begin_hold(mb.position)
+
+
+func _begin_hold(pos: Vector2) -> void:
+	_hold_active = true
+	_hold_elapsed = 0.0
+	_hold_from = pos
+
+
+func _cancel_hold() -> void:
+	_hold_active = false
+	hold_indicator.hide_ring()
+
+
+func _finish_hold() -> void:
+	_hold_active = false
+	hold_indicator.hide_ring()
+	_close_top_overlay()
 
 
 func _on_save_close_pressed() -> void:

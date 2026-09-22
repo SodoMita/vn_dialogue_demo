@@ -198,10 +198,14 @@ already govern, the **Typewriter sound** / **Button sound** toggles gate the tic
 the UI feedback (story `#sfx=` tags ignore the button toggle), and Pause / Panic keep
 ducking the Master bus exactly as before.
 
-**Dismissing menus**: every menu (history, save/load, settings, pause) closes when you
-click or tap the empty space around its content, in addition to `Backspace`/`Esc` and
-the save menu's own `X`. The panic screen deliberately keeps its strict swallow-all
-behavior — only the boss key or its corner X leave it.
+**Dismissing menus**: every menu (history, save/load, settings, pause) closes after a
+**press-and-hold on the empty space** around its content — an animated ring fills at the
+tap position and a soft cue sounds as you hold; release once the ring completes and the
+menu closes. Quick taps do nothing (accidental-tap protection) and any swipe/drag beyond
+10 px cancels the hold silently, so touch scrolling through long histories and slot lists
+is completely unaffected. `Backspace`/`Esc` and the save menu's own `X` still work. The
+panic screen deliberately keeps its strict swallow-all behavior — only the boss key or its
+corner X leave it.
 
 **Mobile**: `input_devices/pointing/emulate_mouse_from_touch = true` is enabled in
 `project.godot`, so touch taps become the mouse clicks the balloon already understands; all

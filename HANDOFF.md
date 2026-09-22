@@ -45,15 +45,21 @@ Follow-up iteration on the same branch adds the UI-sound layer:
 - **Per-choice sounds** — each response plays the `confirm` chime at its own pitch
   (`CHOICE_PITCHES`, ascending per option index, wrap-around); a response may tag
   `#sfx=<key>` to pick its own clip (`DialogueResponse.tags`).
-- **Dismiss-on-empty** — the four full-rect menu panels (history, save/load, settings,
-  pause) connect `gui_input`; container/label defaults (PASS / IGNORE) already bubble
-  empty-area clicks up to the panel, so left-click/tap outside the content closes the
-  top overlay. The panic screen is intentionally excluded.
+- **Hold-to-close** — the four full-rect menu panels (history, save/load, settings,
+  pause) connect `gui_input`; container/label defaults (PASS / IGNORE) bubble empty-area
+  presses up to the panel. Dismissal is a **press-and-hold** (0.55 s): an authored
+  `HoldIndicator` ring (`scenes/hold_indicator.gd`) fills at the press point after a
+  0.12 s grace and a synthesized `hold` cue announces it; release closes the top overlay.
+  Quick taps are ignored (accidental-tap protection) and any move/swipe > 10 px cancels
+  the hold (tracked in `_input` so GUI-consumed drag events still cancel) — touch
+  scrolling is unaffected. The panic screen is intentionally excluded.
 - **Save/Load close button** — the save menu title becomes `SaveMenuTitleRow` with an
   authored `SaveCloseButton` (`X`), same pattern as `SettingsCloseButton`.
 
-`tests/test_vn_ui.gd` covers all of it (24 new checks; suite at **320 passed** with the
-same 9 pre-existing held-skip failures as `main`).
+`tests/test_vn_ui.gd` covers all of it (suite at **326 passed** with the same 9
+pre-existing held-skip failures as `main`): hold-to-close on the load/settings/pause
+menus, quick-tap guard, indicator + sound announcement, indicator fill, swipe-cancel,
+non-left guard, and the save menu `X`.
 
 ## Audio details
 
@@ -79,6 +85,7 @@ are cosmetic: the process exit code and all assertions are unaffected.
 ## Relevant files
 
 - `autoloads/audio_director.gd` — procedural music engine, loops, SFX (new).
+- `scenes/hold_indicator.gd` — animated hold-to-close ring (new).
 - `assets/music/*.ogg`, `assets/sfx/*.ogg` — tiny generated loops and SFX (new).
 - `scenes/vn_balloon.gd` — tag handling, typing ticks, UI/overlay/save SFX hooks,
   settings toggle.

@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" path="res://assets/characters/maya.webp" id="8_maya"]
 [ext_resource type="Texture2D" path="res://assets/characters/maya_smile.webp" id="9_maya_smile"]
 [ext_resource type="Texture2D" path="res://assets/characters/rook.webp" id="10_rook"]
+[ext_resource type="Script" path="res://scenes/hold_indicator.gd" id="11_hold"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
 bg_color = Color(0.045, 0.06, 0.12, 0.94)
@@ -1714,6 +1715,18 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
 text = "History entry"
 
+[node name="HoldIndicator" type="Control" parent="Balloon/UIRoot"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("11_hold")
+
 [node name="ToastLabel" type="Label" parent="Balloon/UIRoot"]
 unique_name_in_owner = true
 visible = false
@@ -1816,10 +1829,10 @@ text = "X"
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TypewriterSfxRow/TypewriterSfxCheck" to="." method="_on_typewriter_sfx_toggled"]
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ButtonSfxRow/ButtonSfxCheck" to="." method="_on_button_sfx_toggled"]
 [connection signal="pressed" from="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SaveMenuTitleRow/SaveCloseButton" to="." method="_on_save_close_pressed"]
-[connection signal="gui_input" from="Balloon/UIRoot/SaveMenuPanel" to="." method="_on_menu_panel_empty_click"]
-[connection signal="gui_input" from="Balloon/UIRoot/SettingsPanel" to="." method="_on_menu_panel_empty_click"]
-[connection signal="gui_input" from="Balloon/UIRoot/PausePanel" to="." method="_on_menu_panel_empty_click"]
-[connection signal="gui_input" from="Balloon/UIRoot/HistoryPanel" to="." method="_on_menu_panel_empty_click"]
+[connection signal="gui_input" from="Balloon/UIRoot/SaveMenuPanel" to="." method="_on_menu_empty_press"]
+[connection signal="gui_input" from="Balloon/UIRoot/SettingsPanel" to="." method="_on_menu_empty_press"]
+[connection signal="gui_input" from="Balloon/UIRoot/PausePanel" to="." method="_on_menu_empty_press"]
+[connection signal="gui_input" from="Balloon/UIRoot/HistoryPanel" to="." method="_on_menu_empty_press"]
 [connection signal="pressed" from="Balloon/UIRoot/SettingsCloseButton" to="." method="_on_settings_close_pressed"]
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PortraitRow/PortraitCheck" to="." method="_on_portrait_toggled"]
 [connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot0Button" to="." method="_on_rot_0_pressed"]

@@ -16,7 +16,7 @@ typewriter box, centered choices) built on the
 | --- | --- |
 | Advance / finish typing | click or `Enter` (first press finishes the typewriter, next advances) |
 | Hold to skip | Hold `Ctrl` (release to stop) |
-| Close the top overlay | `Backspace`, or click/tap the empty space around any menu |
+| Close the top overlay | `Backspace`, or press-and-hold the empty space around any menu |
 | Open history | `H` |
 | Choose an option | `Up`/`Down` then `Enter` (or click) |
 | Roll back one line | mouse wheel up (Ren'Py-style, non-destructive) |
@@ -46,7 +46,10 @@ scrolling backlog; `Set` opens settings.
 dialogue resource, the full history, the history cursor and a small stage snapshot; the slot
 rows show a runtime-rendered thumbnail. Loading restores story state, stage dressing and the
 exact line. `QS`/`QL` and `F5`/`F9` always use slot 0. The menu closes with `Backspace`,
-its `X` button, or by clicking the empty space around it — every menu dismisses that way.
+its `X` button, or a long press on the empty space around it — hold and a ring fills at
+your finger (with a soft cue) until the menu closes on release; quick taps do nothing on
+purpose and moving your finger cancels the gesture, so touch scrolling still works.
+Every menu dismisses that way.
 
 ## Settings (`Set`)
 
