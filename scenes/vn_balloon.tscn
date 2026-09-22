@@ -1224,6 +1224,38 @@ min_value = 1
 max_value = 4320
 value = 720
 
+[node name="AtlasRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="AtlasRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AtlasRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Map atlas"
+
+[node name="AtlasSizeSpin" type="SpinBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AtlasRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 128.0
+max_value = 4096.0
+step = 64.0
+value = 1024.0
+rounded = true
+alignment = 2
+
+[node name="AtlasSizeValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AtlasRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(78, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+text = "1024 px"
+horizontal_alignment = 2
+
 [node name="AudioHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
@@ -1760,6 +1792,7 @@ text = "X"
 [connection signal="item_selected" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResolutionRow/ResolutionOption" to="." method="_on_resolution_selected"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow/ResWidthSpin" to="." method="_on_res_width_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow/ResHeightSpin" to="." method="_on_res_height_changed"]
+[connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AtlasRow/AtlasSizeSpin" to="." method="_on_atlas_size_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MasterVolRow/MasterVolSlider" to="." method="_on_master_vol_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MusicVolRow/MusicVolSlider" to="." method="_on_music_vol_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VoiceVolRow/VoiceVolSlider" to="." method="_on_voice_vol_changed"]

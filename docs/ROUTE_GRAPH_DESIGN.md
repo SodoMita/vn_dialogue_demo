@@ -22,7 +22,11 @@ small graphics engine: one mesh, one shader pass, one texture atlas.
 ## What shipped
 
 1. Atlas baker (`route_graph_atlas.gd`): white texel, port icons, and labels blitted from
-   the font glyph cache into one RGBA atlas.
+   the font glyph cache into one RGBA atlas. The side defaults to 1024 and follows Settings →
+   Map atlas (`atlas_size` in `user://settings.json`). UVs stay normalized, so the shader is unchanged.
+   Node titles, port tags, condition badges and the subtitle are translated when the atlas is baked,
+   not at compile time, so a language switch rebakes the same graph. Dialogue text uses the
+   `dialogue` catalog; cue names, END and format strings use the UI catalog.
 2. CPU mesh builder (`route_graph_mesh_builder.gd`): layered layout, port slots, straight
    edges, condition badges on the ports. No grid and no editing.
 3. Shader (`route_graph.gdshader`): one pass, pan/zoom in the vertex stage, exactly one

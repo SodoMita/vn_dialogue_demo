@@ -41,6 +41,7 @@ func run() -> void:
 	_check_spoiler_gate()
 	_check_atlas()
 	_check_panel_guard()
+	_check_locale_and_atlas()
 	check(ViewScript != null and AtlasScript != null, "route-graph scripts preload without a class cache")
 
 
@@ -507,3 +508,94 @@ class _FakeDialogue:
 	var lines: Dictionary = {}
 	var cues: Dictionary = {}
 	var first_cue: String = ""
+
+
+func _check_locale_and_atlas() -> void:
+	var prev := TranslationServer.get_locale()
+	var resource = load("res://dialogue/intro.dialogue")
+	var compiled: Dictionary = CompilerScript.compile(resource)
+	TranslationServer.set_locale("ru")
+	var localized: Array = CompilerScript.localize_nodes(compiled.nodes)
+	var by_id := {}
+	for node in localized:
+		by_id[str(node.id)] = node
+	check(str(by_id["start"].title) == "Старт", "start node title is localized")
+	check(str(by_id["rooftop"].title) == "Крыша", "route node title is localized")
+	check(str(by_id["END"].title) == "Конец", "ending title is localized")
+	check(str(by_id["start"].subtitle).contains("вх."), "node subtitle is localized")
+	var saw_option := false
+	var saw_choice_title := false
+	for node in localized:
+		if str(node.get("type", "")) == "CHOICE" and str(node.get("title", "")).contains("Ладно"):
+			saw_choice_title = true
+		for side in ["inputs", "outputs"]:
+			for port in node.get(side, []):
+				var tag := str(port.get("tag", ""))
+				if tag.contains("Алекс") or tag.contains("Лучше не"):
+					saw_option = true
+	check(saw_choice_title, "choice node title is translated before it is shortened")
+	check(saw_option, "choice port tags are localized from the dialogue catalog")
+	var sample: Array = [{
+		"id": "n",
+		"title": "Start",
+		"title_source": "Start",
+		"title_dialogue": false,
+		"inputs": [],
+		"outputs": [{
+			"type": "FLOW",
+			"tag": "else",
+			"tag_source": "else",
+			"tag_kind": "ui",
+			"cond": "else",
+			"cond_source": "else",
+		}, {
+			"type": "FLOW",
+			"tag": "Rooftop",
+			"tag_source": "day == 1",
+			"tag_kind": "ui",
+			"cond": "day == 1",
+			"cond_source": "day == 1",
+		}],
+	}]
+	var badges: Array = CompilerScript.localize_nodes(sample)
+	check(str(badges[0].outputs[0].cond) == "иначе", "condition badges translate when a catalog entry exists")
+	check(str(badges[0].outputs[0].tag) == "иначе", "plain port tags translate from the UI catalog")
+	check(str(badges[0].outputs[1].cond) == "day == 1", "untranslated condition badges stay readable")
+	TranslationServer.set_locale("en")
+	var english: Array = CompilerScript.localize_nodes(compiled.nodes)
+	var en_start := ""
+	for node in english:
+		if str(node.id) == "start":
+			en_start = str(node.title)
+	check(en_start == "Start", "english locale keeps the source title")
+
+	var sized = AtlasScript.new()
+	sized.bake([{"key": "sample", "text": "Hi", "size": 16}], 256)
+	check(sized.texture != null and sized.texture.get_width() == 256 and sized.texture.get_height() == 256, "atlas bake honors the requested resolution")
+	var fallback = AtlasScript.new()
+	fallback.bake([{"key": "sample", "text": "Hi", "size": 16}])
+	check(fallback.texture != null and fallback.texture.get_width() == 1024, "atlas bake defaults to 1024")
+
+	var view = ViewScript.new()
+	view.set_atlas_resolution(512, false)
+	view.open_resource(resource, {})
+	check(view.atlas != null and view.atlas.texture != null and view.atlas.texture.get_width() == 512, "map bakes glyphs at the settings resolution")
+	TranslationServer.set_locale("ru")
+	view.refresh_locale()
+	var ru_title := ""
+	for node in view.nodes:
+		if str(node.get("id", "")) == "start":
+			ru_title = str(node.get("title", ""))
+	check(ru_title == "Старт", "locale switch rebakes localized node titles")
+	check(view.here_title() == "Старт", "here label uses the localized node title")
+	check(view.atlas.texture.get_width() == 512, "locale switch keeps the chosen atlas resolution")
+	view.free()
+	TranslationServer.set_locale(prev)
+
+	var scene_text := FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
+	check(scene_text.contains("[node name=\"AtlasSizeSpin\""), "settings scene authors the atlas resolution control")
+	var balloon := FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
+	check(balloon.contains("\"atlas_size\""), "atlas resolution is persisted")
+	check(balloon.contains("show_graph(dialogue_resource, _route_player_state(), atlas_resolution)"), "opening the map uses the saved atlas resolution")
+	check(not balloon.contains("AtlasSizeSpin.new("), "atlas control is not built in code")
+

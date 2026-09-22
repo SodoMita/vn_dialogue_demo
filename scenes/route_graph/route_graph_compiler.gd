@@ -83,8 +83,17 @@ static func compile(resource, prefix: String = "", laid_out: bool = true) -> Dic
 		by_id[cname] = node
 
 	for gid in choice_groups.keys():
-		var title := _choice_title(lines, line_key, gid)
+		var source := _choice_source(lines, line_key, gid)
+		var title := _choice_title_from(source, gid)
 		var node := _make("choice_%s" % gid, "CHOICE", title, Color("#D97706"), "%d options" % choice_groups[gid].size())
+		# Full dialogue msgid. Display translates it, then shortens.
+		if source == "":
+			node["title_source"] = "Choice %s"
+			node["title_arg"] = gid
+			node["title_dialogue"] = false
+		else:
+			node["title_source"] = source
+			node["title_dialogue"] = true
 		nodes.append(node)
 		by_id[node.id] = node
 
@@ -116,26 +125,32 @@ static func compile(resource, prefix: String = "", laid_out: bool = true) -> Dic
 		var src: Dictionary = by_id["choice_%s" % gid]
 		for rid in choice_groups[gid]:
 			var response := _line(lines, line_key, rid)
-			var tag := _short(str(response.get("text", rid)), 24)
-			var response_cond := _short(_cond_text(response), 28)
+			var tag_source := str(response.get("text", rid))
+			var tag := _short(tag_source, 24)
+			var response_cond_full := _cond_text(response)
 			var next_id := str(response.get("next_id", ""))
 			var targets: Array = _collect(next_id, lines, line_key, sig, by_id) if next_id != "" else []
 			if targets.is_empty():
 				targets = [{"target": "END", "cond": ""}]
 			for item in _merge_targets(targets):
-				var cond := response_cond
+				var cond_full := response_cond_full
 				var extra := str(item.get("cond", ""))
 				if extra != "":
-					cond = extra if cond == "" else "%s && %s" % [cond, extra]
+					cond_full = extra if cond_full == "" else "%s && %s" % [cond_full, extra]
 				var target_id := str(item.get("target", ""))
 				if not by_id.has(target_id) or target_id == src.id:
 					continue
 				src.outputs.append({
 					"type": "CHOICE",
 					"tag": tag,
+					"tag_source": tag_source,
+					"tag_dialogue": true,
+					"tag_arg": "",
+					"tag_kind": "line",
 					"label": by_id[target_id].title,
 					"target": target_id,
-					"cond": _short(cond, 28),
+					"cond": _short(cond_full, 28),
+					"cond_source": cond_full,
 				})
 
 	_mirror_inputs(nodes, by_id)
@@ -258,6 +273,8 @@ static func _make(id: String, type: String, title: String, color: Color, subtitl
 		"id": id,
 		"type": type,
 		"title": title,
+		"title_source": title,
+		"title_dialogue": false,
 		"color": color,
 		"subtitle": subtitle,
 		"x": 0.0,
@@ -296,7 +313,7 @@ static func _first_cue_name(resource, cue_line_to_name: Dictionary, cue_at: Dict
 	return ""
 
 
-static func _choice_title(lines: Dictionary, line_key: Dictionary, gid: String) -> String:
+static func _choice_source(lines: Dictionary, line_key: Dictionary, gid: String) -> String:
 	for lid in line_key.keys():
 		var line := _line(lines, line_key, lid)
 		if str(line.get("next_id", "")) != gid:
@@ -305,11 +322,22 @@ static func _choice_title(lines: Dictionary, line_key: Dictionary, gid: String) 
 			continue
 		var text := str(line.get("text", "")).strip_edges()
 		if text != "":
-			var sentence := text.find(". ")
-			if sentence > 8:
-				text = text.substr(0, sentence + 1)
-			return _short(text, 42)
-	return "Choice %s" % gid
+			return text
+	return ""
+
+
+static func _choice_title(lines: Dictionary, line_key: Dictionary, gid: String) -> String:
+	return _choice_title_from(_choice_source(lines, line_key, gid), gid)
+
+
+static func _choice_title_from(source: String, gid: String) -> String:
+	if source == "":
+		return "Choice %s" % gid
+	var text := source
+	var sentence := text.find(". ")
+	if sentence > 8:
+		text = text.substr(0, sentence + 1)
+	return _short(text, 42)
 
 
 static func _collect(start_id: String, lines: Dictionary, line_key: Dictionary, sig: Dictionary, by_id: Dictionary) -> Array:
@@ -368,12 +396,18 @@ static func _add_outputs(src: Dictionary, targets: Array, by_id: Dictionary, typ
 		var target_id := str(item.get("target", ""))
 		if not by_id.has(target_id) or target_id == src.id:
 			continue
+		var cond_full := str(item.get("cond", ""))
 		src.outputs.append({
 			"type": type,
 			"tag": _short(str(by_id[target_id].title), 18),
+			"tag_source": str(by_id[target_id].get("title_source", by_id[target_id].title)),
+			"tag_dialogue": bool(by_id[target_id].get("title_dialogue", false)),
+			"tag_arg": str(by_id[target_id].get("title_arg", "")),
+			"tag_kind": "title",
 			"label": by_id[target_id].title,
 			"target": target_id,
-			"cond": _short(str(item.get("cond", "")), 28),
+			"cond": _short(cond_full, 28),
+			"cond_source": cond_full,
 		})
 
 
@@ -407,14 +441,27 @@ static func _mirror_inputs(nodes: Array, by_id: Dictionary) -> void:
 			if not by_id.has(target_id):
 				continue
 			var tag := str(outp.get("tag", ""))
+			var tag_source := str(outp.get("tag_source", tag))
+			var tag_dialogue := bool(outp.get("tag_dialogue", false))
+			var tag_arg := str(outp.get("tag_arg", ""))
+			var tag_kind := str(outp.get("tag_kind", "ui"))
 			if str(node.get("type", "")) != "CHOICE":
 				tag = _short(str(node.title), 18)
+				tag_source = str(node.get("title_source", node.title))
+				tag_dialogue = bool(node.get("title_dialogue", false))
+				tag_arg = str(node.get("title_arg", ""))
+				tag_kind = "title"
 			by_id[target_id].inputs.append({
 				"type": outp.get("type", "FLOW"),
 				"tag": tag,
+				"tag_source": tag_source,
+				"tag_dialogue": tag_dialogue,
+				"tag_arg": tag_arg,
+				"tag_kind": tag_kind,
 				"label": node.title,
 				"source": node.id,
 				"cond": outp.get("cond", ""),
+				"cond_source": outp.get("cond_source", outp.get("cond", "")),
 			})
 
 
@@ -458,6 +505,7 @@ static func _bypass_removed(all_nodes: Array, kept: Array) -> void:
 				outp.target = nxt.get("target", "END")
 				if str(outp.get("cond", "")) == "" and str(nxt.get("cond", "")) != "":
 					outp.cond = nxt.cond
+					outp["cond_source"] = nxt.get("cond_source", nxt.cond)
 
 
 ## Cycle-safe ranks. A back-edge (a return to a node already on the DFS stack)
@@ -926,6 +974,119 @@ static func prepare_display(nodes: Array, shown: Dictionary, relayout: bool) -> 
 	if not picked.is_empty():
 		_layout(picked)
 	return picked
+
+
+## Display copies. Compile keeps English source strings so a locale switch can
+## rebake without rebuilding the graph. Dialogue text uses the dialogue catalog;
+## cue names, END, subtitles and condition badges use the UI catalog.
+static func localized_title(node: Dictionary) -> String:
+	var copy: Dictionary = node.duplicate(true)
+	_localize_title(copy)
+	return str(copy.get("title", ""))
+
+
+static func localize_nodes(nodes: Array) -> Array:
+	var out: Array = []
+	for node in nodes:
+		if typeof(node) != TYPE_DICTIONARY:
+			continue
+		var copy: Dictionary = (node as Dictionary).duplicate(true)
+		_localize_node(copy)
+		out.append(copy)
+	return out
+
+
+## Translate, then remeasure and lay out so longer translations still fit.
+static func fit_localized(nodes: Array) -> Array:
+	var localized := localize_nodes(nodes)
+	for node in localized:
+		node["w"] = MeshScript.measure_width(node)
+		node["h"] = MeshScript.measure_height(node.get("inputs", []).size(), node.get("outputs", []).size())
+	if not localized.is_empty():
+		_layout(localized)
+	return localized
+
+
+static func _localize_node(node: Dictionary) -> void:
+	_localize_title(node)
+	var ins: int = node.get("inputs", []).size()
+	var outs: int = node.get("outputs", []).size()
+	node["subtitle"] = _tr_text("%d in / %d out", false) % [ins, outs]
+	for side in ["inputs", "outputs"]:
+		for port in node.get(side, []):
+			if typeof(port) != TYPE_DICTIONARY:
+				continue
+			_localize_port(port)
+
+
+static func _localize_title(node: Dictionary) -> void:
+	var source := str(node.get("title_source", node.get("title", "")))
+	var dialogue := bool(node.get("title_dialogue", false))
+	var translated := _tr_text(source, dialogue)
+	var arg := str(node.get("title_arg", ""))
+	if arg != "" and (translated.find("%s") >= 0 or translated.find("%d") >= 0):
+		translated = translated % arg
+	if dialogue:
+		translated = _display_sentence(translated)
+		node["title"] = _short(translated, 42)
+	else:
+		node["title"] = translated
+
+
+static func _localize_port(port: Dictionary) -> void:
+	var kind := str(port.get("tag_kind", ""))
+	var source := str(port.get("tag_source", port.get("tag", "")))
+	var dialogue := bool(port.get("tag_dialogue", false))
+	var limit := 24 if str(port.get("type", "")) == "CHOICE" or kind == "line" else 18
+	if kind == "line" or (kind != "title" and dialogue):
+		port["tag"] = _short(_tr_text(source, true), limit)
+	elif kind == "title" or kind == "":
+		var fake := {
+			"title_source": source,
+			"title_dialogue": dialogue,
+			"title_arg": str(port.get("tag_arg", "")),
+			"title": source,
+		}
+		_localize_title(fake)
+		port["tag"] = _short(str(fake.get("title", "")), limit)
+	else:
+		port["tag"] = _short(_tr_text(source, false), limit)
+	var cond_src := str(port.get("cond_source", port.get("cond", "")))
+	if cond_src != "":
+		port["cond"] = _short(_tr_text(cond_src, false), 28)
+
+
+static func _tr_text(text: String, dialogue: bool) -> String:
+	if text == "":
+		return ""
+	# tr() is illegal in a static function. The translation server is not.
+	var translated := str(TranslationServer.translate(text, "dialogue" if dialogue else ""))
+	if dialogue:
+		translated = _strip_bbcode(translated)
+	return translated
+
+
+static func _display_sentence(text: String) -> String:
+	var sentence := text.find(". ")
+	if sentence > 8:
+		return text.substr(0, sentence + 1)
+	return text
+
+
+static func _strip_bbcode(source: String) -> String:
+	var out := ""
+	var i := 0
+	while i < source.length():
+		if source[i] == "[":
+			var close := source.find("]", i)
+			if close < 0:
+				out += source.substr(i)
+				break
+			i = close + 1
+			continue
+		out += source[i]
+		i += 1
+	return out
 
 
 static func _node_owns_line(node: Dictionary, parts: Dictionary) -> bool:

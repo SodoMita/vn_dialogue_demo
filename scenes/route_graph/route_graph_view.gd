@@ -33,6 +33,7 @@ var _fitted := false
 var visited_only := true
 var player_state: Dictionary = {}
 var current_id := ""
+var atlas_resolution := 1024
 
 
 func _ready() -> void:
@@ -57,6 +58,14 @@ func open_resource(resource = null, player: Dictionary = {}) -> void:
 	_fit_if_needed()
 
 
+func set_atlas_resolution(size: int, rebuild: bool = true) -> void:
+	var next := clampi(int(round(float(size) / 64.0)) * 64, 128, 4096)
+	var changed := next != atlas_resolution
+	atlas_resolution = next
+	if rebuild and changed and not full_nodes.is_empty():
+		_upload()
+
+
 func set_visited_only(on: bool) -> void:
 	visited_only = on
 	if full_nodes.is_empty():
@@ -75,7 +84,7 @@ func refresh_locale() -> void:
 func here_title() -> String:
 	for node in full_nodes:
 		if str(node.get("id", "")) == current_id:
-			return str(node.get("title", ""))
+			return CompilerScript.localized_title(node)
 	return ""
 
 
@@ -89,6 +98,8 @@ func _rebuild() -> void:
 			"id": "empty",
 			"type": "START",
 			"title": "No routes",
+			"title_source": "No routes",
+			"title_dialogue": false,
 			"subtitle": "0 in / 0 out",
 			"color": Color("#475569"),
 			"x": 40.0,
@@ -120,9 +131,12 @@ func _shown_ids() -> Dictionary:
 func _upload() -> void:
 	var shown := _shown_ids()
 	var relayout := visited_only and shown.size() < full_nodes.size()
-	nodes = CompilerScript.prepare_display(full_nodes, shown, relayout)
-	if nodes.is_empty():
-		nodes = full_nodes
+	var picked: Array = CompilerScript.prepare_display(full_nodes, shown, relayout)
+	if picked.is_empty():
+		picked = full_nodes
+	# Translate after the visited filter so port tags and titles follow the locale,
+	# then remeasure so a longer translation still fits the node.
+	nodes = CompilerScript.fit_localized(picked)
 	node_by_id.clear()
 	for node in nodes:
 		node_by_id[str(node.get("id", ""))] = node
@@ -131,7 +145,7 @@ func _upload() -> void:
 	for entry in keys:
 		if str(entry.get("key", "")) == "here_badge":
 			entry["text"] = tr("You are here")
-	atlas.bake(keys)
+	atlas.bake(keys, atlas_resolution)
 	builder = MeshScript.new()
 	_ensure_mesh()
 	mesh_instance.mesh = builder.build(atlas, nodes, current_id)

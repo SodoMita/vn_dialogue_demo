@@ -380,3 +380,27 @@ msgstr "Там нечего показать"
 
 msgid "Drag to pan  ·  Wheel to zoom  ·  Port → other side  ·  Edge → furthest of its two nodes  ·  Header → play there"
 msgstr "Тяните, чтобы двигать  ·  Колёсико — масштаб  ·  Порт → другая сторона  ·  Ребро → дальнейший из двух узлов  ·  Заголовок → перейти в игру"
+
+msgid "Map atlas"
+msgstr "Атлас карты"
+
+msgid "Start"
+msgstr "Старт"
+
+msgid "Rooftop"
+msgstr "Крыша"
+
+msgid "END"
+msgstr "Конец"
+
+msgid "No routes"
+msgstr "Нет маршрутов"
+
+msgid "%d in / %d out"
+msgstr "%d вх. / %d вых."
+
+msgid "else"
+msgstr "иначе"
+
+msgid "Choice %s"
+msgstr "Выбор %s"

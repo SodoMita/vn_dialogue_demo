@@ -150,6 +150,8 @@ class_name VNBalloon extends CanvasLayer
 @onready var resolution_option: OptionButton = %ResolutionOption
 @onready var res_width_spin: SpinBox = %ResWidthSpin
 @onready var res_height_spin: SpinBox = %ResHeightSpin
+@onready var atlas_size_spin: SpinBox = %AtlasSizeSpin
+@onready var atlas_size_value: Label = %AtlasSizeValue
 @onready var master_vol_slider: HSlider = %MasterVolSlider
 @onready var master_vol_value: Label = %MasterVolValue
 @onready var music_vol_slider: HSlider = %MusicVolSlider
@@ -226,6 +228,7 @@ var portrait_mode: bool = false
 var force_portrait: bool = false
 var rotation_deg: int = 0
 var language: String = "en"
+var atlas_resolution: int = 1024
 ## Authored offset_top/bottom per sprite, captured once so the Y-offset
 ## setting is applied as a delta instead of flattening the rect.
 var _sprite_base_offsets: Dictionary = {}
@@ -1153,6 +1156,12 @@ func _load_settings() -> void:
 		res_height_spin.value = float(data.res_h)
 		_sync_resolution_option()
 		_apply_resolution(int(data.res_w), int(data.res_h))
+	if data.has("atlas_size"):
+		var saved_atlas := clampi(int(round(float(data.atlas_size) / 64.0)) * 64, 128, 4096)
+		atlas_resolution = saved_atlas
+		atlas_size_spin.set_value_no_signal(float(saved_atlas))
+		if is_instance_valid(route_graph_panel) and route_graph_panel.has_method("set_atlas_resolution"):
+			route_graph_panel.set_atlas_resolution(atlas_resolution, false)
 	for key: String in ["vol_master", "vol_music", "vol_voice", "vol_sfx"]:
 		if data.has(key):
 			var slider: HSlider = {"vol_master": master_vol_slider, "vol_music": music_vol_slider,
@@ -1186,6 +1195,7 @@ func _save_settings() -> void:
 		"vsync": vsync_check.button_pressed,
 		"res_w": int(res_width_spin.value),
 		"res_h": int(res_height_spin.value),
+		"atlas_size": int(atlas_size_spin.value),
 		"vol_master": master_vol_slider.value,
 		"vol_music": music_vol_slider.value,
 		"vol_voice": voice_vol_slider.value,
@@ -1343,6 +1353,8 @@ func _update_slider_value_labels() -> void:
 	music_vol_value.text = "%d%%" % roundi(music_vol_slider.value)
 	voice_vol_value.text = "%d%%" % roundi(voice_vol_slider.value)
 	sfx_vol_value.text = "%d%%" % roundi(sfx_vol_slider.value)
+	if is_instance_valid(atlas_size_value):
+		atlas_size_value.text = "%d px" % int(atlas_size_spin.value)
 
 
 func _on_settings_close_pressed() -> void:
@@ -1382,6 +1394,7 @@ const UI_TEXT_KEYS: Array = [
 	["PortraitRowLabel", "Portrait layout"], ["PortraitCheck", "on"], ["RotationRowLabel", "Rotation"],
 	["FullscreenRowLabel", "Fullscreen"], ["FullscreenCheck", "on"], ["VsyncRowLabel", "V-Sync"],
 	["VsyncCheck", "on"], ["ResolutionRowLabel", "Resolution"], ["ResCustomLabel", "Custom size"],
+	["AtlasRowLabel", "Map atlas"],
 	["AudioHeader", "Audio"], ["MasterVolRowLabel", "Master volume"],
 	["MusicVolRowLabel", "Music volume"], ["VoiceVolRowLabel", "Voice volume"],
 	["SfxVolRowLabel", "SFX volume"], ["SpritesHeader", "Sprites"],
@@ -1544,6 +1557,18 @@ func _on_res_height_changed(_v: float) -> void:
 	_sync_resolution_option()
 	_apply_resolution(int(res_width_spin.value), int(res_height_spin.value))
 	_save_settings()
+
+
+## Map glyph atlas side, in pixels. Snaps to 64 so the baker stays aligned.
+func _on_atlas_size_changed(v: float) -> void:
+	var next := clampi(int(round(v / 64.0)) * 64, 128, 4096)
+	if int(atlas_size_spin.value) != next:
+		atlas_size_spin.set_value_no_signal(float(next))
+	atlas_resolution = next
+	_update_slider_value_labels()
+	_save_settings()
+	if is_instance_valid(route_graph_panel) and route_graph_panel.has_method("set_atlas_resolution"):
+		route_graph_panel.set_atlas_resolution(atlas_resolution)
 
 
 func _apply_resolution(w: int, h: int) -> void:
@@ -2009,7 +2034,7 @@ func _on_route_button_pressed() -> void:
 	if is_instance_valid(route_graph_panel):
 		_open_overlay(route_graph_panel)
 		if route_graph_panel.has_method("show_graph"):
-			route_graph_panel.show_graph(dialogue_resource, _route_player_state())
+			route_graph_panel.show_graph(dialogue_resource, _route_player_state(), atlas_resolution)
 	else:
 		_toast("Route graph not available")
 

@@ -7,6 +7,10 @@ extends RefCounted
 const ATLAS_W := 1024
 const ATLAS_H := 1024
 const WHITE := 8
+const MIN_SIDE := 64
+const MAX_SIDE := 4096
+
+var _side := ATLAS_W
 
 var texture: Texture2D
 var _uvs: Dictionary = {}
@@ -31,13 +35,15 @@ func shape_uv(kind: String) -> Rect2:
 	return _uvs.get("shape:" + kind, white_uv())
 
 
-func bake(entries: Array) -> void:
+func bake(entries: Array, resolution: int = -1) -> void:
+	# Square side. Omitted or too small keeps the 1024 default so existing callers stay valid.
+	_side = ATLAS_W if resolution < MIN_SIDE else clampi(resolution, MIN_SIDE, MAX_SIDE)
 	_bytes = PackedByteArray()
-	_bytes.resize(ATLAS_W * ATLAS_H * 4)
+	_bytes.resize(_side * _side * 4)
 	_font = load("res://assets/fonts/DejaVuSerif.ttf")
 	_fill(0, 0, WHITE, WHITE, Color.WHITE)
-	var center := Vector2(float(WHITE) * 0.5 / float(ATLAS_W), float(WHITE) * 0.5 / float(ATLAS_H))
-	var eps := 0.5 / float(ATLAS_W)
+	var center := Vector2(float(WHITE) * 0.5 / float(_side), float(WHITE) * 0.5 / float(_side))
+	var eps := 0.5 / float(_side)
 	_uvs["__white"] = Rect2(center.x - eps, center.y - eps, eps * 2.0, eps * 2.0)
 	_sizes["__white"] = Vector2(WHITE, WHITE)
 	_draw_shapes()
@@ -53,21 +59,21 @@ func bake(entries: Array) -> void:
 		var measured := _measure(text, font_size)
 		var w := maxi(4, int(ceil(measured.x)) + 8)
 		var h := maxi(4, int(ceil(measured.y)) + 6)
-		if pen_x + w + 2 > ATLAS_W:
+		if pen_x + w + 2 > _side:
 			pen_x = 4
 			pen_y += row_h + 4
 			row_h = 0
-		if pen_y + h + 2 > ATLAS_H:
+		if pen_y + h + 2 > _side:
 			push_warning("route graph atlas full, skipping '%s'" % key)
 			_uvs[key] = white_uv()
 			_sizes[key] = Vector2(4, 4)
 			continue
 		_draw_text(text, font_size, pen_x + 4, pen_y + 2)
-		_uvs[key] = Rect2(float(pen_x) / float(ATLAS_W), float(pen_y) / float(ATLAS_H), float(w) / float(ATLAS_W), float(h) / float(ATLAS_H))
+		_uvs[key] = Rect2(float(pen_x) / float(_side), float(pen_y) / float(_side), float(w) / float(_side), float(h) / float(_side))
 		_sizes[key] = Vector2(w, h)
 		pen_x += w + 4
 		row_h = maxi(row_h, h)
-	var image := Image.create_from_data(ATLAS_W, ATLAS_H, false, Image.FORMAT_RGBA8, _bytes)
+	var image := Image.create_from_data(_side, _side, false, Image.FORMAT_RGBA8, _bytes)
 	texture = ImageTexture.create_from_image(image)
 
 
@@ -76,7 +82,7 @@ func _draw_shapes() -> void:
 	var x := WHITE + 6
 	for kind in kinds:
 		_draw_shape(kind, x, 4, 16)
-		_uvs["shape:" + kind] = Rect2(float(x) / float(ATLAS_W), 4.0 / float(ATLAS_H), 16.0 / float(ATLAS_W), 16.0 / float(ATLAS_H))
+		_uvs["shape:" + kind] = Rect2(float(x) / float(_side), 4.0 / float(_side), 16.0 / float(_side), 16.0 / float(_side))
 		_sizes["shape:" + kind] = Vector2(16, 16)
 		x += 20
 
@@ -153,11 +159,11 @@ func _blit_glyph(src: Image, rect: Rect2i, dest: Vector2i) -> void:
 		return
 	for y in rect.size.y:
 		var dy := dest.y + y
-		if dy < 0 or dy >= ATLAS_H:
+		if dy < 0 or dy >= _side:
 			continue
 		for x in rect.size.x:
 			var dx := dest.x + x
-			if dx < 0 or dx >= ATLAS_W:
+			if dx < 0 or dx >= _side:
 				continue
 			var si := ((rect.position.y + y) * src_w + rect.position.x + x) * bpp + alpha_offset
 			if si < 0 or si >= src_bytes.size():
@@ -165,7 +171,7 @@ func _blit_glyph(src: Image, rect: Rect2i, dest: Vector2i) -> void:
 			var src_a := float(src_bytes[si]) / 255.0
 			if src_a <= 0.004:
 				continue
-			var di := (dy * ATLAS_W + dx) * 4
+			var di := (dy * _side + dx) * 4
 			var dst_a := float(_bytes[di + 3]) / 255.0
 			var out_a := src_a + dst_a * (1.0 - src_a)
 			var dst_r := float(_bytes[di]) / 255.0
@@ -187,9 +193,9 @@ func _fill(x: int, y: int, w: int, h: int, color: Color) -> void:
 
 
 func _set_px(x: int, y: int, color: Color) -> void:
-	if x < 0 or y < 0 or x >= ATLAS_W or y >= ATLAS_H:
+	if x < 0 or y < 0 or x >= _side or y >= _side:
 		return
-	var i := (y * ATLAS_W + x) * 4
+	var i := (y * _side + x) * 4
 	_bytes[i] = int(clampf(color.r * 255.0, 0.0, 255.0))
 	_bytes[i + 1] = int(clampf(color.g * 255.0, 0.0, 255.0))
 	_bytes[i + 2] = int(clampf(color.b * 255.0, 0.0, 255.0))

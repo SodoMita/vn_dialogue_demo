@@ -43,9 +43,16 @@ func _ready() -> void:
 	_sync_toggle_look()
 
 
-func show_graph(resource = null, player: Dictionary = {}) -> void:
+func set_atlas_resolution(size: int, rebuild: bool = true) -> void:
+	if view != null and is_instance_valid(view) and view.has_method("set_atlas_resolution"):
+		view.set_atlas_resolution(size, rebuild)
+
+
+func show_graph(resource = null, player: Dictionary = {}, atlas_resolution: int = -1) -> void:
 	visible = true
 	_apply_texts()
+	if atlas_resolution >= 64:
+		set_atlas_resolution(atlas_resolution, false)
 	if view != null and is_instance_valid(view) and view.has_method("open_resource"):
 		view.open_resource(resource, player)
 		if view.has_method("set_visited_only"):
