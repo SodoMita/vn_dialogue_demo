@@ -147,12 +147,13 @@ func build(nodes: Array, edges: Array) -> ArrayMesh:
 		var col_bg: Color = Color("#131B2E")
 		var col_header: Color = n.color
 
+		var header_h: float = 28.0
 		# main body
 		add_quad(Vector2(x,y), Vector2(w,h), _white_uv, col_bg)
-		# header
-		add_quad(Vector2(x,y), Vector2(w,30), _white_uv, col_header)
+		# header - fits header text
+		add_quad(Vector2(x,y), Vector2(w,header_h), _white_uv, col_header)
 
-		# port columns background lines? we draw as thin rects using white pixel with dark color
+		# port columns background lines
 		# horizontal separator at 78
 		add_quad(Vector2(x, y+78), Vector2(w,1), _white_uv, Color("#1E293B"))
 		# vertical divider
@@ -165,28 +166,30 @@ func build(nodes: Array, edges: Array) -> ArrayMesh:
 		var w: float = n.w
 		var h: float = n.h
 
-		# title
+		var header_h: float = 28.0
+		# type/id header text (small) - inside header bg
+		var header_txt: String = n.type + " • " + n.id
+		if _atlas.uvs.has(header_txt):
+			var uv: Rect2 = _atlas.get_uv(header_txt)
+			var sz: Vector2 = _atlas.get_size(header_txt)
+			# clamp to fit inside header: header_h - 8 margin
+			add_quad(Vector2(x+8, y+6), sz, uv, Color.WHITE)
+
+		# title - below header, fits
 		var title_key: String = n.title + "_title"
 		if not _atlas.uvs.has(title_key):
 			title_key = n.title
 		if _atlas.uvs.has(title_key):
 			var uv: Rect2 = _atlas.get_uv(title_key)
 			var sz: Vector2 = _atlas.get_size(title_key)
-			add_quad(Vector2(x+12, y+20), sz, uv, Color.WHITE)
+			add_quad(Vector2(x+12, y+header_h+8), sz, uv, Color.WHITE)
 
-		# subtitle
+		# subtitle - below title
 		var sub_key: String = n.subtitle
 		if _atlas.uvs.has(sub_key):
 			var uv: Rect2 = _atlas.get_uv(sub_key)
 			var sz: Vector2 = _atlas.get_size(sub_key)
-			add_quad(Vector2(x+12, y+40), sz, uv, Color("#94A3B8"))
-
-		# type/id header text (small)
-		var header_txt: String = n.type + " • " + n.id
-		if _atlas.uvs.has(header_txt):
-			var uv: Rect2 = _atlas.get_uv(header_txt)
-			var sz: Vector2 = _atlas.get_size(header_txt)
-			add_quad(Vector2(x+12, y+6), sz, uv, Color.WHITE)
+			add_quad(Vector2(x+12, y+header_h+26), sz, uv, Color("#94A3B8"))
 
 		# ports
 		var num_in: int = n.inputs.size()
