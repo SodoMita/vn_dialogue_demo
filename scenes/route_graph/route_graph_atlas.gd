@@ -1,7 +1,7 @@
 class_name RouteGraphAtlas
 # Atlas baker - single texture holding glyphs + icons + white pixel
 # Fragment shader does 1 fetch, no loops/branches
-# Baking uses SubViewport + Labels to rasterize text (robust, no low-level TextServer API)
+# Baking uses SubViewport + Labels to rasterize text (robust)
 
 var texture: Texture2D
 var image: Image
@@ -21,8 +21,6 @@ func _init():
 	_font = load("res://assets/fonts/DejaVuSerif.ttf") as FontFile
 
 func bake_with_sizes(entries: Array) -> void:
-	# This is called from RouteGraphView which will await if needed
-	# For headless tests we skip heavy baking and create a dummy 2x2 white texture
 	if DisplayServer.get_name() == "headless":
 		_create_dummy()
 		return
@@ -39,28 +37,33 @@ func bake_with_sizes(entries: Array) -> void:
 	var root: Node2D = Node2D.new()
 	vp.add_child(root)
 
-	# Add to tree temporarily - we need a parent in the scene tree to render
-	# We'll add to Engine.get_main_loop().root if available
+	# Add to tree via deferred to avoid "Parent node is busy setting up children"
 	var tree_root: Window = Engine.get_main_loop().root as Window
-	if tree_root:
-		tree_root.add_child(vp)
-	else:
-		# fallback: create dummy
+	if tree_root == null:
 		_create_dummy()
+		vp.queue_free()
 		return
 
-	# Packing cursors
+	# Use call_deferred to avoid blocked error
+	tree_root.add_child.call_deferred(vp)
+	# Wait for deferred add
+	await Engine.get_main_loop().process_frame
+	# Ensure vp is inside tree
+	if not vp.is_inside_tree():
+		# try again next frame
+		await Engine.get_main_loop().process_frame
+		if not vp.is_inside_tree():
+			_create_dummy()
+			return
+
 	var cursor_x: int = 0
 	var cursor_y: int = 0
 	var row_h: int = 0
 
-	# Reserve top row for icons and white pixel
-	# White pixel at 0,0 2x2 will be drawn manually after capture
-	# Icons at x=4,0 etc - we will place Labels after them
 	cursor_x = 4 + 4*(ICON_SIZE + PADDING)
 	row_h = ICON_SIZE
 
-	var labels: Array = [] # {label, key, x, y, w, h}
+	var labels: Array = []
 
 	for e in entries:
 		var key: String = e.key
@@ -71,14 +74,21 @@ func bake_with_sizes(entries: Array) -> void:
 
 		var lbl: Label = Label.new()
 		lbl.text = txt
-		lbl.add_theme_font_override("font", _font)
+		if _font:
+			lbl.add_theme_font_override("font", _font)
 		lbl.add_theme_font_size_override("font_size", sz)
 		lbl.add_theme_color_override("font_color", Color(1,1,1,1))
-		# Measure
-		var font_size: int = sz
-		var text_size: Vector2 = _font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
-		var w: int = int(ceil(text_size.x)) + 4
-		var h: int = int(ceil(text_size.y)) + 6
+
+		var w: int = 0
+		var h: int = 0
+		if _font:
+			var text_size: Vector2 = _font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, sz)
+			w = int(ceil(text_size.x)) + 8
+			h = int(ceil(text_size.y)) + 8
+		else:
+			w = txt.length()*sz*0.6 + 8
+			h = sz + 8
+
 		if w <= 0 or h <= 0:
 			lbl.queue_free()
 			continue
@@ -104,12 +114,22 @@ func bake_with_sizes(entries: Array) -> void:
 	# Wait for render
 	await Engine.get_main_loop().process_frame
 	await Engine.get_main_loop().process_frame
-	# Ensure viewport rendered
 	vp.render_target_update_mode = SubViewport.UPDATE_ONCE
 	await RenderingServer.frame_post_draw
+	await Engine.get_main_loop().process_frame
 
 	# Capture image
-	image = vp.get_texture().get_image()
+	if not vp.is_inside_tree():
+		_create_dummy()
+		return
+
+	var tex: ViewportTexture = vp.get_texture()
+	if tex == null:
+		_create_dummy()
+		vp.queue_free()
+		return
+
+	image = tex.get_image()
 	if image == null:
 		_create_dummy()
 		vp.queue_free()
@@ -117,14 +137,12 @@ func bake_with_sizes(entries: Array) -> void:
 
 	image.convert(Image.FORMAT_RGBA8)
 
-	# Draw white pixel at 0,0
 	image.set_pixel(0,0, Color(1,1,1,1))
 	image.set_pixel(1,0, Color(1,1,1,1))
 	image.set_pixel(0,1, Color(1,1,1,1))
 	image.set_pixel(1,1, Color(1,1,1,1))
 	white_uv = Rect2(0.0, 0.0, 2.0/ATLAS_W, 2.0/ATLAS_H)
 
-	# Draw shape icons at reserved top row
 	var icon_start_x: int = 4
 	for i in range(4):
 		var kind: String = ["FLOW","STORY","CHOICE","BOOL"][i]
@@ -133,7 +151,6 @@ func bake_with_sizes(entries: Array) -> void:
 		var uv: Rect2 = Rect2(float(sx)/ATLAS_W, 0.0, float(ICON_SIZE)/ATLAS_W, float(ICON_SIZE)/ATLAS_H)
 		shape_uvs[kind] = uv
 
-	# Build uv maps from labels
 	uvs.clear()
 	sizes.clear()
 	for item in labels:
@@ -147,7 +164,6 @@ func bake_with_sizes(entries: Array) -> void:
 
 	texture = ImageTexture.create_from_image(image)
 
-	# Cleanup
 	vp.queue_free()
 
 func _create_dummy() -> void:
@@ -158,12 +174,9 @@ func _create_dummy() -> void:
 	image.set_pixel(0,1, Color(1,1,1,1))
 	image.set_pixel(1,1, Color(1,1,1,1))
 	white_uv = Rect2(0,0, 2.0/ATLAS_W, 2.0/ATLAS_H)
-	# dummy shape uvs point to white
 	for k in ["FLOW","STORY","CHOICE","BOOL"]:
 		shape_uvs[k] = white_uv
-	# dummy texture
 	texture = ImageTexture.create_from_image(image)
-	# populate minimal uvs for common keys to avoid missing
 	uvs["IN"] = white_uv
 	uvs["OUT"] = white_uv
 	sizes["IN"] = Vector2(20,12)
