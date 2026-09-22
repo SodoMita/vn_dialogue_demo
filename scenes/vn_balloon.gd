@@ -169,6 +169,10 @@ class_name VNBalloon extends CanvasLayer
 @onready var bottom_ui: Control = %BottomUI
 @onready var system_row: GridContainer = %SystemRow
 @onready var pause_button: Button = %PauseButton
+@onready var route_button: Button = %RouteButton
+
+## Route graph overlay (optional feature, single-pass renderer)
+@onready var route_graph_panel: PanelContainer = %RouteGraphPanel
 
 ## Timers
 @onready var skip_timer: Timer = %SkipTimer
@@ -305,6 +309,8 @@ func _ready() -> void:
 	settings_panel.hide()
 	pause_panel.hide()
 	panic_screen.hide()
+	if is_instance_valid(route_graph_panel):
+		route_graph_panel.hide()
 	DirAccess.make_dir_recursive_absolute(saves_dir)
 	_ensure_audio_buses()
 	_setup_key_bindings()
@@ -520,7 +526,7 @@ func next(next_id: String) -> void:
 
 func _any_overlay_open() -> bool:
 	return history_panel.visible or save_menu_panel.visible or settings_panel.visible \
-		or pause_panel.visible or panic_screen.visible
+		or pause_panel.visible or panic_screen.visible or route_graph_panel.visible
 
 
 func _open_overlay(p: Control) -> void:
@@ -541,6 +547,8 @@ func _close_overlay(p: Control) -> void:
 func _close_top_overlay() -> void:
 	if pause_panel.visible:
 		close_pause()
+	elif route_graph_panel.visible:
+		_close_overlay(route_graph_panel)
 	elif settings_panel.visible:
 		_close_overlay(settings_panel)
 	elif save_menu_panel.visible:
@@ -1357,7 +1365,7 @@ func _on_language_changed(idx: int) -> void:
 const UI_TEXT_KEYS: Array = [
 	["SaveButton", "Save"], ["LoadButton", "Load"], ["AutoButton", "Auto"],
 	["SkipButton", "Skip"], ["PrevChoiceButton", "< Choice"], ["NextChoiceButton", "Choice >"],
-	["LogButton", "Log"], ["SettingsButton", "Set"], ["PanicButton", "Panic"], ["PauseButton", "Pause"],
+	["LogButton", "Log"], ["SettingsButton", "Set"], ["PanicButton", "Panic"], ["PauseButton", "Pause"], ["RouteButton", "Map"],
 	["NewSlotButton", "+ New slot"], ["SettingsTitle", "Settings"],
 	["LanguageRowLabel", "Language"], ["TextSpeedRowLabel", "Text speed"],
 	["TextSizeRowLabel", "Text size"], ["SyncVoiceRowLabel", "Sync text to voice"],
@@ -1986,6 +1994,16 @@ func _on_settings_pressed() -> void:
 	_open_overlay(settings_panel)
 	settings_close_button.show()
 	text_speed_slider.grab_focus()
+
+
+func _on_route_button_pressed() -> void:
+	# Optional route graph overlay - single-pass renderer
+	if is_instance_valid(route_graph_panel):
+		_open_overlay(route_graph_panel)
+		if route_graph_panel.has_method("show_graph"):
+			route_graph_panel.show_graph()
+	else:
+		_toast("Route graph not available")
 
 
 func _on_panic_pressed() -> void:

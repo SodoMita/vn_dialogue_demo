@@ -1,4 +1,6 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=24 format=3]
+
+[ext_resource type="PackedScene" uid="uid://b9a8c7d6e5f4g3" path="res://scenes/route_graph/route_graph_panel.tscn" id="11_route"]
 
 [ext_resource type="Script" path="res://scenes/vn_balloon.gd" id="1_balloon"]
 [ext_resource type="PackedScene" uid="uid://ckvgyvclnwggo" path="res://addons/dialogue_manager/nodes/dialogue_label/dialogue_label.tscn" id="2_dlabel"]
@@ -547,6 +549,21 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
 text = "Pause"
+
+[node name="RouteButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(62, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Map"
 
 [node name="MutationCooldown" type="Timer" parent="."]
 unique_name_in_owner = true
@@ -1702,6 +1719,17 @@ theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 22
 text = "X"
 
+[node name="RouteGraphPanel" parent="Balloon/UIRoot" instance=ExtResource("11_route")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+z_index = 15
+
 
 [connection signal="gui_input" from="Balloon" to="." method="_on_balloon_gui_input"]
 [connection signal="response_selected" from="Balloon/UIRoot/BottomUI/ResponsesCenter/ResponsesMenu" to="." method="_on_responses_menu_response_selected"]
@@ -1717,6 +1745,7 @@ text = "X"
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/SettingsButton" to="." method="_on_settings_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/PanicButton" to="." method="_on_panic_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/PauseButton" to="." method="_on_pause_button_pressed"]
+[connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/RouteButton" to="." method="_on_route_button_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/PanicScreen/PanicCloseButton" to="." method="_on_panic_close_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/NewSlotButton" to="." method="_on_new_slot_pressed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow/TextSpeedSlider" to="." method="_on_text_speed_changed"]
