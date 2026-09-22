@@ -389,9 +389,12 @@ func _process(delta: float) -> void:
 					hold_indicator.show_at(_hold_from)
 					if button_sfx and audio != null:
 						audio.hold_start()
-				hold_indicator.progress = _hold_elapsed / HOLD_SECONDS
+					# inside _process, in the _hold_active branch:
+				hold_indicator.progress = clampf(_hold_elapsed / HOLD_SECONDS, 0.0, 1.0)
 				if button_sfx and audio != null:
 					audio.hold_progress(hold_indicator.progress)
+				if _hold_elapsed >= HOLD_SECONDS:
+					_finish_hold()
 	if is_instance_valid(dialogue_line):
 		next_indicator.visible = not dialogue_label.is_typing \
 			and dialogue_line.responses.size() == 0 \
@@ -1819,6 +1822,8 @@ func _cancel_hold() -> void:
 
 
 func _finish_hold() -> void:
+	if not _hold_active:
+		return
 	_hold_active = false
 	hold_indicator.hide_ring()
 	if audio != null:
