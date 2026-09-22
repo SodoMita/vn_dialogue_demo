@@ -18,7 +18,10 @@ void vertex() {
 }
 
 void fragment() {
-	// 1 texture fetch, no loops, no branches
+	// 1 texture fetch, no loops, no branches.
+	// Blending is the pipeline's blend_mix, not a shader branch: COLOR is
+	// straight alpha (atlas coverage times vertex color). The blend unit
+	// composites fragments in mesh order — edges first, then nodes.
 	vec4 tex = texture(atlas, v_uv);
 	COLOR = tex * v_color;
 }

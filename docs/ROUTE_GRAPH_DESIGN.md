@@ -27,9 +27,12 @@ small graphics engine: one mesh, one shader pass, one texture atlas.
    edges, condition badges on the ports. No grid and no editing.
 3. Shader (`route_graph.gdshader`): one pass, pan/zoom in the vertex stage, exactly one
    `texture()` fetch, no loops or branches.
-4. Compiler (`route_graph_compiler.gd`): cues, choice groups, and END. Linear lines and
-   mutations collapse. A port click jumps to the other side; an edge click jumps to the
-   furthest node along that line.
+4. Compiler (`route_graph_compiler.gd`): every `res://dialogue/*.dialogue` file, in path
+   order. Cues, choice groups, and one shared END. The graph may contain cycles; a
+   back-edge is drawn but does not move the anchors. The first cue of the first file is
+   always the leftmost node, and END is always the rightmost. Linear lines and mutations
+   collapse. A port click jumps to the other side; an edge click jumps to the furthest
+   node along that line.
 5. Player overlay: the Map button on the system row.
 
 The route-graph scripts are preloaded. They intentionally have no `class_name` and no

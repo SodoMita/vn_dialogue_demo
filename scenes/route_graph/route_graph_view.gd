@@ -51,7 +51,9 @@ func open_resource(resource = null) -> void:
 
 
 func _rebuild() -> void:
-	var compiled: Dictionary = CompilerScript.compile(dialogue_resource)
+	var compiled: Dictionary = CompilerScript.compile_project()
+	if compiled.get("nodes", []).is_empty():
+		compiled = CompilerScript.compile(dialogue_resource)
 	nodes = compiled.get("nodes", [])
 	if nodes.is_empty():
 		nodes = [{

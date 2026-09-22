@@ -32,6 +32,7 @@ func run() -> void:
 	_check_uids()
 	_check_layering()
 	var compiled := _check_intro()
+	_check_cycle_and_files()
 	_check_condition_badges()
 	_check_furthest()
 	_check_hits(compiled)
@@ -162,7 +163,81 @@ func _check_intro() -> Dictionary:
 		for outp in node.outputs:
 			check(by_id.has(str(outp.target)), "%s output target %s exists" % [node.id, outp.target])
 			check(str(outp.target) != str(node.id), "%s does not output to itself" % node.id)
+	_check_anchors(compiled)
 	return compiled
+
+
+func _check_anchors(compiled: Dictionary) -> void:
+	var nodes: Array = compiled.get("nodes", [])
+	var entry = null
+	var endings: Array = []
+	for node in nodes:
+		if bool(node.get("entry", false)):
+			entry = node
+		if str(node.get("type", "")) == "ENDING":
+			endings.append(node)
+	check(entry != null and str(entry.id) == "start", "entry is the first cue of the first dialogue file")
+	if entry == null:
+		return
+	for node in nodes:
+		if node == entry:
+			continue
+		check(float(entry.x) + float(entry.w) < float(node.x), "entry is strictly left of %s" % node.id)
+	check(endings.size() == 1, "every file shares one END")
+	for ending in endings:
+		for node in nodes:
+			if node == ending:
+				continue
+			check(float(ending.x) > float(node.x) + float(node.w), "END is strictly right of %s" % node.id)
+
+
+func _check_cycle_and_files() -> void:
+	var cyclic: Array = [
+		{"id": "A", "type": "START", "entry": true, "w": 200.0, "h": 120.0, "inputs": [], "outputs": [{"target": "B"}, {"target": "END"}]},
+		{"id": "B", "type": "ROUTE", "w": 200.0, "h": 120.0, "inputs": [], "outputs": [{"target": "C"}]},
+		{"id": "C", "type": "ROUTE", "w": 220.0, "h": 120.0, "inputs": [], "outputs": [{"target": "A"}, {"target": "D"}]},
+		{"id": "D", "type": "ROUTE", "w": 200.0, "h": 120.0, "inputs": [], "outputs": []},
+		{"id": "other", "type": "START", "w": 200.0, "h": 120.0, "inputs": [], "outputs": [{"target": "END"}]},
+		{"id": "END", "type": "ENDING", "w": 180.0, "h": 100.0, "inputs": [], "outputs": []},
+	]
+	CompilerScript._layout(cyclic)
+	var by_id := {}
+	for node in cyclic:
+		by_id[node.id] = node
+	check(float(by_id.A.x) + float(by_id.A.w) < float(by_id.other.x), "a cycle does not put another start left of the entry")
+	check(float(by_id.A.x) + float(by_id.A.w) < float(by_id.D.x), "the long branch stays right of the entry")
+	check(float(by_id.END.x) > float(by_id.D.x) + float(by_id.D.w), "END stays right of the longest branch in a cycle")
+	var first := _FakeDialogue.new()
+	first.first_cue = "1"
+	first.cues = {"alpha": "2"}
+	first.lines = {
+		"1": {"type": "cue", "next_id": "2"},
+		"2": {"type": "dialogue", "text": "Open.", "next_id": "3"},
+		"3": {"type": "goto", "next_id": "2"},
+	}
+	var second := _FakeDialogue.new()
+	second.first_cue = "1"
+	second.cues = {"beta": "2"}
+	second.lines = {
+		"1": {"type": "cue", "next_id": "2"},
+		"2": {"type": "dialogue", "text": "Later.", "next_id": "end"},
+	}
+	var merged: Dictionary = CompilerScript.compile_many([first, second])
+	var entry = null
+	var end_count := 0
+	for node in merged.nodes:
+		if bool(node.get("entry", false)):
+			entry = node
+		if str(node.get("type", "")) == "ENDING":
+			end_count += 1
+	check(entry != null and str(entry.id).ends_with("alpha"), "first file's first cue is the entry when several files are compiled")
+	check(end_count == 1, "two dialogue files share one END")
+	if entry == null:
+		return
+	for node in merged.nodes:
+		if node == entry:
+			continue
+		check(float(entry.x) + float(entry.w) < float(node.x), "first file stays left of %s" % node.id)
 
 
 func _check_condition_badges() -> void:

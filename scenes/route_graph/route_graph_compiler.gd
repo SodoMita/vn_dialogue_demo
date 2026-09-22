@@ -9,7 +9,10 @@ extends RefCounted
 const MeshScript = preload("res://scenes/route_graph/route_graph_mesh_builder.gd")
 
 
-static func compile(resource) -> Dictionary:
+## One resource, or every file under res://dialogue. The graph may contain cycles.
+## The first cue of the first dialogue file is the entry (always leftmost).
+## END is always rightmost. Back-edges do not move either anchor.
+static func compile(resource, prefix: String = "", laid_out: bool = true) -> Dictionary:
 	if resource == null or not ("lines" in resource) or not ("cues" in resource):
 		return {"nodes": [], "edges": []}
 	var lines: Dictionary = resource.lines
@@ -74,6 +77,8 @@ static func compile(resource) -> Dictionary:
 			Color("#16A34A") if is_start else Color("#0F766E"),
 			"cue"
 		)
+		# First cue of this file. compile_many keeps the flag only on the first file.
+		node["entry"] = cname == first_name
 		nodes.append(node)
 		by_id[cname] = node
 
@@ -140,12 +145,110 @@ static func compile(resource) -> Dictionary:
 	for node in kept:
 		by_id[node.id] = node
 	_mirror_inputs(kept, by_id)
+	if prefix != "":
+		_apply_prefix(kept, prefix)
 	for node in kept:
 		node.w = MeshScript.measure_width(node)
 		node.h = MeshScript.measure_height(node.inputs.size(), node.outputs.size())
 		node.subtitle = "%d in / %d out" % [node.inputs.size(), node.outputs.size()]
-	_layout(kept)
+	if laid_out:
+		_layout(kept)
 	return {"nodes": kept, "edges": []}
+
+
+## Every *.dialogue under res://dialogue, sorted by path. Index 0 is the first file.
+static func compile_project() -> Dictionary:
+	return compile_many(_load_dialogue_files())
+
+
+## resources[0] is the first dialogue file. Its first cue stays leftmost.
+## Later files are prefixed so cue names can collide. END is one shared node.
+static func compile_many(resources: Array) -> Dictionary:
+	var combined: Array = []
+	var end_node = null
+	var entry_kept := false
+	for i in resources.size():
+		var prefix := ""
+		if resources.size() > 1:
+			prefix = _prefix_for(resources[i], i)
+		var part: Dictionary = compile(resources[i], prefix, false)
+		for node in part.get("nodes", []):
+			if _is_ending(node):
+				if end_node == null:
+					end_node = node
+				continue
+			if i > 0 or entry_kept:
+				node["entry"] = false
+			elif bool(node.get("entry", false)):
+				entry_kept = true
+			combined.append(node)
+	if end_node != null:
+		combined.append(end_node)
+	var by_id := {}
+	for node in combined:
+		by_id[str(node.id)] = node
+	_mirror_inputs(combined, by_id)
+	for node in combined:
+		node.w = MeshScript.measure_width(node)
+		node.h = MeshScript.measure_height(node.inputs.size(), node.outputs.size())
+		node.subtitle = "%d in / %d out" % [node.inputs.size(), node.outputs.size()]
+	_layout(combined)
+	return {"nodes": combined, "edges": []}
+
+
+static func _load_dialogue_files() -> Array:
+	var paths: Array = []
+	var dir := DirAccess.open("res://dialogue")
+	if dir == null:
+		return paths
+	dir.list_dir_begin()
+	var name := dir.get_next()
+	while name != "":
+		if not dir.current_is_dir() and name.ends_with(".dialogue"):
+			paths.append("res://dialogue/%s" % name)
+		name = dir.get_next()
+	dir.list_dir_end()
+	paths.sort()
+	var resources: Array = []
+	for path in paths:
+		var loaded = load(path)
+		if loaded != null:
+			resources.append(loaded)
+	return resources
+
+
+static func _prefix_for(resource, index: int) -> String:
+	var path := ""
+	if resource != null and "resource_path" in resource:
+		path = str(resource.resource_path)
+	if path == "":
+		return "file%d" % index
+	return path.get_file().get_basename()
+
+
+static func _apply_prefix(nodes: Array, prefix: String) -> void:
+	var remap := {}
+	for node in nodes:
+		var old_id := str(node.id)
+		if _is_ending(node):
+			remap[old_id] = old_id
+			continue
+		var new_id := "%s/%s" % [prefix, old_id]
+		remap[old_id] = new_id
+		node.id = new_id
+	for node in nodes:
+		for outp in node.outputs:
+			var target := str(outp.get("target", ""))
+			if remap.has(target):
+				outp.target = remap[target]
+		for inp in node.inputs:
+			var source := str(inp.get("source", ""))
+			if remap.has(source):
+				inp.source = remap[source]
+
+
+static func _is_ending(node) -> bool:
+	return str(node.get("type", "")) == "ENDING" or str(node.get("id", "")) == "END"
 
 
 static func _make(id: String, type: String, title: String, color: Color, subtitle: String) -> Dictionary:
@@ -349,16 +452,31 @@ static func _bypass_removed(all_nodes: Array, kept: Array) -> void:
 					outp.cond = nxt.cond
 
 
+## Cycle-safe ranks. A back-edge (a return to a node already on the DFS stack)
+## is drawn, but it does not pull the entry right or push a node past END.
 static func _layout(nodes: Array) -> void:
 	var by_id := {}
 	for node in nodes:
-		by_id[node.id] = node
+		by_id[str(node.id)] = node
 		node["layer"] = -1
-	var queue: Array = []
+	var entry = _find_entry(nodes)
+	var back := {}
+	var color := {}
+	if entry != null:
+		_mark_back_edges(str(entry.id), by_id, color, back)
 	for node in nodes:
-		if node.type == "START" or node.inputs.is_empty():
-			node.layer = 0
-			queue.append(node)
+		_mark_back_edges(str(node.id), by_id, color, back)
+	var queue: Array = []
+	if entry != null:
+		entry.layer = 0
+		queue.append(entry)
+	for node in nodes:
+		if node == entry or _is_ending(node):
+			continue
+		if str(node.get("type", "")) == "START" or node.get("inputs", []).is_empty():
+			if int(node.layer) < 0:
+				node.layer = 1
+				queue.append(node)
 	if queue.is_empty() and not nodes.is_empty():
 		nodes[0].layer = 0
 		queue.append(nodes[0])
@@ -367,9 +485,14 @@ static func _layout(nodes: Array) -> void:
 	while not queue.is_empty() and guard < limit:
 		guard += 1
 		var cur: Dictionary = queue.pop_front()
+		if _is_ending(cur):
+			continue
 		for outp in cur.outputs:
-			var target = by_id.get(str(outp.get("target", "")), null)
-			if target == null:
+			var target_id := str(outp.get("target", ""))
+			var target = by_id.get(target_id, null)
+			if target == null or _is_ending(target):
+				continue
+			if back.has("%s->%s" % [str(cur.id), target_id]):
 				continue
 			var next_layer := int(cur.layer) + 1
 			if next_layer >= nodes.size():
@@ -377,11 +500,23 @@ static func _layout(nodes: Array) -> void:
 			if int(target.layer) < next_layer:
 				target.layer = next_layer
 				queue.append(target)
+	var max_other := 0
+	for node in nodes:
+		if node == entry or _is_ending(node):
+			continue
+		if int(node.layer) < 0:
+			node.layer = 1
+		max_other = maxi(max_other, int(node.layer))
+	if entry != null:
+		entry.layer = 0
+	for node in nodes:
+		if _is_ending(node):
+			node.layer = max_other + 1
 	var layers := {}
 	var max_layer := 0
 	for node in nodes:
 		if int(node.layer) < 0:
-			node.layer = 0
+			node.layer = 1
 		max_layer = maxi(max_layer, int(node.layer))
 		if not layers.has(node.layer):
 			layers[node.layer] = []
@@ -400,6 +535,62 @@ static func _layout(nodes: Array) -> void:
 			y += float(node.h) + 48.0
 			column_w = maxf(column_w, float(node.w))
 		x += column_w + 90.0
+	_pin_anchors(nodes)
+
+
+static func _find_entry(nodes: Array):
+	for node in nodes:
+		if bool(node.get("entry", false)):
+			return node
+	for node in nodes:
+		if str(node.get("type", "")) == "START":
+			return node
+	return null
+
+
+static func _mark_back_edges(id: String, by_id: Dictionary, color: Dictionary, back: Dictionary) -> void:
+	if int(color.get(id, 0)) != 0:
+		return
+	color[id] = 1
+	var node = by_id.get(id, {})
+	for outp in node.get("outputs", []):
+		var target_id := str(outp.get("target", ""))
+		if not by_id.has(target_id):
+			continue
+		if int(color.get(target_id, 0)) == 1:
+			back["%s->%s" % [id, target_id]] = true
+			continue
+		_mark_back_edges(target_id, by_id, color, back)
+	color[id] = 2
+
+
+static func _pin_anchors(nodes: Array) -> void:
+	var entry = _find_entry(nodes)
+	var gap := 90.0
+	if entry != null:
+		var min_other := 1.0e9
+		var others := false
+		for node in nodes:
+			if node == entry:
+				continue
+			others = true
+			min_other = minf(min_other, float(node.x))
+		if others and float(entry.x) >= min_other - 0.5:
+			entry.x = min_other - float(entry.w) - gap
+	var max_right := -1.0e9
+	var non_end := false
+	var endings: Array = []
+	for node in nodes:
+		if _is_ending(node):
+			endings.append(node)
+		else:
+			non_end = true
+			max_right = maxf(max_right, float(node.x) + float(node.w))
+	if non_end:
+		var place := max_right + gap
+		for ending in endings:
+			if float(ending.x) < place - 0.5:
+				ending.x = place
 
 
 static func _cond_text(line: Dictionary) -> String:
