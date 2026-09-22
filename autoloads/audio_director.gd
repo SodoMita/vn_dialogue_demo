@@ -58,6 +58,7 @@ var frames_pushed: int = 0             ## samples pushed to the generator
 var sfx_played: int = 0                ## play_sfx() calls (ogg + synth)
 var last_sfx: String = ""              ## key of the most recent SFX
 var last_sfx_source: String = ""       ## "ogg" or "synth"
+var last_sfx_pitch: float = 1.0        ## pitch of the most recent SFX
 var typing_ticks: int = 0              ## typewriter tick requests
 var music_seed: int = 20260921         ## fixed arpeggio RNG seed
 
@@ -273,17 +274,18 @@ func request_music(spec: String) -> void:
 
 
 ## Play SFX by key: assets/sfx/<key>.ogg, else a synthesized equivalent.
-func play_sfx(key: String) -> void:
+func play_sfx(key: String, pitch: float = 1.0) -> void:
 	sfx_played += 1
 	last_sfx = key
+	last_sfx_pitch = pitch
 	var path: String = "res://assets/sfx/%s.ogg" % key
 	if ResourceLoader.exists(path) or FileAccess.file_exists(path):
 		last_sfx_source = "ogg"
 		_play_stream(ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE),
-			1.0 + _rng.randf_range(-0.02, 0.02))
+			pitch + _rng.randf_range(-0.02, 0.02))
 	else:
 		last_sfx_source = "synth"
-		_play_stream(_synth_stream(key), 1.0 + _rng.randf_range(-0.05, 0.05))
+		_play_stream(_synth_stream(key), pitch + _rng.randf_range(-0.05, 0.05))
 
 
 ## Typewriter tick: silent on whitespace, throttled, pitch varies per letter.

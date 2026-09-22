@@ -165,8 +165,9 @@ margins shrink with the scale so the panel keeps a constant, usable width at any
 fullscreen, V-Sync, a resolution dropdown of presets (1280×720 … 2560×1440) plus a custom
 width/height accepting any positive numbers (custom sizes flip the dropdown to "Custom",
 matching sizes re-select their preset); *Audio*: the **Generated music** toggle
-(procedural engine vs. bundled OGG loops) plus master, music, voice and SFX volumes
-driving runtime-created buses (0 mutes, 100 = 0 dB); *Sprites*: character-sprite scale
+(procedural engine vs. bundled OGG loops), **Typewriter sound** and **Button sound**
+toggles, plus master, music, voice and SFX volumes driving runtime-created buses
+(0 mutes, 100 = 0 dB); *Sprites*: character-sprite scale
 (pivoted at the bottom centre) and a Y offset, independent of the UI scale. Every control
 applies live and is
 persisted to `user://settings.json`, and lines the player has read are recorded in
@@ -190,8 +191,17 @@ music* in Settings and the same themes fall back to mood-matched loops instead. 
 tags drive both: `#music=calm`, `#music=loop:night`, `#music=stop`. SFX resolve per key —
 `#sfx=confirm` plays `assets/sfx/confirm.ogg`, and any key without a file gets a runtime
 synthesized blip (typewriter ticks, UI clicks, sweeps, chimes and buzzes all synthesize this
-way). Everything routes through the Music / SFX buses the sliders already govern, and
-Pause / Panic keep ducking the Master bus exactly as before.
+way). Every choice plays its own pitch (ascending per option index) so picking options
+audibly steps, and a response can name its own clip with `#sfx=`, e.g.
+`- Duck! #sfx=confirm`. Everything routes through the Music / SFX buses the sliders
+already govern, the **Typewriter sound** / **Button sound** toggles gate the ticks and
+the UI feedback (story `#sfx=` tags ignore the button toggle), and Pause / Panic keep
+ducking the Master bus exactly as before.
+
+**Dismissing menus**: every menu (history, save/load, settings, pause) closes when you
+click or tap the empty space around its content, in addition to `Backspace`/`Esc` and
+the save menu's own `X`. The panic screen deliberately keeps its strict swallow-all
+behavior — only the boss key or its corner X leave it.
 
 **Mobile**: `input_devices/pointing/emulate_mouse_from_touch = true` is enabled in
 `project.godot`, so touch taps become the mouse clicks the balloon already understands; all
@@ -272,7 +282,11 @@ stays under 20 KB, that the procedural scheduler queues notes and pushes rendere
 that `#music=` / `#sfx=` tags route through the director (themes, loops, stop), that
 unknown SFX keys fall back to runtime synthesis, that the typewriter forwards per-character
 ticks, that the **Generated music** toggle persists and falls back to the loops, and that
-Pause/Resume keep the music state while the Master bus ducks.
+Pause/Resume keep the music state while the Master bus ducks. The sound-toggle region
+checks that **Typewriter sound** / **Button sound** gate their streams (story `#sfx=`
+tags stay audible), that both persist, that different choices play different pitches
+with `#sfx=` response tags overriding the clip, that an empty click dismisses each
+menu (and non-left clicks don't), and that the save/load menu `X` closes it.
 
 ## Documentation
 

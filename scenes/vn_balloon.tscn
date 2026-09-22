@@ -601,13 +601,24 @@ theme_override_constants/margin_bottom = 70
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="SaveMenuTitle" type="Label" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox"]
+[node name="SaveMenuTitleRow" type="BoxContainer" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SaveMenuTitle" type="Label" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SaveMenuTitleRow"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
 theme_override_fonts/font = ExtResource("5_serifbold")
 theme_override_font_sizes/font_size = 26
 text = "Save"
+[node name="SaveCloseButton" type="Button" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SaveMenuTitleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "X"
 
 [node name="NewSlotButton" type="Button" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox"]
 unique_name_in_owner = true
@@ -1339,6 +1350,42 @@ theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 text = "—"
+[node name="TypewriterSfxRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TypewriterSfxRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TypewriterSfxRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Typewriter sound"
+[node name="TypewriterSfxCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TypewriterSfxRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+button_pressed = true
+text = "on"
+[node name="ButtonSfxRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ButtonSfxRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ButtonSfxRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Button sound"
+[node name="ButtonSfxCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ButtonSfxRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+button_pressed = true
+text = "on"
 [node name="SpritesHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
@@ -1766,6 +1813,13 @@ text = "X"
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteYRow/SpriteYSlider" to="." method="_on_sprite_y_changed"]
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SyncVoiceRow/SyncVoiceCheck" to="." method="_on_sync_voice_toggled"]
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ProceduralMusicRow/ProceduralMusicCheck" to="." method="_on_procedural_music_toggled"]
+[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TypewriterSfxRow/TypewriterSfxCheck" to="." method="_on_typewriter_sfx_toggled"]
+[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ButtonSfxRow/ButtonSfxCheck" to="." method="_on_button_sfx_toggled"]
+[connection signal="pressed" from="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SaveMenuTitleRow/SaveCloseButton" to="." method="_on_save_close_pressed"]
+[connection signal="gui_input" from="Balloon/UIRoot/SaveMenuPanel" to="." method="_on_menu_panel_empty_click"]
+[connection signal="gui_input" from="Balloon/UIRoot/SettingsPanel" to="." method="_on_menu_panel_empty_click"]
+[connection signal="gui_input" from="Balloon/UIRoot/PausePanel" to="." method="_on_menu_panel_empty_click"]
+[connection signal="gui_input" from="Balloon/UIRoot/HistoryPanel" to="." method="_on_menu_panel_empty_click"]
 [connection signal="pressed" from="Balloon/UIRoot/SettingsCloseButton" to="." method="_on_settings_close_pressed"]
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PortraitRow/PortraitCheck" to="." method="_on_portrait_toggled"]
 [connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot0Button" to="." method="_on_rot_0_pressed"]

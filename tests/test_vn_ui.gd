@@ -147,7 +147,7 @@ func run() -> void:
 	sf.close()
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "ProceduralMusicCheck", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button", "PauseButton", "PanicCloseButton", "LanguageOption", "AdvanceKeyButton", "SkipKeyButton", "CloseKeyButton", "HistoryKeyButton", "QuickSaveKeyButton", "QuickLoadKeyButton", "PauseKeyButton", "PanicKeyButton"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "ProceduralMusicCheck", "TypewriterSfxCheck", "ButtonSfxCheck", "SaveMenuTitleRow", "SaveCloseButton", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button", "PauseButton", "PanicCloseButton", "LanguageOption", "AdvanceKeyButton", "SkipKeyButton", "CloseKeyButton", "HistoryKeyButton", "QuickSaveKeyButton", "QuickLoadKeyButton", "PauseKeyButton", "PanicKeyButton"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -1069,6 +1069,97 @@ func run() -> void:
 	balloon.close_pause()
 	check(ad.music_source == "procedural" and ad.current_theme == theme_kept,
 		"resume keeps the same music going")
+
+	# --- Sound toggles, per-choice sounds, dismiss-on-empty, save close ---
+	# "Typewriter sound" gates per-character tick forwarding.
+	balloon.typewriter_sfx_check.button_pressed = false
+	balloon.typewriter_sfx_check.toggled.emit(false)
+	var ticks_off: int = ad.typing_ticks
+	balloon._on_label_spoke("a", 1, 0.018)
+	check(ad.typing_ticks == ticks_off, "typewriter sound off stops tick forwarding")
+	balloon.typewriter_sfx_check.button_pressed = true
+	balloon.typewriter_sfx_check.toggled.emit(true)
+	balloon._on_label_spoke("a", 1, 0.018)
+	check(ad.typing_ticks == ticks_off + 1, "typewriter sound on forwards ticks again")
+	# "Button sound" gates UI feedback.
+	balloon.button_sfx_check.button_pressed = false
+	balloon.button_sfx_check.toggled.emit(false)
+	var btn_off: int = ad.sfx_played
+	balloon._on_ui_button_sfx()
+	balloon._sfx("open")
+	check(ad.sfx_played == btn_off, "button sound off silences UI feedback")
+	balloon.button_sfx_check.button_pressed = true
+	balloon.button_sfx_check.toggled.emit(true)
+	balloon._on_ui_button_sfx()
+	check(ad.sfx_played == btn_off + 1, "button sound on plays UI feedback again")
+	# Story #sfx= tags ignore the button toggle (content, not UI).
+	balloon.button_sfx_check.button_pressed = false
+	balloon.button_sfx_check.toggled.emit(false)
+	var tag_off: int = ad.sfx_played
+	var story_tag: DialogueLine = DialogueLine.new()
+	story_tag.tags = ["sfx=open"]
+	balloon._apply_stage_tags(story_tag)
+	check(ad.sfx_played == tag_off + 1, "#sfx= tags still play with button sound off")
+	balloon.button_sfx_check.button_pressed = true
+	balloon.button_sfx_check.toggled.emit(true)
+	var snd_data: Variant = JSON.parse_string(FileAccess.get_file_as_string("user://settings.json"))
+	check(snd_data is Dictionary and snd_data.get("sfx_typewriter") == true and snd_data.get("sfx_buttons") == true,
+		"both sound toggles persist in settings.json")
+
+	# Different choices play different sounds; #sfx= tags pick the clip.
+	var saved_responses: Array = balloon.dialogue_line.responses
+	var r1: DialogueResponse = DialogueResponse.new()
+	var r2: DialogueResponse = DialogueResponse.new()
+	var r3: DialogueResponse = DialogueResponse.new()
+	r3.tags = ["sfx=error"]
+	var crafted: Array[DialogueResponse] = [r1, r2, r3]
+	balloon.dialogue_line.responses = crafted
+	balloon._on_response_selected_sfx(r1)
+	var pitch1: float = ad.last_sfx_pitch
+	var key1: String = ad.last_sfx
+	balloon._on_response_selected_sfx(r2)
+	var pitch2: float = ad.last_sfx_pitch
+	check(key1 == "confirm" and ad.last_sfx == "confirm" and pitch1 != pitch2,
+		"different choices play the choice sound at different pitches")
+	check(is_equal_approx(pitch1, 1.0) and pitch2 > pitch1, "choice pitches ascend with the option index")
+	balloon._on_response_selected_sfx(r3)
+	check(ad.last_sfx == "error" and is_equal_approx(ad.last_sfx_pitch, 1.0),
+		"a #sfx= tag on a response overrides the choice sound")
+	balloon.dialogue_line.responses = saved_responses
+
+	# Clicking empty space dismisses any menu; the save menu also has an X.
+	var click: InputEventMouseButton = InputEventMouseButton.new()
+	click.pressed = true
+	click.button_index = MOUSE_BUTTON_LEFT
+	balloon.open_save_menu("load")
+	check(alive() and balloon.save_menu_panel.visible, "the load menu opens")
+	balloon.save_menu_panel.gui_input.emit(click)
+	check(alive() and not balloon.save_menu_panel.visible, "an empty click closes the load menu")
+	balloon.open_save_menu("save")
+	check(alive() and balloon.save_menu_panel.visible, "the save menu opens")
+	balloon.save_close_button.pressed.emit()
+	check(alive() and not balloon.save_menu_panel.visible, "the save menu close button closes it")
+	balloon.open_history()
+	check(alive() and balloon.history_panel.visible, "the history panel opens")
+	balloon.history_panel.gui_input.emit(click)
+	check(alive() and not balloon.history_panel.visible, "an empty click closes the history")
+	balloon._on_settings_pressed()
+	check(alive() and balloon.settings_panel.visible, "the settings panel opens")
+	balloon.settings_panel.gui_input.emit(click)
+	check(alive() and not balloon.settings_panel.visible and not balloon.settings_close_button.visible,
+		"an empty click closes the settings")
+	balloon.open_pause()
+	check(alive() and balloon.pause_panel.visible, "the pause menu opens")
+	balloon.pause_panel.gui_input.emit(click)
+	check(alive() and not balloon.pause_panel.visible, "an empty click closes the pause menu")
+	# Clicks on real controls (right button) do not dismiss.
+	balloon.open_save_menu("load")
+	var rclick: InputEventMouseButton = InputEventMouseButton.new()
+	rclick.pressed = true
+	rclick.button_index = MOUSE_BUTTON_RIGHT
+	balloon.save_menu_panel.gui_input.emit(rclick)
+	check(alive() and balloon.save_menu_panel.visible, "non-left clicks do not dismiss a menu")
+	balloon._close_overlay(balloon.save_menu_panel)
 
 	finish()
 

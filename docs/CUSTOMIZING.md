@@ -22,6 +22,8 @@ Rook: Line text [#sprite=rook:right, #focus=right, #voice=r1]
 - `#music=key` — switch the music: `calm` / `warm` / `tense` / `night` (procedural themes),
   `loop:day` / `loop:night` (a bundled OGG loop from `assets/music/`), or `stop`.
 - `#sfx=key` — play `assets/sfx/<key>.ogg`; keys without a file play a synthesized blip.
+- `- Answer text #sfx=key` — responses may tag their own pick sound (default: the
+  `confirm` chime at a per-option pitch).
 - BBCode inside the text (`[b] [i] [color=...]`, …) is rendered by the typewriter label.
 - `do foo = 1` mutations and `if foo:` conditions run against the `GameState` autoload;
   `~ cue` / `=> cue` jump between sections. Add your own variables to

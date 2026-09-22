@@ -110,6 +110,7 @@ class_name VNBalloon extends CanvasLayer
 @onready var slot_list: VBoxContainer = %SlotList
 @onready var slot_template: Button = %SlotButton
 @onready var new_slot_button: Button = %NewSlotButton
+@onready var save_close_button: Button = %SaveCloseButton
 
 ## Settings
 @onready var settings_panel: PanelContainer = %SettingsPanel
@@ -159,6 +160,8 @@ class_name VNBalloon extends CanvasLayer
 @onready var sfx_vol_slider: HSlider = %SfxVolSlider
 @onready var sfx_vol_value: Label = %SfxVolValue
 @onready var procedural_music_check: CheckBox = %ProceduralMusicCheck
+@onready var typewriter_sfx_check: CheckBox = %TypewriterSfxCheck
+@onready var button_sfx_check: CheckBox = %ButtonSfxCheck
 
 ## Pause + panic
 @onready var pause_panel: PanelContainer = %PausePanel
@@ -225,6 +228,13 @@ var sync_voice: bool = false
 ## Whether music is generated at runtime (Settings "Generated music"); off
 ## falls back to the mood-matched OGG loops in assets/music.
 var procedural_music: bool = true
+## Whether the typewriter ticks per typed character (Settings "Typewriter sound").
+var typewriter_sfx: bool = true
+## Whether UI buttons/overlays/choices play feedback (Settings "Button sound").
+var button_sfx: bool = true
+
+## Distinct pitch per selected choice (wrap-around), so options sound different.
+const CHOICE_PITCHES: Array[float] = [1.0, 1.12, 1.26, 1.33, 1.5]
 var portrait_mode: bool = false
 var force_portrait: bool = false
 var rotation_deg: int = 0
@@ -1181,6 +1191,12 @@ func _load_settings() -> void:
 	if data.has("procedural_music"):
 		procedural_music = bool(data.procedural_music)
 		procedural_music_check.button_pressed = procedural_music
+	if data.has("sfx_typewriter"):
+		typewriter_sfx = bool(data.sfx_typewriter)
+		typewriter_sfx_check.button_pressed = typewriter_sfx
+	if data.has("sfx_buttons"):
+		button_sfx = bool(data.sfx_buttons)
+		button_sfx_check.button_pressed = button_sfx
 
 
 func _save_settings() -> void:
@@ -1210,6 +1226,8 @@ func _save_settings() -> void:
 		"vol_voice": voice_vol_slider.value,
 		"vol_sfx": sfx_vol_slider.value,
 		"procedural_music": procedural_music_check.button_pressed,
+		"sfx_typewriter": typewriter_sfx_check.button_pressed,
+		"sfx_buttons": button_sfx_check.button_pressed,
 	}))
 	file.close()
 
@@ -1405,7 +1423,9 @@ const UI_TEXT_KEYS: Array = [
 	["AudioHeader", "Audio"], ["MasterVolRowLabel", "Master volume"],
 	["MusicVolRowLabel", "Music volume"], ["VoiceVolRowLabel", "Voice volume"],
 	["SfxVolRowLabel", "SFX volume"], ["ProceduralMusicRowLabel", "Generated music"],
-	["ProceduralMusicCheck", "on"], ["SpritesHeader", "Sprites"],
+	["ProceduralMusicCheck", "on"], ["TypewriterSfxRowLabel", "Typewriter sound"],
+	["TypewriterSfxCheck", "on"], ["ButtonSfxRowLabel", "Button sound"],
+	["ButtonSfxCheck", "on"], ["SpritesHeader", "Sprites"],
 	["SpriteScaleRowLabel", "Sprite scale"], ["SpriteYRowLabel", "Sprite Y offset"],
 	["SettingsHint", "Settings are saved automatically. Use Close or X to exit."],
 	["PauseTitle", "Paused"], ["ResumeButton", "Resume"], ["PauseHistoryButton", "History"],
@@ -1624,15 +1644,18 @@ func _on_procedural_music_toggled(on: bool) -> void:
 #region Audio director (music + SFX)
 
 
-## Play an SFX through the AudioDirector (no-op without the autoload).
-func _sfx(key: String) -> void:
-	if audio != null:
-		audio.play_sfx(key)
+## Play UI feedback through the AudioDirector (gated by "Button sound";
+## story `#sfx=` tags call the director directly and ignore the toggle).
+func _sfx(key: String, pitch: float = 1.0) -> void:
+	if button_sfx and audio != null:
+		audio.play_sfx(key, pitch)
 
 
 ## Typewriter blips: one request per typed character; the director throttles
 ## density and pitch, and skip mode types too fast to sound good.
 func _on_label_spoke(letter: String, _letter_index: int, _speed: float) -> void:
+	if not typewriter_sfx:
+		return
 	if skip_mode or _seeking_choice:
 		return
 	if audio != null:
@@ -1644,7 +1667,7 @@ func _connect_ui_sfx() -> void:
 	for btn: Button in [qs_button, ql_button, save_button, load_button, auto_button,
 			skip_button, log_button, settings_button, panic_button, pause_button,
 			prev_choice_button, next_choice_button, settings_close_button,
-			panic_close_button, resume_button, new_slot_button]:
+			panic_close_button, resume_button, new_slot_button, save_close_button]:
 		btn.pressed.connect(_on_ui_button_sfx)
 	responses_menu.response_selected.connect(_on_response_selected_sfx)
 
@@ -1653,8 +1676,41 @@ func _on_ui_button_sfx() -> void:
 	_sfx("click")
 
 
-func _on_response_selected_sfx(_response: DialogueResponse) -> void:
-	_sfx("confirm")
+func _on_response_selected_sfx(response: DialogueResponse) -> void:
+	# Each option plays its own pitch; a #sfx= tag on the response picks the clip.
+	var key: String = "confirm"
+	var pitch: float = CHOICE_PITCHES[0]
+	if is_instance_valid(dialogue_line):
+		pitch = CHOICE_PITCHES[maxi(0, dialogue_line.responses.find(response)) % CHOICE_PITCHES.size()]
+	for tag: String in response.tags:
+		if tag.begins_with("sfx="):
+			key = tag.substr(4)
+			pitch = 1.0
+	_sfx(key, pitch)
+
+
+## Clicking the empty area around a menu's content dismisses it (containers and
+## labels pass the click up to the full-rect panel). Touch taps included via
+## mouse emulation. The panic screen deliberately has no empty-click close.
+func _on_menu_panel_empty_click(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mb: InputEventMouseButton = event
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+			_close_top_overlay()
+
+
+func _on_save_close_pressed() -> void:
+	_close_overlay(save_menu_panel)
+
+
+func _on_typewriter_sfx_toggled(on: bool) -> void:
+	typewriter_sfx = on
+	_save_settings()
+
+
+func _on_button_sfx_toggled(on: bool) -> void:
+	button_sfx = on
+	_save_settings()
 
 
 #endregion

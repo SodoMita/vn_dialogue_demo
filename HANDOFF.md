@@ -36,6 +36,25 @@ player in the project"). Working tree contents of the branch:
 Every generated audio file is **under 20 KB** (enforced by the test suite); the largest is
 `assets/music/day.ogg` at 12 853 bytes.
 
+Follow-up iteration on the same branch adds the UI-sound layer:
+
+- **Sound toggles** — Settings/ Audio gains **Typewriter sound** and **Button sound**
+  checkboxes (default on, persisted as `sfx_typewriter` / `sfx_buttons`). Typewriter gates
+  the per-character ticks; Button gates all UI feedback (clicks, overlay open/close,
+  save/error, choice picks). Story `#sfx=` tags bypass the toggle on purpose.
+- **Per-choice sounds** — each response plays the `confirm` chime at its own pitch
+  (`CHOICE_PITCHES`, ascending per option index, wrap-around); a response may tag
+  `#sfx=<key>` to pick its own clip (`DialogueResponse.tags`).
+- **Dismiss-on-empty** — the four full-rect menu panels (history, save/load, settings,
+  pause) connect `gui_input`; container/label defaults (PASS / IGNORE) already bubble
+  empty-area clicks up to the panel, so left-click/tap outside the content closes the
+  top overlay. The panic screen is intentionally excluded.
+- **Save/Load close button** — the save menu title becomes `SaveMenuTitleRow` with an
+  authored `SaveCloseButton` (`X`), same pattern as `SettingsCloseButton`.
+
+`tests/test_vn_ui.gd` covers all of it (24 new checks; suite at **320 passed** with the
+same 9 pre-existing held-skip failures as `main`).
+
 ## Audio details
 
 - Music plays on the **Music** bus, SFX on **SFX**, voices on **Voice** (all → Master).
@@ -63,7 +82,9 @@ are cosmetic: the process exit code and all assertions are unaffected.
 - `assets/music/*.ogg`, `assets/sfx/*.ogg` — tiny generated loops and SFX (new).
 - `scenes/vn_balloon.gd` — tag handling, typing ticks, UI/overlay/save SFX hooks,
   settings toggle.
-- `scenes/vn_balloon.tscn` — authored `ProceduralMusicRow` settings row + connection.
+- `scenes/vn_balloon.tscn` — authored settings rows (`ProceduralMusicRow`,
+  `TypewriterSfxRow`, `ButtonSfxRow`), `SaveMenuTitleRow` + `SaveCloseButton`, and the
+  `gui_input` dismiss connections on the four menu panels.
 - `dialogue/intro.dialogue` — `#music=` / `#sfx=` tags.
 - `tests/test_vn_ui.gd` — audio region of checks (sizes, scheduler, tags, fallbacks,
   settings persistence, pause ducking).
