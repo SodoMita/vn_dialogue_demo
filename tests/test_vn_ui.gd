@@ -1153,9 +1153,11 @@ func run() -> void:
 	check(ad.sfx_played == hold_sfx0 + 1 and ad.last_sfx == "hold", "the hold gesture is announced with sound")
 	check(ad._hold_player.playing, "the hold tone plays continuously while charging")
 	var tone_p0: float = ad._hold_player.pitch_scale
+	var tone_v0: float = ad._hold_player.volume_db
 	await get_tree().process_frame
 	await get_tree().process_frame
-	check(ad._hold_player.pitch_scale > tone_p0, "the hold tone rises with progress")
+	check(ad._hold_player.pitch_scale < tone_p0, "the hold tone falls from high to low pitch")
+	check(ad._hold_player.volume_db > tone_v0, "the hold tone swells loudest toward the end")
 	check(alive() and balloon.hold_indicator.progress > 0.0, "the indicator fills toward the close")
 	await wait_until(func() -> bool: return not balloon._hold_active or balloon._hold_elapsed >= balloon.HOLD_SECONDS, 300)
 	balloon._input(release)

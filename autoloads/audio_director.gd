@@ -99,7 +99,7 @@ var _auto_loop: bool = false   ## true when the loop was a procedural fallback
 
 var _sfx_pool: Array[AudioStreamPlayer] = []
 var _hold_player: AudioStreamPlayer
-var hold_pitch: float = 0.75          ## live pitch of the hold tone
+var hold_pitch: float = 1.4            ## hold tone pitch (falls as it fills)
 var _synth_cache: Dictionary = {}   ## synth blips, on first use
 var _last_tick_ms: int = -1000
 var _tick_parity: int = 0
@@ -303,7 +303,7 @@ func typing_tick(letter: String) -> void:
 	_play_stream(_synth_stream("tick%d" % bucket), 0.55 + _rng.randf_range(-0.05, 0.05))
 
 
-## Rising tone for a hold gesture; hold_progress() re-pitches it.
+## Falling, swelling tone for a hold gesture.
 func hold_start() -> void:
 	sfx_played += 1
 	last_sfx = "hold"
@@ -315,9 +315,11 @@ func hold_start() -> void:
 
 
 func hold_progress(p: float) -> void:
-	hold_pitch = 0.75 + 0.65 * clampf(p, 0.0, 1.0)
+	var f: float = clampf(p, 0.0, 1.0)
+	hold_pitch = 1.4 - 0.65 * f
 	last_sfx_pitch = hold_pitch
 	_hold_player.pitch_scale = hold_pitch
+	_hold_player.volume_db = -18.0 * (1.0 - f)
 
 
 func hold_stop() -> void:
@@ -425,7 +427,7 @@ func _copy_voice(from_i: int, to_i: int) -> void:
 			a[from_i] = a[to_i]
 
 
-## Keep arrays == live count.
+
 func _trim_voices() -> void:
 	for a: PackedFloat64Array in _voice_arrays():
 		a.resize(_voice_count)
@@ -634,7 +636,7 @@ func _to_wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 
 
 
-## Idempotent with the balloon's setup.
+## Idempotent bus setup.
 func _ensure_audio_buses() -> void:
 	for bus_name: String in ["Music", "Voice", "SFX"]:
 		if AudioServer.get_bus_index(bus_name) == -1:

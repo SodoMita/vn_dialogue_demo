@@ -48,10 +48,12 @@ Follow-up iteration on the same branch adds the UI-sound layer:
 - **Hold-to-close** — the four full-rect menu panels (history, save/load, settings,
   pause) connect `gui_input`; container/label defaults (PASS / IGNORE) bubble empty-area
   presses up to the panel. Dismissal is a **press-and-hold** (0.55 s): an authored
-  `HoldIndicator` ring (`scenes/hold_indicator.gd`) fills at the press point after a
-  0.12 s grace and a continuous synthesized tone rises in pitch with the hold progress
-  (0.75 → 1.4 as the ring fills; `hold_start/hold_progress/hold_stop` in AudioDirector),
-  so the sound itself indicates hold progress; release closes the top overlay.
+  `HoldIndicator` golden ring (`scenes/hold_indicator.gd`, 4x size — RADIUS 104,
+  solid gold stroke) fills at the press point after a 0.12 s grace and a continuous
+  synthesized tone falls from high to low pitch and swells loudest at the end
+  (pitch 1.4 → 0.75, gain −18 → 0 dB; `hold_start/hold_progress/hold_stop` in
+  AudioDirector), so the sound itself indicates hold progress; release closes the top
+  overlay.
   Quick taps are ignored (accidental-tap protection) and any move/swipe > 10 px cancels
   the hold (tracked in `_input` so GUI-consumed drag events still cancel) — touch
   scrolling is unaffected. The panic screen is intentionally excluded.
@@ -63,9 +65,9 @@ Follow-up iteration on the same branch adds the UI-sound layer:
 - **Save/Load close button** — the save menu title becomes `SaveMenuTitleRow` with an
   authored `SaveCloseButton` (`X`), same pattern as `SettingsCloseButton`.
 
-`tests/test_vn_ui.gd` covers all of it (suite at **335 passed** with the same 9
+`tests/test_vn_ui.gd` covers all of it (suite at **336 passed** with the same 9
 pre-existing held-skip failures as `main`): hold-to-close on the load/settings/pause
-menus, quick-tap guard, indicator + rising hold tone (continuity, progress pitch, stop),
+menus, quick-tap guard, indicator + falling hold tone (continuity, pitch fall, gain swell, stop),
 swipe-cancel, non-left guard, the save menu `X`, PASS row filters, scroll deadzones,
 the drag-gesture no-activate guard and interactive-press discrimination.
 
@@ -78,7 +80,7 @@ the drag-gesture no-activate guard and interactive-press discrimination.
 
 ## Verification
 
-`bash run_tests.sh` on this branch: **335 passed, 9 failed**. The 9 failures are the same
+`bash run_tests.sh` on this branch: **336 passed, 9 failed**. The 9 failures are the same
 pre-existing failures of `main` @ `07d8378` (baseline before this work: 268 passed, same 9
 failed) — all around the held-skip-mode behavior changes of recent mainline commits
 (`07d8378`, `87d33aa`, `ad2a181`, …): skip toggling, skip-to-choices, seen-only skip,
