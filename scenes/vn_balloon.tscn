@@ -1,16 +1,16 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene format=3 uid="uid://c6guv3kddb6dq"]
 
-[ext_resource type="Script" path="res://scenes/vn_balloon.gd" id="1_balloon"]
+[ext_resource type="Script" uid="uid://5mh2o8ti16ul" path="res://scenes/vn_balloon.gd" id="1_balloon"]
 [ext_resource type="PackedScene" uid="uid://ckvgyvclnwggo" path="res://addons/dialogue_manager/nodes/dialogue_label/dialogue_label.tscn" id="2_dlabel"]
 [ext_resource type="Script" uid="uid://bb52rsfwhkxbn" path="res://addons/dialogue_manager/nodes/responses_menu/dialogue_responses_menu.gd" id="3_menu"]
-[ext_resource type="FontFile" path="res://assets/fonts/DejaVuSerif.ttf" id="4_serif"]
-[ext_resource type="FontFile" path="res://assets/fonts/DejaVuSerif-Bold.ttf" id="5_serifbold"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/classroom.webp" id="6_bg_classroom"]
-[ext_resource type="Texture2D" path="res://assets/backgrounds/rooftop.webp" id="7_bg_rooftop"]
-[ext_resource type="Texture2D" path="res://assets/characters/maya.webp" id="8_maya"]
-[ext_resource type="Texture2D" path="res://assets/characters/maya_smile.webp" id="9_maya_smile"]
-[ext_resource type="Texture2D" path="res://assets/characters/rook.webp" id="10_rook"]
-[ext_resource type="Script" path="res://scenes/hold_indicator.gd" id="11_hold"]
+[ext_resource type="FontFile" uid="uid://ctxcxi25fm0pu" path="res://assets/fonts/DejaVuSerif.ttf" id="4_serif"]
+[ext_resource type="FontFile" uid="uid://ex3s7gibjgfb" path="res://assets/fonts/DejaVuSerif-Bold.ttf" id="5_serifbold"]
+[ext_resource type="Texture2D" uid="uid://qrw11h5hwivq" path="res://assets/backgrounds/classroom.webp" id="6_bg_classroom"]
+[ext_resource type="Texture2D" uid="uid://bay0i5ox3x8mc" path="res://assets/backgrounds/rooftop.webp" id="7_bg_rooftop"]
+[ext_resource type="Texture2D" uid="uid://bl7h8n6yvywhl" path="res://assets/characters/maya.webp" id="8_maya"]
+[ext_resource type="Texture2D" uid="uid://brfqr6wi2ryrl" path="res://assets/characters/maya_smile.webp" id="9_maya_smile"]
+[ext_resource type="Texture2D" uid="uid://y2c8c23cqlm6" path="res://assets/characters/rook.webp" id="10_rook"]
+[ext_resource type="Script" uid="uid://dvxki2gr62k4a" path="res://scenes/hold_indicator.gd" id="11_hold"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
 bg_color = Color(0.045, 0.06, 0.12, 0.94)
@@ -35,108 +35,6 @@ corner_radius_top_left = 10
 corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_normal"]
-content_margin_left = 18.0
-content_margin_top = 8.0
-content_margin_right = 18.0
-content_margin_bottom = 8.0
-bg_color = Color(0.05, 0.07, 0.14, 0.88)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.45, 0.47, 0.55, 0.9)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_hot"]
-content_margin_left = 18.0
-content_margin_top = 8.0
-content_margin_right = 18.0
-content_margin_bottom = 8.0
-bg_color = Color(0.1, 0.14, 0.26, 0.95)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.83, 0.68, 0.36, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_disabled"]
-content_margin_left = 18.0
-content_margin_top = 8.0
-content_margin_right = 18.0
-content_margin_bottom = 8.0
-bg_color = Color(0.05, 0.06, 0.1, 0.6)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.3, 0.3, 0.35, 0.5)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_history"]
-bg_color = Color(0.03, 0.04, 0.09, 0.96)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.83, 0.68, 0.36, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hist_normal"]
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 14.0
-content_margin_bottom = 8.0
-bg_color = Color(0.06, 0.08, 0.15, 0.55)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.2, 0.22, 0.3, 0.6)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hist_hot"]
-content_margin_left = 14.0
-content_margin_top = 8.0
-content_margin_right = 14.0
-content_margin_bottom = 8.0
-bg_color = Color(0.12, 0.16, 0.28, 0.9)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.83, 0.68, 0.36, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="Theme" id="Theme_vn"]
-default_font = ExtResource("4_serif")
-default_font_size = 20
-Button/colors/font_color = Color(0.95, 0.94, 0.9, 1)
-Button/colors/font_disabled_color = Color(0.5, 0.5, 0.55, 1)
-Button/colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-Button/colors/font_hover_color = Color(1, 0.9, 0.6, 1)
-Button/colors/font_pressed_color = Color(1, 0.9, 0.6, 1)
-Button/styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
-Button/styles/focus = SubResource("StyleBoxFlat_btn_hot")
-Button/styles/hover = SubResource("StyleBoxFlat_btn_hot")
-Button/styles/normal = SubResource("StyleBoxFlat_btn_normal")
-Button/styles/pressed = SubResource("StyleBoxFlat_btn_hot")
 
 [sub_resource type="Animation" id="Animation_reset"]
 length = 0.001
@@ -177,13 +75,122 @@ _data = {
 &"bob": SubResource("Animation_bob")
 }
 
-[node name="VNBalloon" type="CanvasLayer"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hist_normal"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+bg_color = Color(0.06, 0.08, 0.15, 0.55)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.22, 0.3, 0.6)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hist_hot"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+bg_color = Color(0.12, 0.16, 0.28, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.83, 0.68, 0.36, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_disabled"]
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
+bg_color = Color(0.05, 0.06, 0.1, 0.6)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.3, 0.35, 0.5)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_hot"]
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
+bg_color = Color(0.1, 0.14, 0.26, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.83, 0.68, 0.36, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_normal"]
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
+bg_color = Color(0.05, 0.07, 0.14, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.45, 0.47, 0.55, 0.9)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="Theme" id="Theme_vn"]
+default_font = ExtResource("4_serif")
+default_font_size = 20
+Button/colors/font_color = Color(0.95, 0.94, 0.9, 1)
+Button/colors/font_disabled_color = Color(0.5, 0.5, 0.55, 1)
+Button/colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+Button/colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+Button/colors/font_pressed_color = Color(1, 0.9, 0.6, 1)
+Button/styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+Button/styles/focus = SubResource("StyleBoxFlat_btn_hot")
+Button/styles/hover = SubResource("StyleBoxFlat_btn_hot")
+Button/styles/normal = SubResource("StyleBoxFlat_btn_normal")
+Button/styles/pressed = SubResource("StyleBoxFlat_btn_hot")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_history"]
+bg_color = Color(0.03, 0.04, 0.09, 0.96)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.83, 0.68, 0.36, 1)
+
+[node name="VNBalloon" type="CanvasLayer" unique_id=309007023]
 layer = 100
 script = ExtResource("1_balloon")
-backgrounds = {&"classroom": ExtResource("6_bg_classroom"), &"rooftop": ExtResource("7_bg_rooftop")}
-sprites = {&"maya": ExtResource("8_maya"), &"maya_smile": ExtResource("9_maya_smile"), &"rook": ExtResource("10_rook")}
+backgrounds = Dictionary[String, Texture2D]({
+"classroom": ExtResource("6_bg_classroom"),
+"rooftop": ExtResource("7_bg_rooftop")
+})
+sprites = Dictionary[String, Texture2D]({
+"maya": ExtResource("8_maya"),
+"maya_smile": ExtResource("9_maya_smile"),
+"rook": ExtResource("10_rook")
+})
 
-[node name="Balloon" type="Control" parent="."]
+[node name="Balloon" type="Control" parent="." unique_id=1419289364]
 unique_name_in_owner = true
 layout_mode = 3
 anchors_preset = 15
@@ -192,7 +199,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Stage" type="Control" parent="Balloon"]
+[node name="Stage" type="Control" parent="Balloon" unique_id=722616793]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -201,7 +208,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Background" type="TextureRect" parent="Balloon/Stage"]
+[node name="Background" type="TextureRect" parent="Balloon/Stage" unique_id=1591828615]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -213,7 +220,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6
 
-[node name="SpriteLeft" type="TextureRect" parent="Balloon/Stage"]
+[node name="SpriteLeft" type="TextureRect" parent="Balloon/Stage" unique_id=446653131]
 unique_name_in_owner = true
 modulate = Color(1, 1, 1, 0)
 layout_mode = 1
@@ -228,7 +235,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="SpriteRight" type="TextureRect" parent="Balloon/Stage"]
+[node name="SpriteRight" type="TextureRect" parent="Balloon/Stage" unique_id=1024786025]
 unique_name_in_owner = true
 modulate = Color(1, 1, 1, 0)
 layout_mode = 1
@@ -246,7 +253,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="UIRoot" type="Control" parent="Balloon"]
+[node name="UIRoot" type="Control" parent="Balloon" unique_id=1456907977]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -256,7 +263,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="BottomUI" type="Control" parent="Balloon/UIRoot"]
+[node name="BottomUI" type="Control" parent="Balloon/UIRoot" unique_id=548241112]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 12
@@ -268,7 +275,7 @@ grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
 
-[node name="DialogueBox" type="PanelContainer" parent="Balloon/UIRoot/BottomUI"]
+[node name="DialogueBox" type="PanelContainer" parent="Balloon/UIRoot/BottomUI" unique_id=601800935]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -279,7 +286,7 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_box")
 
-[node name="BoxMargin" type="MarginContainer" parent="Balloon/UIRoot/BottomUI/DialogueBox"]
+[node name="BoxMargin" type="MarginContainer" parent="Balloon/UIRoot/BottomUI/DialogueBox" unique_id=1087701956]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/margin_left = 26
@@ -287,21 +294,19 @@ theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 26
 theme_override_constants/margin_bottom = 18
 
-[node name="VBox" type="VBoxContainer" parent="Balloon/UIRoot/BottomUI/DialogueBox/BoxMargin"]
+[node name="VBox" type="VBoxContainer" parent="Balloon/UIRoot/BottomUI/DialogueBox/BoxMargin" unique_id=942508860]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 4
 
-[node name="DialogueLabel" parent="Balloon/UIRoot/BottomUI/DialogueBox/BoxMargin/VBox" instance=ExtResource("2_dlabel")]
+[node name="DialogueLabel" parent="Balloon/UIRoot/BottomUI/DialogueBox/BoxMargin/VBox" unique_id=1025491264 instance=ExtResource("2_dlabel")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-bbcode_enabled = true
 theme_override_colors/default_color = Color(0.96, 0.95, 0.9, 1)
-theme_override_font_sizes/font_size = 21
 text = "..."
 
-[node name="NamePlate" type="PanelContainer" parent="Balloon/UIRoot/BottomUI"]
+[node name="NamePlate" type="PanelContainer" parent="Balloon/UIRoot/BottomUI" unique_id=155575693]
 unique_name_in_owner = true
 layout_mode = 1
 offset_left = 30.0
@@ -311,7 +316,7 @@ offset_bottom = 6.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_name")
 
-[node name="NameMargin" type="MarginContainer" parent="Balloon/UIRoot/BottomUI/NamePlate"]
+[node name="NameMargin" type="MarginContainer" parent="Balloon/UIRoot/BottomUI/NamePlate" unique_id=1828261824]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/margin_left = 16
@@ -319,25 +324,21 @@ theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 16
 theme_override_constants/margin_bottom = 5
 
-[node name="CharacterLabel" type="RichTextLabel" parent="Balloon/UIRoot/BottomUI/NamePlate/NameMargin"]
+[node name="CharacterLabel" type="RichTextLabel" parent="Balloon/UIRoot/BottomUI/NamePlate/NameMargin" unique_id=1538973864]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
+theme_override_colors/default_color = Color(0.93, 0.78, 0.42, 1)
 bbcode_enabled = true
 text = "Character"
 fit_content = true
 scroll_active = false
-theme_override_colors/default_color = Color(0.93, 0.78, 0.42, 1)
-theme_override_fonts/font = ExtResource("5_serifbold")
-theme_override_font_sizes/font_size = 19
 
-[node name="IndicatorHolder" type="Control" parent="Balloon/UIRoot/BottomUI"]
+[node name="IndicatorHolder" type="Control" parent="Balloon/UIRoot/BottomUI" unique_id=961552179]
 layout_mode = 1
-anchors_preset = 3
+anchors_preset = 1
 anchor_left = 1.0
-anchor_top = 0.0
 anchor_right = 1.0
-anchor_bottom = 0.0
 offset_left = -58.0
 offset_top = -38.0
 offset_right = -18.0
@@ -346,16 +347,16 @@ grow_horizontal = 0
 grow_vertical = 0
 mouse_filter = 2
 
-[node name="NextIndicator" type="Polygon2D" parent="Balloon/UIRoot/BottomUI/IndicatorHolder"]
+[node name="NextIndicator" type="Polygon2D" parent="Balloon/UIRoot/BottomUI/IndicatorHolder" unique_id=1415914473]
 unique_name_in_owner = true
-polygon = PackedVector2Array(0, 0, 40, 0, 20, 14)
 color = Color(0.93, 0.78, 0.42, 1)
+polygon = PackedVector2Array(0, 0, 40, 0, 20, 14)
 
-[node name="IndicatorTween" type="AnimationPlayer" parent="Balloon/UIRoot/BottomUI/IndicatorHolder"]
+[node name="IndicatorTween" type="AnimationPlayer" parent="Balloon/UIRoot/BottomUI/IndicatorHolder" unique_id=997917757]
 libraries/ = SubResource("AnimationLibrary_bob")
 autoplay = &"bob"
 
-[node name="SystemRow" type="GridContainer" parent="Balloon/UIRoot/BottomUI"]
+[node name="SystemRow" type="GridContainer" parent="Balloon/UIRoot/BottomUI" unique_id=1995304962]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 12
@@ -366,10 +367,10 @@ offset_left = 14.0
 offset_top = -54.0
 offset_right = -14.0
 offset_bottom = -10.0
+grow_horizontal = 2
 grow_vertical = 0
-theme_override_constants/separation = 6
 
-[node name="QSButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+[node name="QSButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow" unique_id=1021612450]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(44, 44)
 layout_mode = 2
@@ -379,12 +380,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "QS"
 
-[node name="QLButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+[node name="QLButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow" unique_id=1594483682]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(44, 44)
 layout_mode = 2
@@ -394,12 +395,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "QL"
 
-[node name="SaveButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+[node name="SaveButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow" unique_id=562194273]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(62, 44)
 layout_mode = 2
@@ -409,12 +410,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Save"
 
-[node name="LoadButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+[node name="LoadButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow" unique_id=2002455767]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(62, 44)
 layout_mode = 2
@@ -424,12 +425,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Load"
 
-[node name="AutoButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+[node name="AutoButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow" unique_id=1605303054]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(62, 44)
 layout_mode = 2
@@ -439,12 +440,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Auto"
 
-[node name="SkipButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+[node name="SkipButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow" unique_id=1946669672]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(62, 44)
 layout_mode = 2
@@ -454,12 +455,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Skip"
 
-[node name="PrevChoiceButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+[node name="PrevChoiceButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow" unique_id=1104557728]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(84, 44)
 layout_mode = 2
@@ -469,12 +470,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "< Choice"
 
-[node name="NextChoiceButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+[node name="NextChoiceButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow" unique_id=1141050072]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(84, 44)
 layout_mode = 2
@@ -484,12 +485,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Choice >"
 
-[node name="LogButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+[node name="LogButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow" unique_id=535022381]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(56, 44)
 layout_mode = 2
@@ -499,12 +500,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Log"
 
-[node name="SettingsButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+[node name="SettingsButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow" unique_id=406317563]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(56, 44)
 layout_mode = 2
@@ -514,12 +515,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Set"
 
-[node name="PanicButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+[node name="PanicButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow" unique_id=1658958581]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(62, 44)
 layout_mode = 2
@@ -529,12 +530,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Panic"
 
-[node name="PauseButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+[node name="PauseButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow" unique_id=901028320]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(62, 44)
 layout_mode = 2
@@ -544,19 +545,15 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Pause"
 
-[node name="MutationCooldown" type="Timer" parent="."]
-unique_name_in_owner = true
-wait_time = 0.1
-one_shot = true
-
-[node name="ResponsesCenter" type="CenterContainer" parent="Balloon/UIRoot/BottomUI"]
+[node name="ResponsesCenter" type="CenterContainer" parent="Balloon/UIRoot/BottomUI" unique_id=1165762510]
 unique_name_in_owner = true
 layout_mode = 1
+anchors_preset = 10
 anchor_right = 1.0
 offset_top = -560.0
 offset_bottom = -4.0
@@ -564,25 +561,25 @@ grow_horizontal = 2
 mouse_filter = 2
 theme = SubResource("Theme_vn")
 
-[node name="ResponsesMenu" type="VBoxContainer" parent="Balloon/UIRoot/BottomUI/ResponsesCenter" node_paths=PackedStringArray("response_template")]
+[node name="ResponsesMenu" type="VBoxContainer" parent="Balloon/UIRoot/BottomUI/ResponsesCenter" unique_id=2052810196 node_paths=PackedStringArray("response_template")]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 8
 theme_override_constants/separation = 12
 alignment = 1
 script = ExtResource("3_menu")
-hide_failed_responses = true
 response_template = NodePath("ResponseButton")
+hide_failed_responses = true
 
-[node name="ResponseButton" type="Button" parent="Balloon/UIRoot/BottomUI/ResponsesCenter/ResponsesMenu"]
+[node name="ResponseButton" type="Button" parent="Balloon/UIRoot/BottomUI/ResponsesCenter/ResponsesMenu" unique_id=1865432032]
 custom_minimum_size = Vector2(460, 44)
 layout_mode = 2
 text = "Choice"
 
-[node name="SaveMenuPanel" type="PanelContainer" parent="Balloon/UIRoot"]
+[node name="SaveMenuPanel" type="PanelContainer" parent="Balloon/UIRoot" unique_id=1001757113]
 unique_name_in_owner = true
-z_index = 10
 visible = false
+z_index = 10
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -591,22 +588,22 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_history")
 
-[node name="SaveMenuMargin" type="MarginContainer" parent="Balloon/UIRoot/SaveMenuPanel"]
+[node name="SaveMenuMargin" type="MarginContainer" parent="Balloon/UIRoot/SaveMenuPanel" unique_id=1290037646]
 layout_mode = 2
 theme_override_constants/margin_left = 340
 theme_override_constants/margin_top = 60
 theme_override_constants/margin_right = 340
 theme_override_constants/margin_bottom = 70
 
-[node name="SaveMenuVBox" type="VBoxContainer" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin"]
+[node name="SaveMenuVBox" type="VBoxContainer" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin" unique_id=1775177500]
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="SaveMenuTitleRow" type="BoxContainer" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox"]
+[node name="SaveMenuTitleRow" type="BoxContainer" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox" unique_id=65284368]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="SaveMenuTitle" type="Label" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SaveMenuTitleRow"]
+[node name="SaveMenuTitle" type="Label" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SaveMenuTitleRow" unique_id=1464038350]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -614,14 +611,15 @@ theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
 theme_override_fonts/font = ExtResource("5_serifbold")
 theme_override_font_sizes/font_size = 26
 text = "Save"
-[node name="SaveCloseButton" type="Button" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SaveMenuTitleRow"]
+
+[node name="SaveCloseButton" type="Button" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SaveMenuTitleRow" unique_id=1365630108]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(44, 40)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "X"
 
-[node name="NewSlotButton" type="Button" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox"]
+[node name="NewSlotButton" type="Button" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox" unique_id=644364752]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
@@ -631,45 +629,45 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "+ New slot"
 
-[node name="SlotScroll" type="ScrollContainer" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox"]
-scroll_deadzone = 24
+[node name="SlotScroll" type="ScrollContainer" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox" unique_id=2085541489]
 layout_mode = 2
 size_flags_vertical = 3
 follow_focus = true
 horizontal_scroll_mode = 0
+scroll_deadzone = 24
 
-[node name="SlotList" type="VBoxContainer" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SlotScroll"]
+[node name="SlotList" type="VBoxContainer" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SlotScroll" unique_id=1144344000]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="SlotButton" type="Button" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SlotScroll/SlotList"]
-mouse_filter = 1
+[node name="SlotButton" type="Button" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SlotScroll/SlotList" unique_id=750552786]
 unique_name_in_owner = true
-clip_text = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
+mouse_filter = 1
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
 theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 16
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Slot"
+clip_text = true
 
-[node name="SettingsPanel" type="PanelContainer" parent="Balloon/UIRoot"]
+[node name="SettingsPanel" type="PanelContainer" parent="Balloon/UIRoot" unique_id=1633811280]
 unique_name_in_owner = true
-z_index = 10
 visible = false
+z_index = 10
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -678,7 +676,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_history")
 
-[node name="SettingsMargin" type="MarginContainer" parent="Balloon/UIRoot/SettingsPanel"]
+[node name="SettingsMargin" type="MarginContainer" parent="Balloon/UIRoot/SettingsPanel" unique_id=1402427042]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/margin_left = 340
@@ -686,30 +684,31 @@ theme_override_constants/margin_top = 40
 theme_override_constants/margin_right = 340
 theme_override_constants/margin_bottom = 40
 
-[node name="SettingsScroll" type="ScrollContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin"]
-scroll_deadzone = 24
+[node name="SettingsScroll" type="ScrollContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin" unique_id=110829437]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 follow_focus = true
+scroll_deadzone = 24
 
-[node name="SettingsVBox" type="VBoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll"]
+[node name="SettingsVBox" type="VBoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll" unique_id=2091072977]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 14
 
-[node name="SettingsTitle" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+[node name="SettingsTitle" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1125802707]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 20
 text = "Settings"
-[node name="LanguageRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="LanguageRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=417306892]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="LanguageRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/LanguageRow"]
+[node name="LanguageRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/LanguageRow" unique_id=1205678672]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
@@ -717,7 +716,7 @@ theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Language"
 
-[node name="LanguageOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/LanguageRow"]
+[node name="LanguageOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/LanguageRow" unique_id=567870589]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -729,26 +728,28 @@ popup/item_0/id = 0
 popup/item_1/text = "Русский"
 popup/item_1/id = 1
 
-[node name="TextSpeedRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+[node name="TextSpeedRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1529225130]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="TextSpeedRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow"]
+[node name="TextSpeedRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow" unique_id=1954184179]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Text speed"
-[node name="TextSpeedSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow"]
+
+[node name="TextSpeedSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow" unique_id=238017293]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = 0.002
 max_value = 0.06
 step = 0.002
-value = 0.018
-[node name="TextSpeedValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow"]
+value = 0.018000000000000002
+
+[node name="TextSpeedValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow" unique_id=286123580]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(68, 0)
 layout_mode = 2
@@ -756,26 +757,28 @@ theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 text = "—"
-[node name="TextSizeRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="TextSizeRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=465099180]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="TextSizeRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSizeRow"]
+[node name="TextSizeRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSizeRow" unique_id=1940455814]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Text size"
-[node name="TextSizeSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSizeRow"]
+
+[node name="TextSizeSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSizeRow" unique_id=2013936143]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 14
-max_value = 32
-step = 1
-value = 20
-[node name="TextSizeValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSizeRow"]
+min_value = 14.0
+max_value = 32.0
+value = 20.0
+
+[node name="TextSizeValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSizeRow" unique_id=785259177]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(68, 0)
 layout_mode = 2
@@ -783,35 +786,39 @@ theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 text = "—"
-[node name="SyncVoiceRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="SyncVoiceRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1179953020]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="SyncVoiceRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SyncVoiceRow"]
+[node name="SyncVoiceRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SyncVoiceRow" unique_id=830836861]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Sync text to voice"
-[node name="SyncVoiceCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SyncVoiceRow"]
+
+[node name="SyncVoiceCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SyncVoiceRow" unique_id=451125493]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 text = "on"
-[node name="SkipSpeedRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="SkipSpeedRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1594542838]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="SkipSpeedRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow"]
+[node name="SkipSpeedRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow" unique_id=848915833]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Skip speed"
-[node name="SkipSpeedSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow"]
+
+[node name="SkipSpeedSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow" unique_id=330528194]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -819,7 +826,8 @@ min_value = 0.05
 max_value = 0.6
 step = 0.05
 value = 0.1
-[node name="SkipSpeedValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow"]
+
+[node name="SkipSpeedValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow" unique_id=1314945363]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(68, 0)
 layout_mode = 2
@@ -827,216 +835,228 @@ theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 text = "—"
-[node name="SkipModeRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="SkipModeRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=2020657532]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="SkipModeRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipModeRow"]
+[node name="SkipModeRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipModeRow" unique_id=427051723]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Skip texts"
-[node name="SkipModeOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipModeRow"]
+
+[node name="SkipModeOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipModeRow" unique_id=1786478863]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
+selected = 0
 item_count = 2
 popup/item_0/text = "Everything"
 popup/item_0/id = 0
 popup/item_1/text = "Seen only"
 popup/item_1/id = 1
-selected = 0
-[node name="ControlsHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="ControlsHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=818078538]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 20
 text = "Controls"
 
-[node name="AdvanceKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+[node name="AdvanceKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=174551564]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="AdvanceKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AdvanceKeyRow"]
+[node name="AdvanceKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AdvanceKeyRow" unique_id=1225810829]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Advance"
-[node name="AdvanceKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AdvanceKeyRow"]
-mouse_filter = 1
+
+[node name="AdvanceKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AdvanceKeyRow" unique_id=1861150479]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 1
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 text = "Enter"
 
-[node name="SkipKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+[node name="SkipKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1576689699]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="SkipKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipKeyRow"]
+[node name="SkipKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipKeyRow" unique_id=727037264]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Skip mode"
-[node name="SkipKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipKeyRow"]
-mouse_filter = 1
+
+[node name="SkipKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipKeyRow" unique_id=875104364]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 1
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 text = "Ctrl"
 
-[node name="CloseKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+[node name="CloseKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=694839208]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="CloseKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/CloseKeyRow"]
+[node name="CloseKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/CloseKeyRow" unique_id=19592198]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Close"
-[node name="CloseKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/CloseKeyRow"]
-mouse_filter = 1
+
+[node name="CloseKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/CloseKeyRow" unique_id=573767833]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 1
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 text = "Backspace"
 
-[node name="HistoryKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+[node name="HistoryKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1571586155]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="HistoryKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/HistoryKeyRow"]
+[node name="HistoryKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/HistoryKeyRow" unique_id=1325944905]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "History"
-[node name="HistoryKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/HistoryKeyRow"]
-mouse_filter = 1
+
+[node name="HistoryKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/HistoryKeyRow" unique_id=799007617]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 1
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 text = "H"
 
-[node name="QuickSaveKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+[node name="QuickSaveKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1496995762]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="QuickSaveKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/QuickSaveKeyRow"]
+[node name="QuickSaveKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/QuickSaveKeyRow" unique_id=346874202]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Quick save"
-[node name="QuickSaveKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/QuickSaveKeyRow"]
-mouse_filter = 1
+
+[node name="QuickSaveKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/QuickSaveKeyRow" unique_id=1817962222]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 1
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 text = "F5"
 
-[node name="QuickLoadKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+[node name="QuickLoadKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1865113438]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="QuickLoadKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/QuickLoadKeyRow"]
+[node name="QuickLoadKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/QuickLoadKeyRow" unique_id=121700230]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Quick load"
-[node name="QuickLoadKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/QuickLoadKeyRow"]
-mouse_filter = 1
+
+[node name="QuickLoadKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/QuickLoadKeyRow" unique_id=275534853]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 1
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 text = "F9"
 
-[node name="PauseKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+[node name="PauseKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=649776597]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="PauseKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PauseKeyRow"]
+[node name="PauseKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PauseKeyRow" unique_id=363676302]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Pause"
-[node name="PauseKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PauseKeyRow"]
-mouse_filter = 1
+
+[node name="PauseKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PauseKeyRow" unique_id=1149958243]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 1
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 text = "Esc"
 
-[node name="PanicKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+[node name="PanicKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1511723811]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="PanicKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PanicKeyRow"]
+[node name="PanicKeyRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PanicKeyRow" unique_id=1465747614]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Panic"
-[node name="PanicKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PanicKeyRow"]
-mouse_filter = 1
+
+[node name="PanicKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PanicKeyRow" unique_id=1457410768]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 1
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 text = "F12"
 
-[node name="AutoDelayRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+[node name="AutoDelayRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=665168704]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="AutoDelayRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AutoDelayRow"]
+[node name="AutoDelayRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AutoDelayRow" unique_id=1212259879]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Auto delay"
-[node name="AutoDelaySlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AutoDelayRow"]
+
+[node name="AutoDelaySlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AutoDelayRow" unique_id=916089765]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -1044,7 +1064,8 @@ min_value = 0.5
 max_value = 4.0
 step = 0.25
 value = 1.5
-[node name="AutoDelayValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AutoDelayRow"]
+
+[node name="AutoDelayValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AutoDelayRow" unique_id=1866465141]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(68, 0)
 layout_mode = 2
@@ -1052,18 +1073,20 @@ theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 text = "—"
-[node name="UIScaleRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="UIScaleRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1766930680]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="UIScaleRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow"]
+[node name="UIScaleRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow" unique_id=148803937]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "UI scale"
-[node name="UIScaleSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow"]
+
+[node name="UIScaleSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow" unique_id=26467694]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -1071,7 +1094,8 @@ min_value = 0.75
 max_value = 1.5
 step = 0.05
 value = 1.0
-[node name="UIScaleValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow"]
+
+[node name="UIScaleValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow" unique_id=2141158312]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(68, 0)
 layout_mode = 2
@@ -1079,115 +1103,130 @@ theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 text = "—"
-[node name="DisplayHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="DisplayHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=240786325]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 20
 text = "Display"
-[node name="PortraitRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="PortraitRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1088257238]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="PortraitRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PortraitRow"]
+[node name="PortraitRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PortraitRow" unique_id=9221176]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Portrait layout"
-[node name="PortraitCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PortraitRow"]
+
+[node name="PortraitCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PortraitRow" unique_id=1574726632]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 text = "on"
-[node name="RotationRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="RotationRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=494526583]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="RotationRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow"]
+[node name="RotationRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow" unique_id=343992856]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Rotation"
-[node name="Rot0Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow"]
-mouse_filter = 1
+
+[node name="Rot0Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow" unique_id=1245860327]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 1
 theme_override_font_sizes/font_size = 16
 text = "0"
-[node name="Rot90Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow"]
-mouse_filter = 1
+
+[node name="Rot90Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow" unique_id=2082816303]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 1
 theme_override_font_sizes/font_size = 16
 text = "90"
-[node name="Rot180Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow"]
-mouse_filter = 1
+
+[node name="Rot180Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow" unique_id=523727031]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 1
 theme_override_font_sizes/font_size = 16
 text = "180"
-[node name="Rot270Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow"]
-mouse_filter = 1
+
+[node name="Rot270Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow" unique_id=859838960]
 layout_mode = 2
 size_flags_horizontal = 3
+mouse_filter = 1
 theme_override_font_sizes/font_size = 16
 text = "270"
-[node name="FullscreenRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="FullscreenRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=386915557]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="FullscreenRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/FullscreenRow"]
+[node name="FullscreenRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/FullscreenRow" unique_id=585897256]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Fullscreen"
-[node name="FullscreenCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/FullscreenRow"]
+
+[node name="FullscreenCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/FullscreenRow" unique_id=1841262708]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 text = "on"
-[node name="VsyncRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="VsyncRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1599972035]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="VsyncRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VsyncRow"]
+[node name="VsyncRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VsyncRow" unique_id=190072175]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "V-Sync"
-[node name="VsyncCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VsyncRow"]
+
+[node name="VsyncCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VsyncRow" unique_id=1635106774]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 text = "on"
-[node name="ResolutionRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="ResolutionRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=456107360]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="ResolutionRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResolutionRow"]
+[node name="ResolutionRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResolutionRow" unique_id=514884363]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Resolution"
-[node name="ResolutionOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResolutionRow"]
+
+[node name="ResolutionOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResolutionRow" unique_id=312257218]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
+selected = 0
 item_count = 5
 popup/item_0/text = "1280 x 720"
 popup/item_0/id = 0
@@ -1199,12 +1238,12 @@ popup/item_3/text = "2560 x 1440"
 popup/item_3/id = 3
 popup/item_4/text = "Custom"
 popup/item_4/id = 4
-selected = 0
-[node name="ResCustomRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="ResCustomRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=8914587]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="ResCustomLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow"]
+[node name="ResCustomLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow" unique_id=262134012]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
@@ -1212,72 +1251,74 @@ theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Custom size"
 
-[node name="ResWidthSpin" type="SpinBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow"]
+[node name="ResWidthSpin" type="SpinBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow" unique_id=1443290259]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 1
-max_value = 7680
-value = 1280
+min_value = 1.0
+max_value = 7680.0
+value = 1280.0
 
-[node name="ResXLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow"]
+[node name="ResXLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow" unique_id=585053954]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 17
 text = "x"
 
-[node name="ResHeightSpin" type="SpinBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow"]
+[node name="ResHeightSpin" type="SpinBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow" unique_id=424164768]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 1
-max_value = 4320
-value = 720
+min_value = 1.0
+max_value = 4320.0
+value = 720.0
 
-[node name="AudioHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+[node name="AudioHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1390737954]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 20
 text = "Audio"
-[node name="ProceduralMusicRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="ProceduralMusicRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1104238552]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="ProceduralMusicRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ProceduralMusicRow"]
+[node name="ProceduralMusicRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ProceduralMusicRow" unique_id=1167967568]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Generated music"
-[node name="ProceduralMusicCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ProceduralMusicRow"]
+
+[node name="ProceduralMusicCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ProceduralMusicRow" unique_id=1731735529]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 button_pressed = true
 text = "on"
-[node name="MasterVolRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="MasterVolRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=655098744]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="MasterVolRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MasterVolRow"]
+[node name="MasterVolRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MasterVolRow" unique_id=1742434506]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Master volume"
-[node name="MasterVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MasterVolRow"]
+
+[node name="MasterVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MasterVolRow" unique_id=54557889]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 0
-max_value = 100
-step = 1
-value = 80
-[node name="MasterVolValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MasterVolRow"]
+value = 80.0
+
+[node name="MasterVolValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MasterVolRow" unique_id=1489225531]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(68, 0)
 layout_mode = 2
@@ -1285,26 +1326,26 @@ theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 text = "—"
-[node name="MusicVolRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="MusicVolRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=722894434]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="MusicVolRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MusicVolRow"]
+[node name="MusicVolRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MusicVolRow" unique_id=1486951385]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Music volume"
-[node name="MusicVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MusicVolRow"]
+
+[node name="MusicVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MusicVolRow" unique_id=2120409494]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 0
-max_value = 100
-step = 1
-value = 80
-[node name="MusicVolValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MusicVolRow"]
+value = 80.0
+
+[node name="MusicVolValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MusicVolRow" unique_id=1473563477]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(68, 0)
 layout_mode = 2
@@ -1312,26 +1353,26 @@ theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 text = "—"
-[node name="VoiceVolRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="VoiceVolRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=545166705]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="VoiceVolRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VoiceVolRow"]
+[node name="VoiceVolRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VoiceVolRow" unique_id=506570648]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Voice volume"
-[node name="VoiceVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VoiceVolRow"]
+
+[node name="VoiceVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VoiceVolRow" unique_id=1685228183]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 0
-max_value = 100
-step = 1
-value = 100
-[node name="VoiceVolValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VoiceVolRow"]
+value = 100.0
+
+[node name="VoiceVolValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VoiceVolRow" unique_id=1173363657]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(68, 0)
 layout_mode = 2
@@ -1339,26 +1380,26 @@ theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 text = "—"
-[node name="SfxVolRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="SfxVolRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=318265103]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="SfxVolRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SfxVolRow"]
+[node name="SfxVolRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SfxVolRow" unique_id=758761678]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "SFX volume"
-[node name="SfxVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SfxVolRow"]
+
+[node name="SfxVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SfxVolRow" unique_id=796911999]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = 0
-max_value = 100
-step = 1
-value = 80
-[node name="SfxVolValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SfxVolRow"]
+value = 80.0
+
+[node name="SfxVolValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SfxVolRow" unique_id=2078501138]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(68, 0)
 layout_mode = 2
@@ -1366,68 +1407,76 @@ theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 text = "—"
-[node name="TypewriterSfxRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="TypewriterSfxRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=2114353189]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="TypewriterSfxRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TypewriterSfxRow"]
+[node name="TypewriterSfxRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TypewriterSfxRow" unique_id=10770190]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Typewriter sound"
-[node name="TypewriterSfxCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TypewriterSfxRow"]
+
+[node name="TypewriterSfxCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TypewriterSfxRow" unique_id=1689336005]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 button_pressed = true
 text = "on"
-[node name="ButtonSfxRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="ButtonSfxRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1083336682]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="ButtonSfxRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ButtonSfxRow"]
+[node name="ButtonSfxRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ButtonSfxRow" unique_id=624143229]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Button sound"
-[node name="ButtonSfxCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ButtonSfxRow"]
+
+[node name="ButtonSfxCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ButtonSfxRow" unique_id=613874563]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
 button_pressed = true
 text = "on"
-[node name="SpritesHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="SpritesHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=2479799]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 20
 text = "Sprites"
-[node name="SpriteScaleRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="SpriteScaleRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1733900535]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="SpriteScaleRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteScaleRow"]
+[node name="SpriteScaleRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteScaleRow" unique_id=1985630327]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Sprite scale"
-[node name="SpriteScaleSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteScaleRow"]
+
+[node name="SpriteScaleSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteScaleRow" unique_id=457217068]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = 0.5
 max_value = 1.5
 step = 0.05
-value = 1
-[node name="SpriteScaleValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteScaleRow"]
+value = 1.0
+
+[node name="SpriteScaleValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteScaleRow" unique_id=438804834]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(68, 0)
 layout_mode = 2
@@ -1435,26 +1484,28 @@ theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 text = "—"
-[node name="SpriteYRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="SpriteYRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1041189199]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="SpriteYRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteYRow"]
+[node name="SpriteYRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteYRow" unique_id=498205108]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Sprite Y offset"
-[node name="SpriteYSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteYRow"]
+
+[node name="SpriteYSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteYRow" unique_id=1448262975]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = -240
-max_value = 240
-step = 4
-value = 0
-[node name="SpriteYValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteYRow"]
+min_value = -240.0
+max_value = 240.0
+step = 4.0
+
+[node name="SpriteYValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteYRow" unique_id=122504783]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(68, 0)
 layout_mode = 2
@@ -1462,15 +1513,17 @@ theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 text = "—"
-[node name="SettingsHint" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+
+[node name="SettingsHint" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=626327766]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.8, 0.8)
 theme_override_font_sizes/font_size = 14
 text = "Settings are saved automatically. Use Close or X to exit."
-[node name="PausePanel" type="PanelContainer" parent="Balloon/UIRoot"]
+
+[node name="PausePanel" type="PanelContainer" parent="Balloon/UIRoot" unique_id=482625490]
 unique_name_in_owner = true
-z_index = 10
 visible = false
+z_index = 10
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -1479,19 +1532,19 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_history")
 
-[node name="PauseMargin" type="MarginContainer" parent="Balloon/UIRoot/PausePanel"]
+[node name="PauseMargin" type="MarginContainer" parent="Balloon/UIRoot/PausePanel" unique_id=1420933988]
 layout_mode = 2
 theme_override_constants/margin_left = 480
 theme_override_constants/margin_top = 90
 theme_override_constants/margin_right = 480
 theme_override_constants/margin_bottom = 90
 
-[node name="PauseVBox" type="VBoxContainer" parent="Balloon/UIRoot/PausePanel/PauseMargin"]
+[node name="PauseVBox" type="VBoxContainer" parent="Balloon/UIRoot/PausePanel/PauseMargin" unique_id=20507623]
 layout_mode = 2
 theme_override_constants/separation = 12
 alignment = 1
 
-[node name="PauseTitle" type="Label" parent="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox"]
+[node name="PauseTitle" type="Label" parent="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox" unique_id=1208187843]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
 theme_override_fonts/font = ExtResource("5_serifbold")
@@ -1499,7 +1552,7 @@ theme_override_font_sizes/font_size = 30
 text = "Paused"
 horizontal_alignment = 1
 
-[node name="ResumeButton" type="Button" parent="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox"]
+[node name="ResumeButton" type="Button" parent="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox" unique_id=674690239]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
@@ -1509,12 +1562,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Resume"
 
-[node name="PauseHistoryButton" type="Button" parent="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox"]
+[node name="PauseHistoryButton" type="Button" parent="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox" unique_id=194535588]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
@@ -1524,12 +1577,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "History"
 
-[node name="PauseSaveButton" type="Button" parent="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox"]
+[node name="PauseSaveButton" type="Button" parent="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox" unique_id=2013086460]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
@@ -1539,12 +1592,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Save"
 
-[node name="PauseLoadButton" type="Button" parent="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox"]
+[node name="PauseLoadButton" type="Button" parent="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox" unique_id=1531746643]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
@@ -1554,12 +1607,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Load"
 
-[node name="PauseSettingsButton" type="Button" parent="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox"]
+[node name="PauseSettingsButton" type="Button" parent="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox" unique_id=1677051227]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
@@ -1569,12 +1622,12 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Settings"
 
-[node name="QuitButton" type="Button" parent="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox"]
+[node name="QuitButton" type="Button" parent="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox" unique_id=958247663]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
@@ -1584,15 +1637,15 @@ theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Quit"
 
-[node name="PanicScreen" type="Control" parent="Balloon/UIRoot"]
+[node name="PanicScreen" type="Control" parent="Balloon/UIRoot" unique_id=289853429]
 unique_name_in_owner = true
-z_index = 20
 visible = false
+z_index = 20
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -1600,49 +1653,53 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="PanicPaper" type="ColorRect" parent="Balloon/UIRoot/PanicScreen"]
+[node name="PanicPaper" type="ColorRect" parent="Balloon/UIRoot/PanicScreen" unique_id=1663299739]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 color = Color(0.98, 0.98, 0.96, 1)
 
-[node name="PanicMargin" type="MarginContainer" parent="Balloon/UIRoot/PanicScreen"]
+[node name="PanicMargin" type="MarginContainer" parent="Balloon/UIRoot/PanicScreen" unique_id=776933891]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_constants/margin_left = 90
 theme_override_constants/margin_top = 60
 theme_override_constants/margin_right = 90
 theme_override_constants/margin_bottom = 60
 
-[node name="PanicScroll" type="ScrollContainer" parent="Balloon/UIRoot/PanicScreen/PanicMargin"]
+[node name="PanicScroll" type="ScrollContainer" parent="Balloon/UIRoot/PanicScreen/PanicMargin" unique_id=1433317678]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="PanicVBox" type="VBoxContainer" parent="Balloon/UIRoot/PanicScreen/PanicMargin/PanicScroll"]
-size_flags_horizontal = 3
+[node name="PanicVBox" type="VBoxContainer" parent="Balloon/UIRoot/PanicScreen/PanicMargin/PanicScroll" unique_id=950744333]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 18
 
-[node name="PanicTitle" type="Label" parent="Balloon/UIRoot/PanicScreen/PanicMargin/PanicScroll/PanicVBox"]
+[node name="PanicTitle" type="Label" parent="Balloon/UIRoot/PanicScreen/PanicMargin/PanicScroll/PanicVBox" unique_id=1390964353]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.1, 0.1, 0.1, 1)
 theme_override_fonts/font = ExtResource("5_serifbold")
 theme_override_font_sizes/font_size = 30
 text = "PHYS 201 - Quantum Mechanics II"
 
-[node name="PanicBody" type="Label" parent="Balloon/UIRoot/PanicScreen/PanicMargin/PanicScroll/PanicVBox"]
+[node name="PanicBody" type="Label" parent="Balloon/UIRoot/PanicScreen/PanicMargin/PanicScroll/PanicVBox" unique_id=80379779]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.15, 0.15, 0.15, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 18
-autowrap_mode = 2
 text = "Lecture 12: The time-independent Schroedinger equation. H psi = E psi, where H is the Hamiltonian operator. For a particle in a 1-D infinite well of width L the energy eigenvalues are E_n = n^2 h^2 / (8 m L^2). Reminder: problem set 4 is due Friday - problems 3.7, 3.9 and the derivation of the uncertainty principle for position and momentum."
+autowrap_mode = 2
 
-[node name="PanicCloseButton" type="Button" parent="Balloon/UIRoot/PanicScreen"]
+[node name="PanicCloseButton" type="Button" parent="Balloon/UIRoot/PanicScreen" unique_id=1452608062]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 1
@@ -1659,10 +1716,10 @@ theme_override_colors/font_hover_color = Color(0.2, 0.2, 0.25, 1)
 theme_override_font_sizes/font_size = 22
 text = "X"
 
-[node name="HistoryPanel" type="PanelContainer" parent="Balloon/UIRoot"]
+[node name="HistoryPanel" type="PanelContainer" parent="Balloon/UIRoot" unique_id=2022090504]
 unique_name_in_owner = true
-z_index = 10
 visible = false
+z_index = 10
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -1671,29 +1728,29 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_history")
 
-[node name="HistoryMargin" type="MarginContainer" parent="Balloon/UIRoot/HistoryPanel"]
+[node name="HistoryMargin" type="MarginContainer" parent="Balloon/UIRoot/HistoryPanel" unique_id=972329186]
 layout_mode = 2
 theme_override_constants/margin_left = 70
 theme_override_constants/margin_top = 46
 theme_override_constants/margin_right = 70
 theme_override_constants/margin_bottom = 60
 
-[node name="HistoryVBox" type="VBoxContainer" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin"]
+[node name="HistoryVBox" type="VBoxContainer" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin" unique_id=138449038]
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="HistoryHeader" type="HBoxContainer" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin/HistoryVBox"]
+[node name="HistoryHeader" type="HBoxContainer" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin/HistoryVBox" unique_id=674045431]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="HistoryTitle" type="Label" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin/HistoryVBox/HistoryHeader"]
+[node name="HistoryTitle" type="Label" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin/HistoryVBox/HistoryHeader" unique_id=955157271]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
 theme_override_fonts/font = ExtResource("5_serifbold")
 theme_override_font_sizes/font_size = 26
 text = "History"
 
-[node name="HistoryHint" type="Label" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin/HistoryVBox/HistoryHeader"]
+[node name="HistoryHint" type="Label" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin/HistoryVBox/HistoryHeader" unique_id=1457187775]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.75, 0.75, 0.8, 0.8)
@@ -1701,40 +1758,42 @@ theme_override_font_sizes/font_size = 15
 text = "Click a line to roll back to it - H or Esc closes"
 horizontal_alignment = 2
 
-[node name="HistoryScroll" type="ScrollContainer" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin/HistoryVBox"]
-scroll_deadzone = 24
+[node name="HistoryScroll" type="ScrollContainer" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin/HistoryVBox" unique_id=2133398941]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 follow_focus = true
 horizontal_scroll_mode = 0
+scroll_deadzone = 24
 
-[node name="HistoryList" type="VBoxContainer" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin/HistoryVBox/HistoryScroll"]
+[node name="HistoryList" type="VBoxContainer" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin/HistoryVBox/HistoryScroll" unique_id=855635704]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="HistoryEntry" type="Button" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin/HistoryVBox/HistoryScroll/HistoryList"]
-mouse_filter = 1
+[node name="HistoryEntry" type="Button" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin/HistoryVBox/HistoryScroll/HistoryList" unique_id=456849875]
 unique_name_in_owner = true
-clip_text = true
 layout_mode = 2
+mouse_filter = 1
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
-theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
-theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "History entry"
+clip_text = true
 
-[node name="HoldIndicator" type="Control" parent="Balloon/UIRoot"]
+[node name="HoldIndicator" type="Control" parent="Balloon/UIRoot" unique_id=479430987]
 unique_name_in_owner = true
 visible = false
+top_level = true
+z_index = 4096
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -1744,7 +1803,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("11_hold")
 
-[node name="ToastLabel" type="Label" parent="Balloon/UIRoot"]
+[node name="ToastLabel" type="Label" parent="Balloon/UIRoot" unique_id=731765407]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -1762,26 +1821,7 @@ theme_override_font_sizes/font_size = 18
 text = "Saved"
 horizontal_alignment = 2
 
-[node name="ToastTimer" type="Timer" parent="."]
-unique_name_in_owner = true
-wait_time = 1.2
-one_shot = true
-
-[node name="AutoTimer" type="Timer" parent="."]
-unique_name_in_owner = true
-wait_time = 1.5
-one_shot = true
-
-[node name="SkipTimer" type="Timer" parent="."]
-unique_name_in_owner = true
-wait_time = 0.1
-one_shot = true
-
-[node name="VoicePlayer" type="AudioStreamPlayer" parent="."]
-unique_name_in_owner = true
-bus = &"Voice"
-
-[node name="SettingsCloseButton" type="Button" parent="Balloon/UIRoot"]
+[node name="SettingsCloseButton" type="Button" parent="Balloon/UIRoot" unique_id=1725658527]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -1797,9 +1837,30 @@ theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 22
 text = "X"
 
+[node name="MutationCooldown" type="Timer" parent="." unique_id=897377179]
+unique_name_in_owner = true
+wait_time = 0.1
+one_shot = true
+
+[node name="ToastTimer" type="Timer" parent="." unique_id=130954894]
+unique_name_in_owner = true
+wait_time = 1.2
+one_shot = true
+
+[node name="AutoTimer" type="Timer" parent="." unique_id=448125722]
+unique_name_in_owner = true
+wait_time = 1.5
+one_shot = true
+
+[node name="SkipTimer" type="Timer" parent="." unique_id=25367254]
+unique_name_in_owner = true
+wait_time = 0.1
+one_shot = true
+
+[node name="VoicePlayer" type="AudioStreamPlayer" parent="." unique_id=1970659894]
+unique_name_in_owner = true
 
 [connection signal="gui_input" from="Balloon" to="." method="_on_balloon_gui_input"]
-[connection signal="response_selected" from="Balloon/UIRoot/BottomUI/ResponsesCenter/ResponsesMenu" to="." method="_on_responses_menu_response_selected"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/QSButton" to="." method="_on_quick_save_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/QLButton" to="." method="_on_quick_load_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/SaveButton" to="." method="_on_save_menu_pressed"]
@@ -1812,47 +1873,48 @@ text = "X"
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/SettingsButton" to="." method="_on_settings_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/PanicButton" to="." method="_on_panic_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/PauseButton" to="." method="_on_pause_button_pressed"]
-[connection signal="pressed" from="Balloon/UIRoot/PanicScreen/PanicCloseButton" to="." method="_on_panic_close_pressed"]
+[connection signal="response_selected" from="Balloon/UIRoot/BottomUI/ResponsesCenter/ResponsesMenu" to="." method="_on_responses_menu_response_selected"]
+[connection signal="gui_input" from="Balloon/UIRoot/SaveMenuPanel" to="." method="_on_menu_empty_press"]
+[connection signal="pressed" from="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SaveMenuTitleRow/SaveCloseButton" to="." method="_on_save_close_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/NewSlotButton" to="." method="_on_new_slot_pressed"]
+[connection signal="gui_input" from="Balloon/UIRoot/SettingsPanel" to="." method="_on_menu_empty_press"]
+[connection signal="item_selected" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/LanguageRow/LanguageOption" to="." method="_on_language_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow/TextSpeedSlider" to="." method="_on_text_speed_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSizeRow/TextSizeSlider" to="." method="_on_text_size_changed"]
+[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SyncVoiceRow/SyncVoiceCheck" to="." method="_on_sync_voice_toggled"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow/SkipSpeedSlider" to="." method="_on_skip_speed_changed"]
 [connection signal="item_selected" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipModeRow/SkipModeOption" to="." method="_on_skip_mode_selected"]
-[connection signal="item_selected" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/LanguageRow/LanguageOption" to="." method="_on_language_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AutoDelayRow/AutoDelaySlider" to="." method="_on_auto_delay_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow/UIScaleSlider" to="." method="_on_ui_scale_changed"]
+[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PortraitRow/PortraitCheck" to="." method="_on_portrait_toggled"]
+[connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot0Button" to="." method="_on_rot_0_pressed"]
+[connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot90Button" to="." method="_on_rot_90_pressed"]
+[connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot180Button" to="." method="_on_rot_180_pressed"]
+[connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot270Button" to="." method="_on_rot_270_pressed"]
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/FullscreenRow/FullscreenCheck" to="." method="_on_fullscreen_toggled"]
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VsyncRow/VsyncCheck" to="." method="_on_vsync_toggled"]
 [connection signal="item_selected" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResolutionRow/ResolutionOption" to="." method="_on_resolution_selected"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow/ResWidthSpin" to="." method="_on_res_width_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ResCustomRow/ResHeightSpin" to="." method="_on_res_height_changed"]
+[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ProceduralMusicRow/ProceduralMusicCheck" to="." method="_on_procedural_music_toggled"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MasterVolRow/MasterVolSlider" to="." method="_on_master_vol_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MusicVolRow/MusicVolSlider" to="." method="_on_music_vol_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VoiceVolRow/VoiceVolSlider" to="." method="_on_voice_vol_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SfxVolRow/SfxVolSlider" to="." method="_on_sfx_vol_changed"]
+[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TypewriterSfxRow/TypewriterSfxCheck" to="." method="_on_typewriter_sfx_toggled"]
+[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ButtonSfxRow/ButtonSfxCheck" to="." method="_on_button_sfx_toggled"]
+[connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteScaleRow/SpriteScaleSlider" to="." method="_on_sprite_scale_changed"]
+[connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteYRow/SpriteYSlider" to="." method="_on_sprite_y_changed"]
+[connection signal="gui_input" from="Balloon/UIRoot/PausePanel" to="." method="_on_menu_empty_press"]
 [connection signal="pressed" from="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox/ResumeButton" to="." method="_on_resume_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox/PauseHistoryButton" to="." method="_on_pause_history_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox/PauseSaveButton" to="." method="_on_pause_save_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox/PauseLoadButton" to="." method="_on_pause_load_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox/PauseSettingsButton" to="." method="_on_pause_settings_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox/QuitButton" to="." method="_on_quit_pressed"]
+[connection signal="pressed" from="Balloon/UIRoot/PanicScreen/PanicCloseButton" to="." method="_on_panic_close_pressed"]
+[connection signal="gui_input" from="Balloon/UIRoot/HistoryPanel" to="." method="_on_menu_empty_press"]
+[connection signal="pressed" from="Balloon/UIRoot/SettingsCloseButton" to="." method="_on_settings_close_pressed"]
 [connection signal="timeout" from="ToastTimer" to="." method="_on_toast_timeout"]
 [connection signal="timeout" from="AutoTimer" to="." method="_on_auto_timeout"]
 [connection signal="timeout" from="SkipTimer" to="." method="_on_skip_timeout"]
-[connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteScaleRow/SpriteScaleSlider" to="." method="_on_sprite_scale_changed"]
-[connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteYRow/SpriteYSlider" to="." method="_on_sprite_y_changed"]
-[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SyncVoiceRow/SyncVoiceCheck" to="." method="_on_sync_voice_toggled"]
-[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ProceduralMusicRow/ProceduralMusicCheck" to="." method="_on_procedural_music_toggled"]
-[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TypewriterSfxRow/TypewriterSfxCheck" to="." method="_on_typewriter_sfx_toggled"]
-[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ButtonSfxRow/ButtonSfxCheck" to="." method="_on_button_sfx_toggled"]
-[connection signal="pressed" from="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SaveMenuTitleRow/SaveCloseButton" to="." method="_on_save_close_pressed"]
-[connection signal="gui_input" from="Balloon/UIRoot/SaveMenuPanel" to="." method="_on_menu_empty_press"]
-[connection signal="gui_input" from="Balloon/UIRoot/SettingsPanel" to="." method="_on_menu_empty_press"]
-[connection signal="gui_input" from="Balloon/UIRoot/PausePanel" to="." method="_on_menu_empty_press"]
-[connection signal="gui_input" from="Balloon/UIRoot/HistoryPanel" to="." method="_on_menu_empty_press"]
-[connection signal="pressed" from="Balloon/UIRoot/SettingsCloseButton" to="." method="_on_settings_close_pressed"]
-[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PortraitRow/PortraitCheck" to="." method="_on_portrait_toggled"]
-[connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot0Button" to="." method="_on_rot_0_pressed"]
-[connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot90Button" to="." method="_on_rot_90_pressed"]
-[connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot180Button" to="." method="_on_rot_180_pressed"]
-[connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot270Button" to="." method="_on_rot_270_pressed"]
