@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://b1c2d3e4f5a6b"]
 
 [ext_resource type="Script" path="res://tools/capture_route_graph.gd" id="1"]
-[ext_resource type="PackedScene" uid="uid://b9a8c7d6e5f4g3" path="res://scenes/route_graph/route_graph_panel.tscn" id="2"]
+[ext_resource type="PackedScene" uid="uid://y0dk0vnp5ibqj" path="res://scenes/route_graph/route_graph_panel.tscn" id="2"]
 
 [node name="CaptureRoot" type="Control"]
 layout_mode = 3
