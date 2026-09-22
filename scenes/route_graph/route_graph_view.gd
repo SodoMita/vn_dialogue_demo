@@ -5,11 +5,17 @@ extends Control
 # - Clicking on port -> other side, clicking on edge -> furthest node
 # - Pan/drag + zoom wheel
 # - Data source: runtime compile of dialogue/*.dialogue (if available) else static mockup
+# Fix: use preloads instead of global class_name to avoid "Could not find type" when cache missing
+
+const RouteGraphAtlasScript = preload("res://scenes/route_graph/route_graph_atlas.gd")
+const RouteGraphMeshBuilderScript = preload("res://scenes/route_graph/route_graph_mesh_builder.gd")
+const RouteGraphCompilerScript = preload("res://scenes/route_graph/route_graph_compiler.gd")
+const RouteGraphDataScript = preload("res://scenes/route_graph/route_graph_data.gd")
 
 @export var dialogue_resource: DialogueResource = preload("res://dialogue/intro.dialogue")
 
-var atlas: RouteGraphAtlas
-var mesh_builder: RouteGraphMeshBuilder
+var atlas: RefCounted
+var mesh_builder: RefCounted
 var mesh_instance: MeshInstance2D
 var route_material: ShaderMaterial
 
@@ -30,12 +36,12 @@ func _ready() -> void:
 	# Load data: try runtime compile from dialogue, fallback to static v4
 	var compiled: Dictionary = {}
 	if dialogue_resource != null and ResourceLoader.exists(dialogue_resource.resource_path):
-		compiled = RouteGraphCompiler.compile(dialogue_resource)
+		compiled = RouteGraphCompilerScript.compile(dialogue_resource)
 		nodes = compiled.get("nodes", [])
 		if nodes.is_empty():
-			nodes = RouteGraphData.get_nodes()
+			nodes = RouteGraphDataScript.get_nodes()
 	else:
-		nodes = RouteGraphData.get_nodes()
+		nodes = RouteGraphDataScript.get_nodes()
 
 	node_by_id.clear()
 	for n in nodes:
@@ -77,11 +83,11 @@ func _ready() -> void:
 	add_entry.call("IN", "IN", 9)
 	add_entry.call("OUT", "OUT", 9)
 
-	atlas = RouteGraphAtlas.new()
+	atlas = RouteGraphAtlasScript.new()
 	await atlas.bake_with_sizes(entries)
 
 	# Build mesh
-	mesh_builder = RouteGraphMeshBuilder.new(atlas)
+	mesh_builder = RouteGraphMeshBuilderScript.new(atlas)
 	var mesh: ArrayMesh = mesh_builder.build(nodes, edges)
 
 	# Create MeshInstance2D
@@ -137,7 +143,7 @@ func _build_edges(nodes_arr: Array) -> Array:
 			var tgt: Dictionary = by_id.get(target_id, {})
 			if tgt.is_empty():
 				continue
-			# find input index
+			# find input index - corresponding port
 			var in_idx: int = 0
 			var existing: int = 0
 			for e in result:
@@ -188,7 +194,6 @@ func _update_shader_params() -> void:
 		route_material.set_shader_parameter("zoom", zoom)
 
 func _process(delta: float) -> void:
-	# smooth pan/zoom lerp
 	var lerp_speed: float = 8.0 * delta
 	pan = pan.lerp(target_pan, clamp(lerp_speed, 0, 1))
 	zoom = lerp(zoom, target_zoom, clamp(lerp_speed, 0, 1))
@@ -202,9 +207,7 @@ func _gui_input(event: InputEvent) -> void:
 				dragging = true
 				drag_start_mouse = mb.position
 				drag_start_pan = target_pan
-				# check click on port / edge
 				var local: Vector2 = (mb.position / zoom) - pan
-				# ports first
 				for hit in mesh_builder.port_hits:
 					if hit.rect.has_point(local):
 						var other_id: String = hit.target_id
@@ -212,10 +215,8 @@ func _gui_input(event: InputEvent) -> void:
 							_pan_to_node(other_id)
 							get_viewport().set_input_as_handled()
 							return
-				# edges
 				for hit in mesh_builder.edge_hits:
 					if hit.rect.has_point(local):
-						# distance to segment
 						var dist: float = _dist_to_segment(local, hit.a, hit.b)
 						if dist < 12.0:
 							var furthest: String = hit.furthest_id
@@ -246,12 +247,8 @@ func _pan_to_node(node_id: String) -> void:
 	var n: Dictionary = node_by_id[node_id]
 	var node_center: Vector2 = Vector2(n.x + n.w*0.5, n.y + n.h*0.5)
 	var viewport_size: Vector2 = get_viewport_rect().size
-	# center node in view: pan = viewport_center/zoom - node_center
 	var view_center: Vector2 = viewport_size * 0.5 / zoom
 	target_pan = view_center - node_center
-
-	# flash highlight? we could modulate material for a moment, but keep simple
-	# print
 	print("RouteGraph: pan to ", node_id)
 
 func _dist_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
