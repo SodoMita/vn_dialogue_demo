@@ -24,7 +24,7 @@ typewriter box, centered choices) built on the
 | Pause menu | `Esc` or right click (mutes all audio until you resume) |
 | Quick save / quick load (slot 0) | `F5` / `F9` |
 | Panic / boss screen | `F12` or the `Panic` button — instantly silences every sound; press again to return (on touch devices the X in the corner closes it) |
-| Story map | `Map` on the system row. Drag to pan, wheel to zoom. A port click jumps to the other side of that line; an edge click jumps to the furthest node along it. `Esc` or Close leaves the map |
+| Story map | `Map` on the system row. Drag to pan, wheel to zoom. A gold ring marks where you are. A port click jumps to the other side of that line; an edge click (including the arrow) jumps to the further of that edge's two nodes; a header click goes to that place in the game. **Visited only** is on by default — turning it off asks before revealing unread routes. `Esc` or Close leaves the map |
 | Mobile | tap = advance, swipe up = backlog |
 
 The bottom system row mirrors Kirikiri/Ren'Py toolbars:

@@ -36,6 +36,9 @@ func run() -> void:
 	_check_condition_badges()
 	_check_furthest()
 	_check_hits(compiled)
+	_check_edge_endpoints()
+	_check_player_place(compiled)
+	_check_spoiler_gate()
 	_check_atlas()
 	_check_panel_guard()
 	check(ViewScript != null and AtlasScript != null, "route-graph scripts preload without a class cache")
@@ -61,7 +64,10 @@ func _check_sources() -> void:
 	var view_text := FileAccess.get_file_as_string("res://scenes/route_graph/route_graph_view.gd")
 	check(not _has_arg_new(view_text), "view never calls .new() with arguments")
 	var balloon := FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
-	check(balloon.contains("show_graph(dialogue_resource)"), "balloon passes the live dialogue into the map")
+	check(balloon.contains("show_graph(dialogue_resource"), "balloon passes the live dialogue into the map")
+	check(balloon.contains("_route_player_state()"), "balloon tells the map where the player is")
+	check(balloon.contains("travel_requested"), "balloon listens for header travel")
+	check(balloon.contains("dismiss_spoiler"), "closing the map dismisses an open spoiler prompt first")
 	check(not balloon.contains("instantiate("), "balloon still never instantiates a scene")
 
 
@@ -281,14 +287,15 @@ func _check_condition_badges() -> void:
 
 func _check_furthest() -> void:
 	var by_id := {
-		"A": {"id": "A", "x": 0, "y": 0, "outputs": [{"target": "B"}, {"target": "D"}]},
-		"B": {"id": "B", "x": 200, "y": 0, "outputs": [{"target": "C"}]},
-		"C": {"id": "C", "x": 400, "y": 0, "outputs": []},
-		"D": {"id": "D", "x": 200, "y": 300, "outputs": []},
+		"A": {"id": "A", "x": 0, "y": 0, "layer": 0, "outputs": [{"target": "B"}, {"target": "D"}]},
+		"B": {"id": "B", "x": 200, "y": 0, "layer": 1, "outputs": [{"target": "C"}]},
+		"C": {"id": "C", "x": 400, "y": 0, "layer": 2, "outputs": []},
+		"D": {"id": "D", "x": 200, "y": 300, "layer": 1, "outputs": []},
 	}
-	check(MeshScript.furthest_node("B", by_id) == "C", "edge into B continues to the furthest node C")
-	check(MeshScript.furthest_node("D", by_id) == "D", "a leaf edge stays on that leaf")
-	check(MeshScript.furthest_node("A", by_id) == "C", "the longer branch wins over the nearer leaf")
+	check(MeshScript.furthest_endpoint("A", "B", by_id) == "B", "a forward edge's furthest node is the target, not the source")
+	check(MeshScript.furthest_endpoint("B", "C", by_id) == "C", "the further endpoint wins, not a node past the edge")
+	check(MeshScript.furthest_endpoint("C", "A", by_id) == "C", "a back-edge's furthest node is the later endpoint")
+	check(MeshScript.furthest_node("B", by_id) == "C", "downstream walk still reaches C")
 
 
 func _check_hits(compiled: Dictionary) -> void:
@@ -321,16 +328,28 @@ func _check_hits(compiled: Dictionary) -> void:
 			break
 	check(input_hit, "clicking an input port jumps back to the other side")
 	var edge_ok := false
+	var not_source := false
 	for edge in builder.edge_hits:
 		var mid: Vector2 = (edge.a + edge.b) * 0.5
 		var edge_hit: Dictionary = builder.hit_test(mid)
 		if edge_hit.get("kind", "") != "edge":
 			continue
-		var expected: String = MeshScript.furthest_node(str(edge.target), _by_id(nodes))
-		if str(edge_hit.get("jump_to", "")) == expected and expected != str(edge.source):
+		var expected: String = MeshScript.furthest_endpoint(str(edge.source), str(edge.target), _by_id(nodes))
+		if str(edge_hit.get("jump_to", "")) == expected:
 			edge_ok = true
+			if expected != str(edge.source):
+				not_source = true
 			break
-	check(edge_ok, "clicking an edge jumps to the furthest node down that line")
+	check(edge_ok, "clicking an edge jumps to the furthest of its two nodes")
+	check(not_source, "an edge click does not send to the source when the target is further")
+	var header_ok := false
+	for node in nodes:
+		var header := Vector2(float(node.x) + 20.0, float(node.y) + 18.0)
+		var header_hit: Dictionary = builder.hit_test(header)
+		if header_hit.get("kind", "") == "header" and str(header_hit.get("node_id", "")) == str(node.id):
+			header_ok = true
+			break
+	check(header_ok, "clicking a node header hits that node")
 
 
 func _by_id(nodes: Array) -> Dictionary:
@@ -366,6 +385,112 @@ func _check_atlas() -> void:
 				clear += 1
 	check(opaque > 8 and partial > 4 and clear > 8, "baked text is a glyph, not a solid block (opaque %d partial %d clear %d)" % [opaque, partial, clear])
 	image.save_png("/tmp/route_atlas_preview.png")
+
+
+func _check_edge_endpoints() -> void:
+	var nodes: Array = [
+		{"id": "src", "type": "START", "title": "Src", "subtitle": "0 / 1", "color": Color.WHITE, "x": 40.0, "y": 40.0, "w": 230.0, "h": 150.0, "layer": 0, "inputs": [], "outputs": [{"type": "FLOW", "tag": "Dst", "target": "dst", "cond": ""}]},
+		{"id": "dst", "type": "ROUTE", "title": "Dst", "subtitle": "1 / 1", "color": Color.CYAN, "x": 420.0, "y": 40.0, "w": 230.0, "h": 150.0, "layer": 1, "inputs": [{"type": "FLOW", "tag": "Src", "source": "src", "cond": ""}], "outputs": [{"type": "FLOW", "tag": "Far", "target": "far", "cond": ""}]},
+		{"id": "far", "type": "ENDING", "title": "Far", "subtitle": "1 / 0", "color": Color.RED, "x": 800.0, "y": 40.0, "w": 230.0, "h": 150.0, "layer": 2, "inputs": [{"type": "FLOW", "tag": "Dst", "source": "dst", "cond": ""}], "outputs": []},
+	]
+	var atlas = AtlasScript.new()
+	atlas.bake(MeshScript.text_keys(nodes))
+	var builder = MeshScript.new()
+	builder.build(atlas, nodes, "src")
+	var src_edge: Dictionary = {}
+	for edge in builder.edge_hits:
+		if str(edge.source) == "src" and str(edge.target) == "dst":
+			src_edge = edge
+	check(not src_edge.is_empty(), "synthetic edge is clickable")
+	if src_edge.is_empty():
+		return
+	check(str(src_edge.jump_to) == "dst", "edge jump is the further endpoint, not a node past it")
+	check(str(src_edge.jump_to) != "src", "edge jump is not the source")
+	check(str(src_edge.jump_to) != "far", "edge jump stays on the edge's two nodes")
+	var a: Vector2 = MeshScript.port_center(nodes[0], true, 0)
+	var b: Vector2 = MeshScript.port_center(nodes[1], false, 0)
+	var n := (b - a).normalized()
+	var arrow: Vector2 = b - n * 10.0
+	var arrow_hit: Dictionary = builder.hit_test(arrow)
+	check(arrow_hit.get("kind", "") == "edge", "clicking the arrow counts as the edge, not the destination port")
+	check(str(arrow_hit.get("jump_to", "")) == "dst", "the arrow sends to the further node, not the source")
+	var port_hit: Dictionary = builder.hit_test(b)
+	check(port_hit.get("kind", "") == "port" and str(port_hit.get("jump_to", "")) == "src", "the port icon itself still jumps to the other side")
+	var here := false
+	for hit in builder.header_hits:
+		if str(hit.get("node_id", "")) == "src":
+			here = true
+	check(here and builder.header_hits.size() == 3, "headers are hit targets")
+
+
+func _check_player_place(compiled: Dictionary) -> void:
+	var nodes: Array = compiled.get("nodes", [])
+	var by_id := _by_id(nodes)
+	var start = by_id.get("start", null)
+	check(start != null and start.get("line_ids", []).size() > 0, "start owns the lines before the first choice")
+	check(start != null and str(start.get("jump_key", "")) == "start", "start header jumps to the start cue")
+	if start == null:
+		return
+	var first := str(start.line_ids[0])
+	var player := {"line_id": first, "visited_ids": start.line_ids, "history_ids": start.line_ids, "response_ids": [], "ended": false}
+	check(CompilerScript.locate_player(nodes, player) == "start", "the opening line places the player on start")
+	var uid := str(start.get("file_uid", ""))
+	var dm_uid := str(ResourceUID.path_to_uid("res://dialogue/intro.dialogue")).replace("uid://", "")
+	check(uid != "" and uid == dm_uid, "node file uid matches dialogue line ids")
+	player.line_id = "%s@%s" % [dm_uid, first]
+	player.visited_ids = ["%s@%s" % [dm_uid, first]]
+	check(CompilerScript.locate_player(nodes, player) == "start", "a dialogue-manager line id places the player on start")
+	var visited_live: Dictionary = CompilerScript.visited_node_ids(nodes, player)
+	check(visited_live.has("start") and not visited_live.has("rooftop"), "live line ids mark only the visited scene")
+	var visited: Dictionary = CompilerScript.visited_node_ids(nodes, {"line_id": first, "visited_ids": start.line_ids, "response_ids": [], "ended": false})
+	check(visited.has("start"), "visited lines mark start")
+	check(not visited.has("rooftop"), "unvisited rooftop stays hidden")
+	check(not visited.has("END"), "END stays hidden until the story ends")
+	var choice = null
+	for node in nodes:
+		if str(node.type) == "CHOICE" and str(node.get("jump_key", "")) != "" and str(node.jump_key) != str(node.id):
+			choice = node
+			break
+	check(choice != null, "a choice has a prompt to travel to")
+	if choice == null:
+		return
+	var prompt := str(choice.jump_key)
+	var at_choice := {
+		"line_id": prompt,
+		"visited_ids": [prompt],
+		"history_ids": [first, prompt],
+		"response_ids": choice.response_ids,
+		"ended": false,
+	}
+	check(CompilerScript.locate_player(nodes, at_choice) == str(choice.id), "an open choice places the player on that choice")
+	var choice_visited: Dictionary = CompilerScript.visited_node_ids(nodes, at_choice)
+	check(choice_visited.has(str(choice.id)), "seeing the prompt marks the choice visited")
+	check(not choice_visited.has("rooftop"), "the choice does not reveal later scenes")
+	check(CompilerScript.history_index_for(["uid@1", "uid@%s" % prompt, "uid@9"], choice.line_ids, prompt, "") == 1, "header travel rolls back to the earliest owned line")
+	check(CompilerScript.history_index_for(["uid@1"], ["99"], "start", "") == -1, "an unvisited header has no history index")
+	var shown := {"start": true}
+	var packed: Array = CompilerScript.prepare_display(nodes, shown, true)
+	check(packed.size() == 1 and str(packed[0].id) == "start", "visited-only display drops unseen nodes")
+
+
+func _check_spoiler_gate() -> void:
+	var panel_text := FileAccess.get_file_as_string("res://scenes/route_graph/route_graph_panel.tscn")
+	check(panel_text.contains("Visited only") and panel_text.contains("button_pressed = true"), "visited-only toggle is authored and on")
+	check(panel_text.contains("Spoilers ahead") and panel_text.contains("Show spoilers"), "spoiler approval is authored")
+	var panel = load("res://scenes/route_graph/route_graph_panel.tscn").instantiate()
+	add_child(panel)
+	check(panel.visited_only, "visited-only starts on")
+	panel._on_visited_toggled(false)
+	check(panel.visited_only, "turning the filter off does nothing until approved")
+	check(panel.spoiler_panel.visible, "turning the filter off raises the spoiler prompt")
+	check(panel.dismiss_spoiler(), "dismissing the prompt consumes the close")
+	check(not panel.spoiler_panel.visible and panel.visited_only, "cancel keeps the visited filter on")
+	panel._on_visited_toggled(false)
+	panel._on_spoiler_confirmed()
+	check(not panel.visited_only and not panel.spoiler_panel.visible, "approval reveals the full map")
+	panel._on_visited_toggled(true)
+	check(panel.visited_only, "the filter can be turned back on without another prompt")
+	panel.free()
 
 
 func _check_panel_guard() -> void:

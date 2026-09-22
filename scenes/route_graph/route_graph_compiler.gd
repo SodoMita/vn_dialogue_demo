@@ -153,6 +153,7 @@ static func compile(resource, prefix: String = "", laid_out: bool = true) -> Dic
 		node.subtitle = "%d in / %d out" % [node.inputs.size(), node.outputs.size()]
 	if laid_out:
 		_layout(kept)
+	_annotate_lines(resource, kept, prefix)
 	return {"nodes": kept, "edges": []}
 
 
@@ -235,6 +236,7 @@ static func _apply_prefix(nodes: Array, prefix: String) -> void:
 			continue
 		var new_id := "%s/%s" % [prefix, old_id]
 		remap[old_id] = new_id
+		node["raw_id"] = old_id
 		node.id = new_id
 	for node in nodes:
 		for outp in node.outputs:
@@ -264,6 +266,12 @@ static func _make(id: String, type: String, title: String, color: Color, subtitl
 		"h": 140.0,
 		"inputs": [],
 		"outputs": [],
+		"line_ids": [],
+		"response_ids": [],
+		"jump_key": id,
+		"file_path": "",
+		"file_uid": "",
+		"raw_id": id,
 	}
 
 
@@ -635,3 +643,334 @@ static func _short(text: String, limit: int) -> String:
 	if trimmed.length() <= limit:
 		return trimmed
 	return trimmed.substr(0, limit - 3) + "..."
+
+
+## Line ownership for "you are here", visited filtering and header travel.
+## Cue spans stop at the next routing node. Choice nodes own their prompt,
+## their responses and the lines until the next cue. END is a sink, not a
+## span, so seeing the last line does not reveal the ending node.
+static func _annotate_lines(resource, nodes: Array, prefix: String = "") -> void:
+	var file_uid := _file_uid(resource)
+	var file_path := ""
+	if resource != null and "resource_path" in resource:
+		file_path = str(resource.resource_path)
+	for node in nodes:
+		node["file_uid"] = file_uid
+		node["file_path"] = file_path
+		node["line_ids"] = []
+		node["response_ids"] = []
+		node["jump_key"] = _raw_node_id(node, prefix)
+	if resource == null or not ("lines" in resource) or not ("cues" in resource):
+		return
+	var lines: Dictionary = resource.lines
+	var cues: Dictionary = resource.cues
+	var line_key := {}
+	for key in lines.keys():
+		line_key[str(key)] = key
+	var sig := {}
+	for node in nodes:
+		var raw := _raw_node_id(node, prefix)
+		var id := str(node.get("id", ""))
+		var typ := str(node.get("type", ""))
+		if typ == "ENDING" or raw == "END":
+			sig["end"] = id
+			sig["END"] = id
+			node["jump_key"] = ""
+		elif typ == "CHOICE" or raw.begins_with("choice_"):
+			var gid := raw.trim_prefix("choice_")
+			sig[gid] = id
+			node["jump_key"] = gid
+		else:
+			sig[raw] = id
+			if cues.has(raw):
+				sig[str(cues[raw])] = id
+			node["jump_key"] = raw
+	for node in nodes:
+		var raw := _raw_node_id(node, prefix)
+		var id := str(node.get("id", ""))
+		var typ := str(node.get("type", ""))
+		if typ == "ENDING" or raw == "END":
+			continue
+		if typ == "CHOICE" or raw.begins_with("choice_"):
+			var gid := raw.trim_prefix("choice_")
+			var responses: Array = []
+			if line_key.has(gid):
+				var listed = _line(lines, line_key, gid).get("responses", [])
+				if typeof(listed) == TYPE_ARRAY or typeof(listed) == TYPE_PACKED_STRING_ARRAY:
+					for rid in listed:
+						responses.append(str(rid))
+			if responses.is_empty():
+				responses.append(gid)
+			node["response_ids"] = responses
+			var claimed: Array = []
+			for rid in responses:
+				for lid in _claim_span(str(rid), lines, line_key, sig, id):
+					if not claimed.has(lid):
+						claimed.append(lid)
+			var prompt := _prompt_id(lines, line_key, gid)
+			if prompt != "":
+				node["jump_key"] = prompt
+				if not claimed.has(prompt):
+					claimed.append(prompt)
+			node["line_ids"] = claimed
+			continue
+		var anchor := ""
+		if cues.has(raw):
+			anchor = str(cues[raw])
+		elif line_key.has(raw):
+			anchor = raw
+		if anchor == "":
+			continue
+		node["line_ids"] = _claim_span(anchor, lines, line_key, sig, id)
+		node["jump_key"] = raw
+	# The prompt is the choice, not the previous scene.
+	for node in nodes:
+		var raw := _raw_node_id(node, prefix)
+		if str(node.get("type", "")) != "CHOICE" and not raw.begins_with("choice_"):
+			continue
+		var prompt := str(node.get("jump_key", ""))
+		if not _looks_like_line_id(prompt):
+			continue
+		for other in nodes:
+			if other == node:
+				continue
+			other["line_ids"].erase(prompt)
+		if not node["line_ids"].has(prompt):
+			node["line_ids"].append(prompt)
+	var end_line := ""
+	for lid in line_key.keys():
+		var line := _line(lines, line_key, lid)
+		if str(line.get("type", "")) == "dialogue" and str(line.get("next_id", "")) == "end":
+			end_line = str(lid)
+	if end_line != "":
+		for node in nodes:
+			if str(node.get("type", "")) == "ENDING" or _raw_node_id(node, prefix) == "END":
+				node["jump_key"] = end_line
+
+
+static func _raw_node_id(node: Dictionary, prefix: String) -> String:
+	var raw := str(node.get("raw_id", ""))
+	if raw == "":
+		raw = str(node.get("id", ""))
+	if prefix != "" and raw.begins_with(prefix + "/"):
+		return raw.substr(prefix.length() + 1)
+	return raw
+
+
+static func _file_uid(resource) -> String:
+	# Dialogue line ids are "<uid-without-scheme>@<line>", from
+	# ResourceUID.path_to_uid. ResourceLoader.get_resource_uid is a numeric
+	# id and must not be used here or visited/current matching fails.
+	var path := ""
+	if resource != null and "resource_path" in resource:
+		path = str(resource.resource_path)
+	if path == "" or not path.begins_with("res://"):
+		return ""
+	if not ResourceLoader.exists(path):
+		return ""
+	var uid := str(ResourceUID.path_to_uid(path))
+	if uid == "" or uid == "uid://" or uid == "-1" or uid.begins_with("uid://<"):
+		return ""
+	return uid.replace("uid://", "")
+
+
+static func _claim_span(start_id: String, lines: Dictionary, line_key: Dictionary, sig: Dictionary, owner_id: String) -> Array:
+	var claimed: Array = []
+	var stack: Array = [start_id]
+	var visited := {}
+	var guard := 0
+	while not stack.is_empty() and guard < 800:
+		guard += 1
+		var cur_id := str(stack.pop_back())
+		if cur_id == "" or cur_id == "end" or visited.has(cur_id):
+			continue
+		visited[cur_id] = true
+		if sig.has(cur_id) and str(sig[cur_id]) != owner_id:
+			continue
+		claimed.append(cur_id)
+		var line := _line(lines, line_key, cur_id)
+		if line.is_empty():
+			continue
+		if str(line.get("type", "")) == "condition":
+			var true_next := str(line.get("next_id", ""))
+			var false_next := str(line.get("next_sibling_id", ""))
+			if false_next == "":
+				false_next = str(line.get("next_id_after", ""))
+			if true_next != "":
+				stack.append(true_next)
+			if false_next != "":
+				stack.append(false_next)
+			continue
+		var nxt := str(line.get("next_id", ""))
+		if nxt == "":
+			nxt = str(line.get("next_id_after", ""))
+		if nxt != "" and nxt != cur_id:
+			stack.append(nxt)
+	return claimed
+
+
+static func _prompt_id(lines: Dictionary, line_key: Dictionary, gid: String) -> String:
+	for lid in line_key.keys():
+		var line := _line(lines, line_key, lid)
+		if str(line.get("next_id", "")) != gid:
+			continue
+		if str(line.get("type", "")) == "response":
+			continue
+		return str(lid)
+	return ""
+
+
+static func locate_player(nodes: Array, player: Dictionary) -> String:
+	if bool(player.get("ended", false)):
+		for node in nodes:
+			if str(node.get("type", "")) == "ENDING" or str(node.get("id", "")) == "END":
+				return str(node.get("id", ""))
+	var response_ids: Array = player.get("response_ids", [])
+	if not response_ids.is_empty():
+		var wanted := {}
+		for rid in response_ids:
+			wanted[_bare_id(str(rid))] = true
+		for node in nodes:
+			for rid in node.get("response_ids", []):
+				if wanted.has(_bare_id(str(rid))):
+					return str(node.get("id", ""))
+	var current := _id_pair(str(player.get("line_id", "")))
+	var best := ""
+	var best_rank := -1
+	if str(current.get("line", "")) != "":
+		for node in nodes:
+			if str(node.get("type", "")) == "ENDING":
+				continue
+			if not _node_owns_line(node, current):
+				continue
+			var rank := int(node.get("layer", 0))
+			if rank >= best_rank:
+				best = str(node.get("id", ""))
+				best_rank = rank
+	if best != "":
+		return best
+	if str(player.get("line_id", "")) == "":
+		for node in nodes:
+			if bool(node.get("entry", false)):
+				return str(node.get("id", ""))
+	return ""
+
+
+static func visited_node_ids(nodes: Array, player: Dictionary) -> Dictionary:
+	var result := {}
+	var current := locate_player(nodes, player)
+	var seen_lines: Array = player.get("visited_ids", [])
+	for node in nodes:
+		var id := str(node.get("id", ""))
+		if id != "" and id == current:
+			result[id] = true
+			continue
+		if bool(player.get("ended", false)) and (str(node.get("type", "")) == "ENDING" or id == "END"):
+			result[id] = true
+			continue
+		if str(node.get("type", "")) == "ENDING":
+			continue
+		for raw in seen_lines:
+			if _node_owns_line(node, _id_pair(str(raw))):
+				result[id] = true
+				break
+	return result
+
+
+static func history_index_for(history_ids: Array, line_ids: Array, jump_key: String, file_uid: String = "") -> int:
+	var wanted := {}
+	for lid in line_ids:
+		var bare := _bare_id(str(lid))
+		if bare != "":
+			wanted[bare] = true
+	var jump_bare := _bare_id(jump_key)
+	if _looks_like_line_id(jump_bare):
+		wanted[jump_bare] = true
+	if wanted.is_empty():
+		return -1
+	for i in history_ids.size():
+		var parts := _id_pair(str(history_ids[i]))
+		if file_uid != "" and str(parts.get("uid", "")) != "" and str(parts.get("uid", "")) != file_uid:
+			continue
+		if wanted.has(str(parts.get("line", ""))):
+			return i
+	return -1
+
+
+## shown nodes only. relayout packs the visited subset so empty future columns
+## do not sketch the rest of the story.
+static func prepare_display(nodes: Array, shown: Dictionary, relayout: bool) -> Array:
+	var picked: Array = []
+	for node in nodes:
+		if not shown.has(str(node.get("id", ""))):
+			continue
+		var copy: Dictionary = (node as Dictionary).duplicate(true)
+		if relayout:
+			var outputs: Array = []
+			for outp in copy.get("outputs", []):
+				if shown.has(str(outp.get("target", ""))):
+					outputs.append(outp)
+			copy["outputs"] = outputs
+			copy["inputs"] = []
+		picked.append(copy)
+	if not relayout:
+		return picked
+	var by_id := {}
+	for node in picked:
+		by_id[str(node.get("id", ""))] = node
+	_mirror_inputs(picked, by_id)
+	for node in picked:
+		node["w"] = MeshScript.measure_width(node)
+		node["h"] = MeshScript.measure_height(node.get("inputs", []).size(), node.get("outputs", []).size())
+		node["subtitle"] = "%d in / %d out" % [node.get("inputs", []).size(), node.get("outputs", []).size()]
+	if not picked.is_empty():
+		_layout(picked)
+	return picked
+
+
+static func _node_owns_line(node: Dictionary, parts: Dictionary) -> bool:
+	var line := str(parts.get("line", ""))
+	if line == "":
+		return false
+	var node_uid := str(node.get("file_uid", ""))
+	var uid := str(parts.get("uid", ""))
+	if uid != "" and node_uid != "" and uid != node_uid:
+		return false
+	for lid in node.get("line_ids", []):
+		if str(lid) == line:
+			return true
+	for lid in node.get("response_ids", []):
+		if str(lid) == line:
+			return true
+	return false
+
+
+static func _id_pair(id: String) -> Dictionary:
+	var s := id.strip_edges()
+	if "|" in s:
+		s = s.split("|")[0]
+	var uid := ""
+	var line := s
+	if "@" in s:
+		var bits := s.split("@")
+		uid = str(bits[0])
+		line = str(bits[bits.size() - 1])
+	return {"uid": uid, "line": line}
+
+
+static func _bare_id(id: String) -> String:
+	return str(_id_pair(id).get("line", ""))
+
+
+static func _looks_like_line_id(id: String) -> bool:
+	if id == "" or id == "END" or id == "end":
+		return false
+	var digits := false
+	for i in id.length():
+		var c := id.unicode_at(i)
+		var ok := (c >= 48 and c <= 57) or c == 46
+		if not ok:
+			return false
+		if c >= 48 and c <= 57:
+			digits = true
+	return digits

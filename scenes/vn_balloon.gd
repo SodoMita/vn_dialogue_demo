@@ -311,6 +311,8 @@ func _ready() -> void:
 	panic_screen.hide()
 	if is_instance_valid(route_graph_panel):
 		route_graph_panel.hide()
+		if route_graph_panel.has_signal("travel_requested") and not route_graph_panel.travel_requested.is_connected(_on_route_travel_requested):
+			route_graph_panel.travel_requested.connect(_on_route_travel_requested)
 	DirAccess.make_dir_recursive_absolute(saves_dir)
 	_ensure_audio_buses()
 	_setup_key_bindings()
@@ -548,7 +550,7 @@ func _close_top_overlay() -> void:
 	if pause_panel.visible:
 		close_pause()
 	elif route_graph_panel.visible:
-		_close_overlay(route_graph_panel)
+		_close_route_graph()
 	elif settings_panel.visible:
 		_close_overlay(settings_panel)
 	elif save_menu_panel.visible:
@@ -1001,7 +1003,7 @@ func _input(event: InputEvent) -> void:
 		if pause_panel.visible:
 			close_pause()
 		elif is_instance_valid(route_graph_panel) and route_graph_panel.visible:
-			_close_overlay(route_graph_panel)
+			_close_route_graph()
 		else:
 			open_pause()
 		get_viewport().set_input_as_handled()
@@ -1408,6 +1410,8 @@ func _retranslate_dynamic() -> void:
 		resolution_option.set_item_text(RES_PRESETS.size(), tr("Custom"))
 	if is_instance_valid(save_menu_title) and save_menu_panel.visible:
 		save_menu_title.text = tr("Save") if save_menu_mode == "save" else tr("Load")
+	if is_instance_valid(route_graph_panel) and route_graph_panel.has_method("refresh_locale"):
+		route_graph_panel.refresh_locale()
 	if is_instance_valid(advance_key_button):
 		_refresh_binding_labels()
 		if not _listening_for_action.is_empty():
@@ -1771,7 +1775,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if pause_panel.visible:
 			close_pause()
 		elif is_instance_valid(route_graph_panel) and route_graph_panel.visible:
-			_close_overlay(route_graph_panel)
+			_close_route_graph()
 		else:
 			open_pause()
 		return
@@ -2005,9 +2009,84 @@ func _on_route_button_pressed() -> void:
 	if is_instance_valid(route_graph_panel):
 		_open_overlay(route_graph_panel)
 		if route_graph_panel.has_method("show_graph"):
-			route_graph_panel.show_graph(dialogue_resource)
+			route_graph_panel.show_graph(dialogue_resource, _route_player_state())
 	else:
 		_toast("Route graph not available")
+
+
+func _close_route_graph() -> void:
+	if not is_instance_valid(route_graph_panel):
+		return
+	if route_graph_panel.has_method("dismiss_spoiler") and route_graph_panel.dismiss_spoiler():
+		return
+	_close_overlay(route_graph_panel)
+
+
+func _route_player_state() -> Dictionary:
+	var history_ids: Array = []
+	var visited_ids: Array = []
+	for entry in history:
+		var lid := str(entry.get("id", ""))
+		history_ids.append(lid)
+		visited_ids.append(lid)
+	var line_id := ""
+	var response_ids: Array = []
+	var ended := not is_instance_valid(dialogue_line)
+	if not ended:
+		line_id = str(dialogue_line.id)
+		visited_ids.append(line_id)
+		for response in dialogue_line.responses:
+			if response is Object and "id" in response:
+				response_ids.append(str(response.id))
+	return {
+		"line_id": line_id,
+		"visited_ids": visited_ids,
+		"history_ids": history_ids,
+		"response_ids": response_ids,
+		"ended": ended,
+	}
+
+
+func _on_route_travel_requested(target: Dictionary) -> void:
+	_close_route_graph()
+	_halt_modes_for_travel()
+	var title := str(target.get("title", ""))
+	var index := int(target.get("history_index", -1))
+	if index >= 0 and index < history.size():
+		rollback_to(index)
+		_toast(tr("Moved to %s") % title)
+		return
+	_jump_to_route_key(str(target.get("jump_key", "")), str(target.get("file_path", "")), title)
+
+
+func _halt_modes_for_travel() -> void:
+	auto_mode = false
+	_seeking_choice = false
+	auto_timer.stop()
+	if is_instance_valid(auto_button):
+		auto_button.modulate = Color.WHITE
+	_set_skip_active(false)
+
+
+func _jump_to_route_key(jump_key: String, file_path: String, title: String) -> void:
+	if jump_key == "" or jump_key == "END" or jump_key == "end":
+		_toast(tr("Nothing to show there"))
+		return
+	if file_path != "" and (not is_instance_valid(dialogue_resource) or str(dialogue_resource.resource_path) != file_path):
+		var loaded = load(file_path)
+		if loaded != null:
+			dialogue_resource = loaded
+	if not is_instance_valid(dialogue_resource):
+		_toast(tr("Nothing to show there"))
+		return
+	if history_cursor < history.size() - 1:
+		history = history.slice(0, history_cursor + 1)
+	var line: DialogueLine = await dialogue_resource.get_next_dialogue_line(jump_key, temporary_game_states)
+	if line == null:
+		_toast(tr("Nothing to show there"))
+		return
+	dialogue_line = line
+	_toast(tr("Moved to %s") % title)
 
 
 func _on_panic_pressed() -> void:

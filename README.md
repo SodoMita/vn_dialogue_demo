@@ -253,6 +253,9 @@ the sprite sliders slide again.
 - `docs/RECREATION.md` — rebuilding this balloon from scratch with Dialogue Manager,
   layout blueprint and the pitfalls list.
 - `docs/ROUTE_GRAPH_DESIGN.md` — the optional story-map renderer (single-pass, one atlas fetch).
+  The map marks where you are, a header click travels there, an edge click pans to the
+  further of that edge's two nodes, and **Visited only** hides unread routes until you
+  approve the spoiler warning.
 
 Rendered screenshots (under Xvfb + software GL):
 

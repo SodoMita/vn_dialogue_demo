@@ -11,6 +11,12 @@ const PORT_INSET := 16.0
 
 var port_hits: Array = []
 var edge_hits: Array = []
+var header_hits: Array = []
+## Clicks inside this radius of a port icon stay port clicks. The arrow sits
+## just outside it, so an edge click is not stolen by the destination port
+## (that port's jump target is the source).
+const PORT_CORE := 6.0
+const EDGE_HIT := 10.0
 var _atlas = null
 var _verts := PackedVector3Array()
 var _uvs := PackedVector2Array()
@@ -58,7 +64,26 @@ static func text_keys(nodes: Array) -> Array:
 						"text": cond,
 						"size": 10,
 					})
+	entries.append({"key": "here_badge", "text": "You are here", "size": 12})
 	return entries
+
+
+## Further of the two endpoints. Layer wins, then x. A tie keeps the target so
+## a forward edge never falls back to the source.
+static func furthest_endpoint(source_id: String, target_id: String, by_id: Dictionary) -> String:
+	if not by_id.has(target_id):
+		return source_id
+	if not by_id.has(source_id):
+		return target_id
+	var source_rank := _node_rank(by_id[source_id])
+	var target_rank := _node_rank(by_id[target_id])
+	if source_rank > target_rank + 0.01:
+		return source_id
+	return target_id
+
+
+static func _node_rank(node: Dictionary) -> float:
+	return float(node.get("layer", 0)) * 1000000.0 + float(node.get("x", 0.0))
 
 
 static func furthest_node(start_id: String, by_id: Dictionary) -> String:
@@ -92,10 +117,11 @@ static func furthest_node(start_id: String, by_id: Dictionary) -> String:
 	return best
 
 
-func build(atlas, nodes: Array) -> ArrayMesh:
+func build(atlas, nodes: Array, here_id: String = "") -> ArrayMesh:
 	_atlas = atlas
 	port_hits.clear()
 	edge_hits.clear()
+	header_hits.clear()
 	_verts = PackedVector3Array()
 	_uvs = PackedVector2Array()
 	_cols = PackedColorArray()
@@ -106,7 +132,9 @@ func build(atlas, nodes: Array) -> ArrayMesh:
 		by_id[str(node.get("id", ""))] = node
 	_draw_edges(nodes, by_id)
 	for node in nodes:
-		_draw_node(node)
+		_draw_node(node, str(node.get("id", "")) == here_id)
+	if here_id != "" and by_id.has(here_id):
+		_draw_here(by_id[here_id])
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = _verts
@@ -122,11 +150,34 @@ func build(atlas, nodes: Array) -> ArrayMesh:
 
 
 func hit_test(graph_pos: Vector2) -> Dictionary:
+	for hit in header_hits:
+		if (hit.get("rect", Rect2()) as Rect2).has_point(graph_pos):
+			return hit
+	var edge := _best_edge(graph_pos)
+	var port := _best_port(graph_pos)
+	if not port.is_empty():
+		var center: Vector2 = (port.get("rect", Rect2()) as Rect2).get_center()
+		# Icon core still jumps to the other side. The arrow and the line do not:
+		# those used to hit the destination port and send the player to the source.
+		if center.distance_to(graph_pos) <= PORT_CORE:
+			return port
+		if not edge.is_empty():
+			return edge
+		if center.distance_to(graph_pos) <= 11.0:
+			return port
+	return edge
+
+
+func _best_port(graph_pos: Vector2) -> Dictionary:
 	for hit in port_hits:
 		if (hit.get("rect", Rect2()) as Rect2).has_point(graph_pos):
 			return hit
+	return {}
+
+
+func _best_edge(graph_pos: Vector2) -> Dictionary:
 	var best: Dictionary = {}
-	var best_d := 9.0
+	var best_d := EDGE_HIT
 	for hit in edge_hits:
 		var dist := _dist_to_segment(graph_pos, hit.get("a", Vector2.ZERO), hit.get("b", Vector2.ZERO))
 		if dist < best_d:
@@ -151,17 +202,28 @@ func _draw_edges(nodes: Array, by_id: Dictionary) -> void:
 			var color := _type_color(str(outp.get("type", "FLOW")))
 			color.a = 0.92
 			_line(a, b, 2.6, color)
+			var start := a
+			var finish := b
+			var delta := b - a
+			var length := delta.length()
+			if length > 1.0:
+				var n := delta / length
+				start = a + n * 14.0
+				finish = b - n * 6.0
+				if start.distance_to(finish) < 4.0:
+					start = a
+					finish = b
 			edge_hits.append({
-				"a": a,
-				"b": b,
-				"jump_to": furthest_node(target_id, by_id),
+				"a": start,
+				"b": finish,
+				"jump_to": furthest_endpoint(str(node.get("id", "")), target_id, by_id),
 				"kind": "edge",
 				"source": str(node.get("id", "")),
 				"target": target_id,
 			})
 
 
-func _draw_node(node: Dictionary) -> void:
+func _draw_node(node: Dictionary, here: bool = false) -> void:
 	var rect := Rect2(float(node.get("x", 0.0)), float(node.get("y", 0.0)), float(node.get("w", 230.0)), float(node.get("h", 120.0)))
 	var accent: Color = node.get("color", Color(0.2, 0.45, 0.5))
 	_solid(rect, Color(0.055, 0.08, 0.14, 0.96))
@@ -171,10 +233,40 @@ func _draw_node(node: Dictionary) -> void:
 	_solid(Rect2(rect.position + Vector2(0, rect.size.y - 1.5), Vector2(rect.size.x, 1.5)), border)
 	_solid(Rect2(rect.position, Vector2(1.5, rect.size.y)), border)
 	_solid(Rect2(rect.position + Vector2(rect.size.x - 1.5, 0), Vector2(1.5, rect.size.y)), border)
-	_text("title:%s" % node.get("id", ""), rect.position + Vector2(12, 10), Vector2(rect.size.x - 24, 22), Color.WHITE)
+	var title_w := rect.size.x - (44.0 if here else 24.0)
+	_text("title:%s" % node.get("id", ""), rect.position + Vector2(12, 10), Vector2(title_w, 22), Color.WHITE)
 	_text("sub:%s" % node.get("id", ""), rect.position + Vector2(12, 34), Vector2(rect.size.x - 24, 16), Color(0.68, 0.75, 0.84, 1))
+	if here:
+		var pin := Rect2(rect.position + Vector2(rect.size.x - 26.0, 10.0), Vector2(14, 14))
+		_quad(pin, _atlas.shape_uv("STORY"), Color(1.0, 0.82, 0.28, 1))
+		var badge := _fitted_size("here_badge", rect.size.x - 24.0, 14.0)
+		if badge.x > 4.0:
+			_quad(Rect2(rect.position + Vector2(12.0, 50.0), badge), _atlas.uv_of("here_badge"), Color(1.0, 0.82, 0.28, 1))
+	var header_h := minf(64.0, rect.size.y)
+	header_hits.append({
+		"rect": Rect2(rect.position, Vector2(rect.size.x, header_h)),
+		"kind": "header",
+		"node_id": str(node.get("id", "")),
+		"jump_key": str(node.get("jump_key", "")),
+		"title": str(node.get("title", "")),
+		"line_ids": node.get("line_ids", []),
+		"file_path": str(node.get("file_path", "")),
+		"file_uid": str(node.get("file_uid", "")),
+	})
 	_draw_ports(node, "inputs")
 	_draw_ports(node, "outputs")
+
+
+func _draw_here(node: Dictionary) -> void:
+	var rect := Rect2(float(node.get("x", 0.0)), float(node.get("y", 0.0)), float(node.get("w", 230.0)), float(node.get("h", 120.0)))
+	var gold := Color(1.0, 0.82, 0.28, 1.0)
+	var o := 6.0
+	var t := 3.0
+	var outer := Rect2(rect.position - Vector2(o, o), rect.size + Vector2(o * 2.0, o * 2.0))
+	_solid(Rect2(outer.position, Vector2(outer.size.x, t)), gold)
+	_solid(Rect2(outer.position + Vector2(0, outer.size.y - t), Vector2(outer.size.x, t)), gold)
+	_solid(Rect2(outer.position, Vector2(t, outer.size.y)), gold)
+	_solid(Rect2(outer.position + Vector2(outer.size.x - t, 0), Vector2(t, outer.size.y)), gold)
 
 
 func _draw_ports(node: Dictionary, side: String) -> void:

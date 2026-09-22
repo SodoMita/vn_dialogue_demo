@@ -31,9 +31,12 @@ small graphics engine: one mesh, one shader pass, one texture atlas.
    order. Cues, choice groups, and one shared END. The graph may contain cycles; a
    back-edge is drawn but does not move the anchors. The first cue of the first file is
    always the leftmost node, and END is always the rightmost. Linear lines and mutations
-   collapse. A port click jumps to the other side; an edge click jumps to the furthest
-   node along that line.
-5. Player overlay: the Map button on the system row.
+   collapse. A port click jumps to the other side of that line. An edge click — including
+   the arrow — jumps to the further of that edge's two nodes, not the source and not a
+   node past the edge. A header click travels to that place in the game.
+5. Player overlay: the Map button on the system row. The current scene is marked on the
+   graph and named in the bar. **Visited only** is on by default and hides routes the
+   player has not reached. Turning it off asks for approval before showing spoilers.
 
 The route-graph scripts are preloaded. They intentionally have no `class_name` and no
 typed `_init` arguments — a missing UID class-cache entry otherwise fails to parse
