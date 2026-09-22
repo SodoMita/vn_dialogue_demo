@@ -115,7 +115,7 @@ func _build_edges(nodes_arr: Array) -> Array:
 		var rows: int = max(num_in, num_out)
 		if rows == 0:
 			rows = 1
-		var row_h: float = 46.0 if n.get("has_conds", false) else 34.0
+		var row_h: float = 46.0 # consistent for all nodes to keep edges aligned
 		var base_y: float = n.y + 90.0
 		var ins: Array = []
 		var outs: Array = []

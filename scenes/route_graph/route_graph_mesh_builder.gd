@@ -194,7 +194,7 @@ func build(nodes: Array, edges: Array) -> ArrayMesh:
 		var rows: int = max(num_in, num_out)
 		if rows == 0:
 			rows = 1
-		var row_h: float = 46.0 if n.get("has_conds", false) else 34.0
+		var row_h: float = 46.0 # consistent for alignment
 		var base_y: float = y + 90.0
 
 		for i in range(rows):

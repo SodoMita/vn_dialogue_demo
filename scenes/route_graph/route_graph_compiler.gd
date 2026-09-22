@@ -490,7 +490,7 @@ static func _layout_nodes(nodes: Array) -> void:
 			var rows: int = max(n.inputs.size(), n.outputs.size())
 			if rows == 0:
 				rows = 1
-			var row_h: int = 46 if n.get("has_conds", false) else 34
+			var row_h: int = 46
 			var needed: int = 90 + rows*row_h + 30
 			if n.h < needed:
 				n.h = needed
