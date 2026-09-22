@@ -1,336 +1,334 @@
-class_name RouteGraphMeshBuilder
-# CPU mesh builder: builds quad soup for single-pass renderer
-# Vertices carry position + uv + color, uploaded once
+extends RefCounted
+## CPU quad soup for the route graph. One mesh, straight edges, no grid.
+## No class_name: a typed _init on a global class fails to parse when that
+## class is missing from the UID class cache (route_graph_view.gd:90).
 
-var vertices: PackedVector3Array
-var uvs: PackedVector2Array
-var colors: PackedColorArray
-var indices: PackedInt32Array
 
-var _atlas: RouteGraphAtlas
-var _white_uv: Rect2
+const PORT_TOP := 72.0
+const ROW_H := 46.0
+const PAD_BOTTOM := 14.0
+const PORT_INSET := 16.0
 
-# Hit test data
-var port_hits: Array[Dictionary] = [] # {rect, target_id, source_id, type}
-var edge_hits: Array[Dictionary] = [] # {a,b, target_id, furthest_id, rect}
+var port_hits: Array = []
+var edge_hits: Array = []
+var _atlas = null
+var _verts := PackedVector3Array()
+var _uvs := PackedVector2Array()
+var _cols := PackedColorArray()
+var _white := Vector2.ZERO
 
-var _node_by_id: Dictionary = {}
 
-func _init(atlas: RouteGraphAtlas):
+static func measure_height(input_count: int, output_count: int) -> float:
+	return PORT_TOP + float(maxi(1, maxi(input_count, output_count))) * ROW_H + PAD_BOTTOM
+
+
+static func measure_width(node: Dictionary) -> float:
+	var longest := str(node.get("title", "")).length()
+	for side in ["inputs", "outputs"]:
+		for port in node.get(side, []):
+			longest = maxi(longest, str(port.get("tag", "")).length())
+			longest = maxi(longest, mini(28, str(port.get("cond", "")).length()))
+	return clampf(150.0 + float(longest) * 7.4, 230.0, 360.0)
+
+
+static func port_center(node: Dictionary, is_output: bool, index: int) -> Vector2:
+	var y := float(node.get("y", 0.0)) + PORT_TOP + float(index) * ROW_H + ROW_H * 0.5
+	var x := float(node.get("x", 0.0)) + float(node.get("w", 0.0)) - PORT_INSET if is_output else float(node.get("x", 0.0)) + PORT_INSET
+	return Vector2(x, y)
+
+
+static func text_keys(nodes: Array) -> Array:
+	var entries: Array = []
+	for node in nodes:
+		entries.append({"key": "title:%s" % node.get("id", ""), "text": str(node.get("title", "")), "size": 18})
+		entries.append({"key": "sub:%s" % node.get("id", ""), "text": str(node.get("subtitle", "")), "size": 12})
+		for side in ["inputs", "outputs"]:
+			var ports: Array = node.get(side, [])
+			for i in ports.size():
+				var port: Dictionary = ports[i]
+				entries.append({
+					"key": "tag:%s:%s:%d" % [node.get("id", ""), side, i],
+					"text": str(port.get("tag", "")),
+					"size": 12,
+				})
+				var cond := str(port.get("cond", ""))
+				if cond != "":
+					entries.append({
+						"key": "cond:%s:%s:%d" % [node.get("id", ""), side, i],
+						"text": cond,
+						"size": 10,
+					})
+	return entries
+
+
+static func furthest_node(start_id: String, by_id: Dictionary) -> String:
+	if not by_id.has(start_id):
+		return start_id
+	var best := start_id
+	var best_depth := 0
+	var origin := Vector2(float(by_id[start_id].get("x", 0.0)), float(by_id[start_id].get("y", 0.0)))
+	var best_dist := 0.0
+	var stack: Array = [{"id": start_id, "depth": 0, "path": {start_id: true}}]
+	var guard := 0
+	while not stack.is_empty() and guard < 8000:
+		guard += 1
+		var item: Dictionary = stack.pop_back()
+		var id := str(item.get("id", ""))
+		var depth := int(item.get("depth", 0))
+		var node: Dictionary = by_id.get(id, {})
+		var dist := Vector2(float(node.get("x", 0.0)), float(node.get("y", 0.0))).distance_to(origin)
+		if depth > best_depth or (depth == best_depth and dist > best_dist + 0.5):
+			best = id
+			best_depth = depth
+			best_dist = dist
+		var path: Dictionary = item.get("path", {})
+		for outp in node.get("outputs", []):
+			var target := str(outp.get("target", ""))
+			if target == "" or not by_id.has(target) or path.has(target):
+				continue
+			var next_path := path.duplicate()
+			next_path[target] = true
+			stack.append({"id": target, "depth": depth + 1, "path": next_path})
+	return best
+
+
+func build(atlas, nodes: Array) -> ArrayMesh:
 	_atlas = atlas
-	_white_uv = atlas.white_uv
-	vertices = PackedVector3Array()
-	uvs = PackedVector2Array()
-	colors = PackedColorArray()
-	indices = PackedInt32Array()
-
-func clear():
-	vertices.clear()
-	uvs.clear()
-	colors.clear()
-	indices.clear()
 	port_hits.clear()
 	edge_hits.clear()
-
-func add_quad(pos: Vector2, size: Vector2, uv_rect: Rect2, color: Color) -> void:
-	var base: int = vertices.size()
-	# 2 triangles = 6 vertices (or 4 vertices with indices, but we use 6 for simplicity)
-	# Triangle 1: TL, BL, BR
-	# Triangle 2: TL, BR, TR
-	var tl: Vector2 = pos
-	var bl: Vector2 = pos + Vector2(0, size.y)
-	var br: Vector2 = pos + size
-	var tr: Vector2 = pos + Vector2(size.x, 0)
-
-	var uv_tl: Vector2 = uv_rect.position
-	var uv_bl: Vector2 = uv_rect.position + Vector2(0, uv_rect.size.y)
-	var uv_br: Vector2 = uv_rect.position + uv_rect.size
-	var uv_tr: Vector2 = uv_rect.position + Vector2(uv_rect.size.x, 0)
-
-	# tri1
-	vertices.append(Vector3(tl.x, tl.y, 0)); uvs.append(uv_tl); colors.append(color)
-	vertices.append(Vector3(bl.x, bl.y, 0)); uvs.append(uv_bl); colors.append(color)
-	vertices.append(Vector3(br.x, br.y, 0)); uvs.append(uv_br); colors.append(color)
-	# tri2
-	vertices.append(Vector3(tl.x, tl.y, 0)); uvs.append(uv_tl); colors.append(color)
-	vertices.append(Vector3(br.x, br.y, 0)); uvs.append(uv_br); colors.append(color)
-	vertices.append(Vector3(tr.x, tr.y, 0)); uvs.append(uv_tr); colors.append(color)
-
-func add_triangle(p1: Vector2, p2: Vector2, p3: Vector2, uv_rect: Rect2, color: Color) -> void:
-	# uv mapping: use center of white pixel for all
-	var uv_c: Vector2 = uv_rect.get_center()
-	vertices.append(Vector3(p1.x, p1.y, 0)); uvs.append(uv_c); colors.append(color)
-	vertices.append(Vector3(p2.x, p2.y, 0)); uvs.append(uv_c); colors.append(color)
-	vertices.append(Vector3(p3.x, p3.y, 0)); uvs.append(uv_c); colors.append(color)
-
-func add_line(a: Vector2, b: Vector2, thickness: float, uv_rect: Rect2, color: Color) -> void:
-	var dir: Vector2 = b - a
-	var len: float = dir.length()
-	if len < 0.001:
-		return
-	dir = dir / len
-	var perp: Vector2 = Vector2(-dir.y, dir.x) * thickness * 0.5
-	var p1: Vector2 = a + perp
-	var p2: Vector2 = a - perp
-	var p3: Vector2 = b - perp
-	var p4: Vector2 = b + perp
-	# quad as 2 tris
-	var uv_tl: Vector2 = uv_rect.position
-	var uv_bl: Vector2 = uv_rect.position + Vector2(0, uv_rect.size.y)
-	var uv_br: Vector2 = uv_rect.position + uv_rect.size
-	var uv_tr: Vector2 = uv_rect.position + Vector2(uv_rect.size.x, 0)
-
-	var base: int = vertices.size()
-	vertices.append(Vector3(p1.x, p1.y, 0)); uvs.append(uv_tl); colors.append(color)
-	vertices.append(Vector3(p2.x, p2.y, 0)); uvs.append(uv_bl); colors.append(color)
-	vertices.append(Vector3(p3.x, p3.y, 0)); uvs.append(uv_br); colors.append(color)
-
-	vertices.append(Vector3(p1.x, p1.y, 0)); uvs.append(uv_tl); colors.append(color)
-	vertices.append(Vector3(p3.x, p3.y, 0)); uvs.append(uv_br); colors.append(color)
-	vertices.append(Vector3(p4.x, p4.y, 0)); uvs.append(uv_tr); colors.append(color)
-
-func build(nodes: Array, edges: Array) -> ArrayMesh:
-	clear()
-	_node_by_id.clear()
-	for n in nodes:
-		_node_by_id[n.id] = n
-
-	# Precompute furthest for each edge
-	var furthest_map: Dictionary = {}
-	for e in edges:
-		furthest_map[e.source_id + "->" + e.target_id + str(e.source_out_idx)] = _find_furthest(e.target_id)
-
-	# Edges first (behind)
-	for e in edges:
-		var a: Vector2 = Vector2(e.source_x, e.source_y)
-		var b: Vector2 = Vector2(e.target_x, e.target_y)
-		var col: Color
-		match e.source_type:
-			"FLOW": col = Color("#E2E8F0")
-			"STORY": col = Color("#38BDF8")
-			"CHOICE": col = Color("#FBBF24")
-			_: col = Color("#A78BFA")
-		if e.is_false:
-			col.a = 0.7
-		# straight line
-		add_line(a, b, 2.5, _white_uv, col)
-
-		# arrowhead at b
-		var dir: Vector2 = (b - a).normalized()
-		var perp: Vector2 = Vector2(-dir.y, dir.x)
-		var arrow_len: float = 10
-		var arrow_w: float = 6
-		var tip: Vector2 = b
-		var base1: Vector2 = b - dir * arrow_len + perp * arrow_w
-		var base2: Vector2 = b - dir * arrow_len - perp * arrow_w
-		add_triangle(tip, base1, base2, _white_uv, col)
-
-		# hit test for edge: bounding rect expanded + line segment
-		var minx: float = min(a.x, b.x) - 8
-		var maxx: float = max(a.x, b.x) + 8
-		var miny: float = min(a.y, b.y) - 8
-		var maxy: float = max(a.y, b.y) + 8
-		edge_hits.append({
-			"a": a, "b": b,
-			"rect": Rect2(Vector2(minx, miny), Vector2(maxx-minx, maxy-miny)),
-			"target_id": e.target_id,
-			"furthest_id": furthest_map[e.source_id + "->" + e.target_id + str(e.source_out_idx)],
-			"source_id": e.source_id
-		})
-
-	# Nodes
-	for n in nodes:
-		var x: float = n.x
-		var y: float = n.y
-		var w: float = n.w
-		var h: float = n.h
-		var col_bg: Color = Color("#131B2E")
-		var col_header: Color = n.color
-
-		var header_h: float = 28.0
-		# main body
-		add_quad(Vector2(x,y), Vector2(w,h), _white_uv, col_bg)
-		# header - fits header text
-		add_quad(Vector2(x,y), Vector2(w,header_h), _white_uv, col_header)
-
-		# port columns background lines
-		# horizontal separator at 78
-		add_quad(Vector2(x, y+78), Vector2(w,1), _white_uv, Color("#1E293B"))
-		# vertical divider
-		add_quad(Vector2(x+w*0.5, y+78), Vector2(1, h-78), _white_uv, Color("#1E293B", 0.8))
-
-	# Second pass for text and port shapes (on top of rects)
-	for n in nodes:
-		var x: float = n.x
-		var y: float = n.y
-		var w: float = n.w
-		var h: float = n.h
-
-		var header_h: float = 28.0
-		# type/id header text (small) - inside header bg
-		var header_txt: String = n.type + " • " + n.id
-		if _atlas.uvs.has(header_txt):
-			var uv: Rect2 = _atlas.get_uv(header_txt)
-			var sz: Vector2 = _atlas.get_size(header_txt)
-			# clamp to fit inside header: header_h - 8 margin
-			add_quad(Vector2(x+8, y+6), sz, uv, Color.WHITE)
-
-		# title - below header, fits
-		var title_key: String = n.title + "_title"
-		if not _atlas.uvs.has(title_key):
-			title_key = n.title
-		if _atlas.uvs.has(title_key):
-			var uv: Rect2 = _atlas.get_uv(title_key)
-			var sz: Vector2 = _atlas.get_size(title_key)
-			add_quad(Vector2(x+12, y+header_h+8), sz, uv, Color.WHITE)
-
-		# subtitle - below title
-		var sub_key: String = n.subtitle
-		if _atlas.uvs.has(sub_key):
-			var uv: Rect2 = _atlas.get_uv(sub_key)
-			var sz: Vector2 = _atlas.get_size(sub_key)
-			add_quad(Vector2(x+12, y+header_h+26), sz, uv, Color("#94A3B8"))
-
-		# ports
-		var num_in: int = n.inputs.size()
-		var num_out: int = n.outputs.size()
-		var rows: int = max(num_in, num_out)
-		if rows == 0:
-			rows = 1
-		var row_h: float = 46.0 # consistent for alignment
-		var base_y: float = y + 90.0
-
-		for i in range(rows):
-			if i < num_in:
-				var inp: Dictionary = n.inputs[i]
-				var py: float = base_y + i*row_h + 14.0
-				var sx_shape: float = x + 14.0
-				# shape
-				var shape_kind: String = "FLOW"
-				match inp.type:
-					"FLOW": shape_kind = "FLOW"
-					"STORY": shape_kind = "STORY"
-					"CHOICE": shape_kind = "CHOICE"
-					_: shape_kind = "BOOL"
-				var shape_uv: Rect2 = _atlas.shape_uvs.get(shape_kind, _white_uv)
-				var shape_col: Color = Color.WHITE
-				match inp.type:
-					"FLOW": shape_col = Color.WHITE
-					"STORY": shape_col = Color("#38BDF8")
-					"CHOICE": shape_col = Color("#FBBF24")
-					_: shape_col = Color("#A78BFA")
-				add_quad(Vector2(sx_shape-6, py-6), Vector2(12,12), shape_uv, shape_col)
-
-				# label
-				var lbl: String = inp.label
-				if _atlas.uvs.has(lbl):
-					var uv: Rect2 = _atlas.get_uv(lbl)
-					var sz: Vector2 = _atlas.get_size(lbl)
-					add_quad(Vector2(x+26, py-4), sz, uv, Color("#CBD5E1"))
-
-				# tag
-				var tag: String = inp.tag
-				if _atlas.uvs.has(tag):
-					var uv: Rect2 = _atlas.get_uv(tag)
-					var sz: Vector2 = _atlas.get_size(tag)
-					add_quad(Vector2(x+26, py-16), sz, uv, Color("#64748B"))
-
-				# cond badge
-				var cond: String = inp.get("cond","")
-				if cond != "" and _atlas.uvs.has(cond):
-					# badge bg
-					var bw: float = _atlas.get_size(cond).x + 12
-					add_quad(Vector2(x+26, py+8), Vector2(bw, 13), _white_uv, Color("#1E1B4B"))
-					var uv: Rect2 = _atlas.get_uv(cond)
-					var sz: Vector2 = _atlas.get_size(cond)
-					add_quad(Vector2(x+32, py+8), sz, uv, Color("#C4B5FD"))
-
-				# hit rect for input port
-				var hit_rect: Rect2 = Rect2(Vector2(x, py-12), Vector2(w*0.5, row_h))
-				port_hits.append({
-					"rect": hit_rect,
-					"target_id": inp.get("source",""),
-					"source_id": n.id,
-					"type": "in",
-					"port_idx": i
-				})
-
-			if i < num_out:
-				var outp: Dictionary = n.outputs[i]
-				var py: float = base_y + i*row_h + 14.0
-				var sx_shape: float = x + w - 14.0
-				var shape_kind: String = "FLOW"
-				match outp.type:
-					"FLOW": shape_kind = "FLOW"
-					"STORY": shape_kind = "STORY"
-					"CHOICE": shape_kind = "CHOICE"
-					_: shape_kind = "BOOL"
-				var shape_uv: Rect2 = _atlas.shape_uvs.get(shape_kind, _white_uv)
-				var shape_col: Color = Color.WHITE
-				match outp.type:
-					"FLOW": shape_col = Color.WHITE
-					"STORY": shape_col = Color("#38BDF8")
-					"CHOICE": shape_col = Color("#FBBF24")
-					_: shape_col = Color("#A78BFA")
-				add_quad(Vector2(sx_shape-6, py-6), Vector2(12,12), shape_uv, shape_col)
-
-				var lbl: String = outp.label
-				if _atlas.uvs.has(lbl):
-					var uv: Rect2 = _atlas.get_uv(lbl)
-					var sz: Vector2 = _atlas.get_size(lbl)
-					add_quad(Vector2(x+w-26 - sz.x, py-4), sz, uv, Color("#CBD5E1"))
-
-				var tag: String = outp.tag
-				if _atlas.uvs.has(tag):
-					var uv: Rect2 = _atlas.get_uv(tag)
-					var sz: Vector2 = _atlas.get_size(tag)
-					add_quad(Vector2(x+w-26 - sz.x, py-16), sz, uv, Color("#94A3B8"))
-
-				var cond: String = outp.get("cond","")
-				if cond != "" and _atlas.uvs.has(cond):
-					var bw: float = _atlas.get_size(cond).x + 12
-					add_quad(Vector2(x+w-26 - bw, py+8), Vector2(bw, 13), _white_uv, Color("#1E1B4B"))
-					var uv: Rect2 = _atlas.get_uv(cond)
-					var sz: Vector2 = _atlas.get_size(cond)
-					add_quad(Vector2(x+w-26 - bw + 6, py+8), sz, uv, Color("#FDE68A"))
-
-				# hit rect for output port
-				var hit_rect: Rect2 = Rect2(Vector2(x+w*0.5, py-12), Vector2(w*0.5, row_h))
-				port_hits.append({
-					"rect": hit_rect,
-					"target_id": outp.target,
-					"source_id": n.id,
-					"type": "out",
-					"port_idx": i
-				})
-
-	# Build mesh
-	var arrays: Array = []
+	_verts = PackedVector3Array()
+	_uvs = PackedVector2Array()
+	_cols = PackedColorArray()
+	var white: Rect2 = atlas.white_uv()
+	_white = white.position + white.size * 0.5
+	var by_id := {}
+	for node in nodes:
+		by_id[str(node.get("id", ""))] = node
+	_draw_edges(nodes, by_id)
+	for node in nodes:
+		_draw_node(node)
+	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = vertices
-	arrays[Mesh.ARRAY_TEX_UV] = uvs
-	arrays[Mesh.ARRAY_COLOR] = colors
-	# indices not needed, we already have 6 verts per quad
-
-	var mesh: ArrayMesh = ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	arrays[Mesh.ARRAY_VERTEX] = _verts
+	arrays[Mesh.ARRAY_TEX_UV] = _uvs
+	arrays[Mesh.ARRAY_COLOR] = _cols
+	var mesh := ArrayMesh.new()
+	if _verts.size() >= 3:
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	# Shader pan/zoom moves vertices outside the raw graph AABB. A huge custom
+	# AABB keeps the canvas item from being culled; the view clips to itself.
+	mesh.set_custom_aabb(AABB(Vector3(-100000, -100000, -1), Vector3(200000, 200000, 2)))
 	return mesh
 
-func _find_furthest(start_id: String) -> String:
-	# Follow first output recursively until ending (0 outputs)
-	var cur: String = start_id
-	var visited: Dictionary = {}
-	var steps: int = 0
-	while steps < 20:
-		if visited.has(cur):
-			break
-		visited[cur] = true
-		var node: Dictionary = _node_by_id.get(cur, {})
-		if node.is_empty():
-			break
-		var outs: Array = node.get("outputs", [])
-		if outs.is_empty():
-			break
-		cur = outs[0].target
-		steps += 1
-	return cur
+
+func hit_test(graph_pos: Vector2) -> Dictionary:
+	for hit in port_hits:
+		if (hit.get("rect", Rect2()) as Rect2).has_point(graph_pos):
+			return hit
+	var best: Dictionary = {}
+	var best_d := 9.0
+	for hit in edge_hits:
+		var dist := _dist_to_segment(graph_pos, hit.get("a", Vector2.ZERO), hit.get("b", Vector2.ZERO))
+		if dist < best_d:
+			best_d = dist
+			best = hit
+	return best
+
+
+func _draw_edges(nodes: Array, by_id: Dictionary) -> void:
+	for node in nodes:
+		var used := {}
+		var outputs: Array = node.get("outputs", [])
+		for i in outputs.size():
+			var outp: Dictionary = outputs[i]
+			var target_id := str(outp.get("target", ""))
+			if not by_id.has(target_id):
+				continue
+			var target: Dictionary = by_id[target_id]
+			var input_index := _match_input(target, str(node.get("id", "")), outp, used)
+			var a := port_center(node, true, i)
+			var b := port_center(target, false, input_index)
+			var color := _type_color(str(outp.get("type", "FLOW")))
+			color.a = 0.92
+			_line(a, b, 2.6, color)
+			edge_hits.append({
+				"a": a,
+				"b": b,
+				"jump_to": furthest_node(target_id, by_id),
+				"kind": "edge",
+				"source": str(node.get("id", "")),
+				"target": target_id,
+			})
+
+
+func _draw_node(node: Dictionary) -> void:
+	var rect := Rect2(float(node.get("x", 0.0)), float(node.get("y", 0.0)), float(node.get("w", 230.0)), float(node.get("h", 120.0)))
+	var accent: Color = node.get("color", Color(0.2, 0.45, 0.5))
+	_solid(rect, Color(0.055, 0.08, 0.14, 0.96))
+	_solid(Rect2(rect.position, Vector2(rect.size.x, 4.0)), accent)
+	var border := Color(accent.r, accent.g, accent.b, 0.9)
+	_solid(Rect2(rect.position, Vector2(rect.size.x, 1.5)), border)
+	_solid(Rect2(rect.position + Vector2(0, rect.size.y - 1.5), Vector2(rect.size.x, 1.5)), border)
+	_solid(Rect2(rect.position, Vector2(1.5, rect.size.y)), border)
+	_solid(Rect2(rect.position + Vector2(rect.size.x - 1.5, 0), Vector2(1.5, rect.size.y)), border)
+	_text("title:%s" % node.get("id", ""), rect.position + Vector2(12, 10), Vector2(rect.size.x - 24, 22), Color.WHITE)
+	_text("sub:%s" % node.get("id", ""), rect.position + Vector2(12, 34), Vector2(rect.size.x - 24, 16), Color(0.68, 0.75, 0.84, 1))
+	_draw_ports(node, "inputs")
+	_draw_ports(node, "outputs")
+
+
+func _draw_ports(node: Dictionary, side: String) -> void:
+	var is_output := side == "outputs"
+	var ports: Array = node.get(side, [])
+	var has_both: bool = node.get("inputs", []).size() > 0 and node.get("outputs", []).size() > 0
+	var max_w := (float(node.get("w", 230.0)) - 48.0) * (0.55 if has_both else 0.92)
+	for i in ports.size():
+		var port: Dictionary = ports[i]
+		var center := port_center(node, is_output, i)
+		var kind := str(port.get("type", "FLOW"))
+		var icon := Rect2(center - Vector2(7, 7), Vector2(14, 14))
+		_quad(icon, _atlas.shape_uv(kind), _type_color(kind))
+		var has_cond := str(port.get("cond", "")) != ""
+		var tag_key := "tag:%s:%s:%d" % [node.get("id", ""), side, i]
+		var tag_size := _fitted_size(tag_key, max_w, 14.0)
+		var tag_y := center.y - tag_size.y - 1.0 if has_cond else center.y - tag_size.y * 0.5
+		var tag_x := center.x - 12.0 - tag_size.x if is_output else float(node.get("x", 0.0)) + 24.0
+		_quad(Rect2(Vector2(tag_x, tag_y), tag_size), _atlas.uv_of(tag_key), Color(0.9, 0.93, 1, 1))
+		if has_cond:
+			var cond_key := "cond:%s:%s:%d" % [node.get("id", ""), side, i]
+			var cond_size := _fitted_size(cond_key, max_w, 12.0)
+			var cond_x := center.x - 12.0 - cond_size.x if is_output else float(node.get("x", 0.0)) + 24.0
+			_quad(Rect2(Vector2(cond_x, center.y + 1.0), cond_size), _atlas.uv_of(cond_key), Color(0.96, 0.78, 0.42, 1))
+		var other := str(port.get("target", "")) if is_output else str(port.get("source", ""))
+		if other == "":
+			continue
+		port_hits.append({
+			"rect": Rect2(center - Vector2(14, 14), Vector2(28, 28)),
+			"jump_to": other,
+			"kind": "port",
+		})
+
+
+func _match_input(target: Dictionary, source_id: String, outp: Dictionary, used: Dictionary) -> int:
+	var inputs: Array = target.get("inputs", [])
+	for i in inputs.size():
+		if used.has(i):
+			continue
+		var inp: Dictionary = inputs[i]
+		if str(inp.get("source", "")) != source_id:
+			continue
+		if str(inp.get("tag", "")) == str(outp.get("tag", "")) and str(inp.get("cond", "")) == str(outp.get("cond", "")):
+			used[i] = true
+			return i
+	for i in inputs.size():
+		if used.has(i):
+			continue
+		if str(inputs[i].get("source", "")) == source_id:
+			used[i] = true
+			return i
+	return 0
+
+
+func _line(a: Vector2, b: Vector2, thickness: float, color: Color) -> void:
+	var delta := b - a
+	var length := delta.length()
+	if length < 1.0:
+		return
+	var n := delta / length
+	var p := Vector2(-n.y, n.x) * (thickness * 0.5)
+	var start := a + n * 12.0
+	var finish := b - n * 18.0
+	if start.distance_to(finish) < 4.0:
+		start = a
+		finish = b
+	_tri(start - p, start + p, finish + p, color)
+	_tri(start - p, finish + p, finish - p, color)
+	var tip := b - n * 8.0
+	var base := tip - n * 12.0
+	var wing := Vector2(-n.y, n.x) * 6.5
+	_tri(tip, base + wing, base - wing, color)
+
+
+func _fitted_size(key: String, max_w: float, max_h: float) -> Vector2:
+	if _atlas == null:
+		return Vector2.ZERO
+	var px: Vector2 = _atlas.size_of(key)
+	if px.x < 1.0 or px.y < 1.0:
+		return Vector2.ZERO
+	var scale := 1.0
+	if px.x > max_w and max_w > 1.0:
+		scale = max_w / px.x
+	if px.y * scale > max_h and max_h > 1.0:
+		scale = minf(scale, max_h / px.y)
+	return px * scale
+
+
+func _text(key: String, pos: Vector2, max_size: Vector2, color: Color) -> void:
+	if _atlas == null:
+		return
+	var px: Vector2 = _atlas.size_of(key)
+	if px.x < 1.0 or px.y < 1.0:
+		return
+	var scale := 1.0
+	if px.x > max_size.x and max_size.x > 1.0:
+		scale = max_size.x / px.x
+	if px.y * scale > max_size.y and max_size.y > 1.0:
+		scale = minf(scale, max_size.y / px.y)
+	_quad(Rect2(pos, px * scale), _atlas.uv_of(key), color)
+
+
+func _solid(rect: Rect2, color: Color) -> void:
+	_tri(rect.position, rect.position + Vector2(rect.size.x, 0), rect.position + rect.size, color)
+	_tri(rect.position, rect.position + rect.size, rect.position + Vector2(0, rect.size.y), color)
+
+
+func _quad(rect: Rect2, uv: Rect2, color: Color) -> void:
+	var a := rect.position
+	var b := rect.position + Vector2(rect.size.x, 0)
+	var c := rect.position + rect.size
+	var d := rect.position + Vector2(0, rect.size.y)
+	var uva := uv.position
+	var uvb := uv.position + Vector2(uv.size.x, 0)
+	var uvc := uv.position + uv.size
+	var uvd := uv.position + Vector2(0, uv.size.y)
+	_push(a, uva, color)
+	_push(b, uvb, color)
+	_push(c, uvc, color)
+	_push(a, uva, color)
+	_push(c, uvc, color)
+	_push(d, uvd, color)
+
+
+func _tri(a: Vector2, b: Vector2, c: Vector2, color: Color) -> void:
+	_push(a, _white, color)
+	_push(b, _white, color)
+	_push(c, _white, color)
+
+
+func _push(p: Vector2, uv: Vector2, color: Color) -> void:
+	_verts.push_back(Vector3(p.x, p.y, 0))
+	_uvs.push_back(uv)
+	_cols.push_back(color)
+
+
+func _type_color(kind: String) -> Color:
+	match kind:
+		"STORY":
+			return Color(0.35, 0.82, 0.72, 1)
+		"CHOICE":
+			return Color(0.95, 0.72, 0.32, 1)
+		"BOOL":
+			return Color(0.78, 0.56, 0.95, 1)
+		"ENDING":
+			return Color(0.86, 0.42, 0.48, 1)
+		_:
+			return Color(0.62, 0.78, 0.96, 1)
+
+
+func _dist_to_segment(p: Vector2, a: Vector2, b: Vector2) -> float:
+	var ab := b - a
+	var denom := ab.length_squared()
+	if denom < 0.001:
+		return p.distance_to(a)
+	var t := clampf((p - a).dot(ab) / denom, 0.0, 1.0)
+	return p.distance_to(a + ab * t)

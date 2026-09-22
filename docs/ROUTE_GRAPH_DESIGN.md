@@ -1,8 +1,10 @@
-# Route graph — design notes (future work)
+# Route graph
 
-A visual route/flow graph of the story is planned. **Status: deferred.** Godot's immediate
-Canvas drawing is too slow for a graph of this size, so the plan is a custom single-pass
-renderer — effectively a small graphics engine from scratch.
+Optional story map, opened from the **Map** button. It is not required for the rest of
+the VN. **Status: implemented** in `scenes/route_graph/`.
+
+Godot's immediate Canvas drawing is too slow for a graph of this size, so the map is a
+small graphics engine: one mesh, one shader pass, one texture atlas.
 
 ## Rendering architecture
 
@@ -17,13 +19,19 @@ renderer — effectively a small graphics engine from scratch.
 - **Conditions are written on the graph** (edge labels / node annotations), sourced from
   the `if`/`do` metadata compiled from the `.dialogue` files.
 
-## Work breakdown (rough)
+## What shipped
 
-1. Atlas baker: rasterize labels/symbols/thumbnails into a WebP/RGBA atlas + uv table.
-2. CPU mesh builder: node layout (layered DAG), port slots, arrow geometry (curves as
-   triangle strips), condition-label quads.
-3. Shader: single pass sampling the atlas; optional pan/zoom via uniform transform.
-4. Data source: compile `dialogue/*.dialogue` to nodes/edges (cues, choices, conditions).
-5. Integration: editor-style overlay panel + a player-facing "story map" if desired.
+1. Atlas baker (`route_graph_atlas.gd`): white texel, port icons, and labels blitted from
+   the font glyph cache into one RGBA atlas.
+2. CPU mesh builder (`route_graph_mesh_builder.gd`): layered layout, port slots, straight
+   edges, condition badges on the ports. No grid and no editing.
+3. Shader (`route_graph.gdshader`): one pass, pan/zoom in the vertex stage, exactly one
+   `texture()` fetch, no loops or branches.
+4. Compiler (`route_graph_compiler.gd`): cues, choice groups, and END. Linear lines and
+   mutations collapse. A port click jumps to the other side; an edge click jumps to the
+   furthest node along that line.
+5. Player overlay: the Map button on the system row.
 
-Estimated large; kept out of the v1.x line on purpose.
+The route-graph scripts are preloaded. They intentionally have no `class_name` and no
+typed `_init` arguments — a missing UID class-cache entry otherwise fails to parse
+`RouteGraphMeshBuilder._init` and the panel then treats the view as a bare Control.

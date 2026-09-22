@@ -338,3 +338,6 @@ msgstr "Пауза"
 
 msgid "+ New slot"
 msgstr "+ Новый слот"
+
+msgid "Map"
+msgstr "Карта"

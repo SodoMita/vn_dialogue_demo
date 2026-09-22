@@ -1000,6 +1000,8 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed(pause_action):
 		if pause_panel.visible:
 			close_pause()
+		elif is_instance_valid(route_graph_panel) and route_graph_panel.visible:
+			_close_overlay(route_graph_panel)
 		else:
 			open_pause()
 		get_viewport().set_input_as_handled()
@@ -1768,6 +1770,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		if pause_panel.visible:
 			close_pause()
+		elif is_instance_valid(route_graph_panel) and route_graph_panel.visible:
+			_close_overlay(route_graph_panel)
 		else:
 			open_pause()
 		return
@@ -2001,7 +2005,7 @@ func _on_route_button_pressed() -> void:
 	if is_instance_valid(route_graph_panel):
 		_open_overlay(route_graph_panel)
 		if route_graph_panel.has_method("show_graph"):
-			route_graph_panel.show_graph()
+			route_graph_panel.show_graph(dialogue_resource)
 	else:
 		_toast("Route graph not available")
 

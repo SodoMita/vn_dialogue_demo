@@ -1,39 +1,27 @@
 extends PanelContainer
-# Optional overlay panel hosting the route graph
-# No grid, no editing - just view + pan/zoom + click navigation
+## Optional overlay. The rest of the VN does not require this panel.
+## Never touch view.node_by_id here: if the view script failed to attach,
+## view is a bare Control and that lookup is the second error in the log.
+
 
 @onready var view: Control = %RouteGraphView
 @onready var close_btn: Button = %CloseButton
-@onready var hint_label: Label = %HintLabel
+
 
 func _ready() -> void:
 	visible = false
-	# close button
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	if view == null:
+		view = get_node_or_null("Margin/VBox/GraphContainer/RouteGraphView")
 	if close_btn:
 		close_btn.pressed.connect(_on_close)
-	# hide on Esc
-	mouse_filter = Control.MOUSE_FILTER_STOP
 
-func show_graph() -> void:
+
+func show_graph(resource = null) -> void:
 	visible = true
-	# center on first start (runtime data)
-	if view:
-		var first_start: String = "start"
-		if view.node_by_id.size() > 0:
-			for nid in view.node_by_id.keys():
-				var n: Dictionary = view.node_by_id[nid]
-				if n.type == "START":
-					first_start = nid
-					break
-		if view.has_method("_pan_to_node"):
-			view.call_deferred("_pan_to_node", first_start)
+	if view != null and is_instance_valid(view) and view.has_method("open_resource"):
+		view.open_resource(resource)
+
 
 func _on_close() -> void:
 	visible = false
-
-func _input(event: InputEvent) -> void:
-	if not visible:
-		return
-	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		visible = false
-		get_viewport().set_input_as_handled()

@@ -252,7 +252,7 @@ the sprite sliders slide again.
 - `docs/CUSTOMIZING.md` — swapping art/voices/story content, theming, settings ranges.
 - `docs/RECREATION.md` — rebuilding this balloon from scratch with Dialogue Manager,
   layout blueprint and the pitfalls list.
-- `docs/ROUTE_GRAPH_DESIGN.md` — the deferred single-pass route-graph renderer design.
+- `docs/ROUTE_GRAPH_DESIGN.md` — the optional story-map renderer (single-pass, one atlas fetch).
 
 Rendered screenshots (under Xvfb + software GL):
 

@@ -1,8 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=6 format=3 uid="uid://ba4pj5dj4gjtc"]
 
-[ext_resource type="Script" path="res://scenes/route_graph/route_graph_panel.gd" id="1_panel"]
-[ext_resource type="PackedScene" path="res://scenes/route_graph/route_graph_view.tscn" id="2_view"]
-[ext_resource type="FontFile" path="res://assets/fonts/DejaVuSerif.ttf" id="3_font"]
+[ext_resource type="Script" uid="uid://c7hh0twt3bdf6" path="res://scenes/route_graph/route_graph_panel.gd" id="1_panel"]
+[ext_resource type="PackedScene" uid="uid://a7nyafmokdogm" path="res://scenes/route_graph/route_graph_view.tscn" id="2_view"]
+[ext_resource type="FontFile" uid="uid://ctxcxi25fm0pu" path="res://assets/fonts/DejaVuSerif.ttf" id="3_font"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
 bg_color = Color(0.04, 0.07, 0.13, 0.96)
@@ -28,14 +28,16 @@ content_margin_right = 12.0
 content_margin_bottom = 6.0
 
 [node name="RouteGraphPanel" type="PanelContainer" groups=["route_graph"]]
+visible = false
 unique_name_in_owner = true
-custom_minimum_size = Vector2(1280, 720)
+clip_contents = true
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 0
 script = ExtResource("1_panel")
 theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
 
@@ -54,11 +56,11 @@ theme_override_constants/separation = 8
 layout_mode = 2
 
 [node name="Title" type="Label" parent="Margin/VBox/TopBar"]
-custom_minimum_size = Vector2(200, 0)
+custom_minimum_size = Vector2(160, 0)
 layout_mode = 2
 theme_override_fonts/font = ExtResource("3_font")
 theme_override_font_sizes/font_size = 18
-text = "Story Routes — Route Graph (single-pass, atlas, 1 fetch)"
+text = "Story map"
 theme_override_colors/font_color = Color(0.9, 0.93, 1, 1)
 
 [node name="HintLabel" type="Label" parent="Margin/VBox/TopBar"]
@@ -67,9 +69,10 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_fonts/font = ExtResource("3_font")
 theme_override_font_sizes/font_size = 12
-text = "Drag to pan • Wheel to zoom • Click port → other side • Click edge → furthest node • Esc to close"
+text = "Drag to pan  ·  Wheel to zoom  ·  Port → other side  ·  Edge → furthest node  ·  Esc to close"
 theme_override_colors/font_color = Color(0.6, 0.68, 0.8, 1)
 horizontal_alignment = 2
+clip_text = true
 
 [node name="CloseButton" type="Button" parent="Margin/VBox/TopBar"]
 unique_name_in_owner = true
@@ -83,7 +86,7 @@ theme_override_font_sizes/font_size = 14
 text = "Close"
 
 [node name="GraphContainer" type="PanelContainer" parent="Margin/VBox"]
-custom_minimum_size = Vector2(0, 600)
+clip_contents = true
 layout_mode = 2
 size_flags_vertical = 3
 

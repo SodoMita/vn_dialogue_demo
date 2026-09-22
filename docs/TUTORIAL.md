@@ -24,10 +24,11 @@ typewriter box, centered choices) built on the
 | Pause menu | `Esc` or right click (mutes all audio until you resume) |
 | Quick save / quick load (slot 0) | `F5` / `F9` |
 | Panic / boss screen | `F12` or the `Panic` button — instantly silences every sound; press again to return (on touch devices the X in the corner closes it) |
+| Story map | `Map` on the system row. Drag to pan, wheel to zoom. A port click jumps to the other side of that line; an edge click jumps to the furthest node along it. `Esc` or Close leaves the map |
 | Mobile | tap = advance, swipe up = backlog |
 
 The bottom system row mirrors Kirikiri/Ren'Py toolbars:
-`QS QL Save Load Auto Skip < Choice Choice > Log Set Panic Pause`
+`QS QL Save Load Auto Skip < Choice Choice > Log Set Panic Pause Map`
 (`Pause` covers touch devices that have no pause key). On narrow aspects or
 big UI scales the row wraps onto as many lines as it needs.
 `< Choice` / `Choice >` jump straight to the previous/next decision point; `Log` opens the

@@ -1,6 +1,6 @@
 [gd_scene load_steps=24 format=3]
 
-[ext_resource type="PackedScene" path="res://scenes/route_graph/route_graph_panel.tscn" id="11_route"]
+[ext_resource type="PackedScene" uid="uid://ba4pj5dj4gjtc" path="res://scenes/route_graph/route_graph_panel.tscn" id="11_route"]
 
 [ext_resource type="Script" path="res://scenes/vn_balloon.gd" id="1_balloon"]
 [ext_resource type="PackedScene" uid="uid://ckvgyvclnwggo" path="res://addons/dialogue_manager/nodes/dialogue_label/dialogue_label.tscn" id="2_dlabel"]
@@ -1703,6 +1703,17 @@ one_shot = true
 unique_name_in_owner = true
 bus = &"Voice"
 
+[node name="RouteGraphPanel" parent="Balloon/UIRoot" instance=ExtResource("11_route")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+z_index = 15
+
 [node name="SettingsCloseButton" type="Button" parent="Balloon/UIRoot"]
 unique_name_in_owner = true
 visible = false
@@ -1718,17 +1729,6 @@ grow_horizontal = 0
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 22
 text = "X"
-
-[node name="RouteGraphPanel" parent="Balloon/UIRoot" instance=ExtResource("11_route")]
-unique_name_in_owner = true
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-z_index = 15
 
 
 [connection signal="gui_input" from="Balloon" to="." method="_on_balloon_gui_input"]

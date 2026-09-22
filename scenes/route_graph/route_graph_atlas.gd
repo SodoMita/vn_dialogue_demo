@@ -1,235 +1,196 @@
-class_name RouteGraphAtlas
-# Atlas baker - single texture holding glyphs + icons + white pixel
-# Fragment shader does 1 fetch, no loops/branches
-# Baking uses SubViewport + Labels to rasterize text (robust)
+extends RefCounted
+## One RGBA atlas for the route graph: a white texel, port icons, and baked labels.
+## Glyphs are blitted from the font cache. No SubViewport and no add_child — those
+## paths failed when this overlay was constructed off the tree.
+
+
+const ATLAS_W := 1024
+const ATLAS_H := 1024
+const WHITE := 8
 
 var texture: Texture2D
-var image: Image
-var uvs: Dictionary = {} # key -> Rect2 uv normalized
-var sizes: Dictionary = {} # key -> Vector2 pixel size
-var white_uv: Rect2
-var shape_uvs: Dictionary = {} # "FLOW", "STORY", "CHOICE", "BOOL" -> Rect2 uv
+var _uvs: Dictionary = {}
+var _sizes: Dictionary = {}
+var _bytes: PackedByteArray = PackedByteArray()
+var _font: Font
 
-const ATLAS_W: int = 2048
-const ATLAS_H: int = 2048
-const PADDING: int = 4
-const ICON_SIZE: int = 32
 
-var _font: FontFile
+func uv_of(key: String) -> Rect2:
+	return _uvs.get(key, white_uv())
 
-func _init():
-	_font = load("res://assets/fonts/DejaVuSerif.ttf") as FontFile
 
-func bake_with_sizes(entries: Array) -> void:
-	if DisplayServer.get_name() == "headless":
-		_create_dummy()
-		return
+func size_of(key: String) -> Vector2:
+	return _sizes.get(key, Vector2(8, 8))
 
-	# Create viewport for baking
-	var vp: SubViewport = SubViewport.new()
-	vp.size = Vector2i(ATLAS_W, ATLAS_H)
-	vp.transparent_bg = true
-	vp.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
-	vp.render_target_update_mode = SubViewport.UPDATE_ONCE
-	vp.msaa_2d = Viewport.MSAA_DISABLED
-	vp.msaa_3d = Viewport.MSAA_DISABLED
 
-	var root: Node2D = Node2D.new()
-	vp.add_child(root)
+func white_uv() -> Rect2:
+	return _uvs.get("__white", Rect2())
 
-	# Add to tree via deferred to avoid "Parent node is busy setting up children"
-	var tree_root: Window = Engine.get_main_loop().root as Window
-	if tree_root == null:
-		_create_dummy()
-		vp.queue_free()
-		return
 
-	# Use call_deferred to avoid blocked error
-	tree_root.add_child.call_deferred(vp)
-	# Wait for deferred add
-	await Engine.get_main_loop().process_frame
-	# Ensure vp is inside tree
-	if not vp.is_inside_tree():
-		# try again next frame
-		await Engine.get_main_loop().process_frame
-		if not vp.is_inside_tree():
-			_create_dummy()
-			return
+func shape_uv(kind: String) -> Rect2:
+	return _uvs.get("shape:" + kind, white_uv())
 
-	var cursor_x: int = 0
-	var cursor_y: int = 0
-	var row_h: int = 0
 
-	cursor_x = 4 + 4*(ICON_SIZE + PADDING)
-	row_h = ICON_SIZE
-
-	var labels: Array = []
-
-	for e in entries:
-		var key: String = e.key
-		var txt: String = e.text
-		var sz: int = e.size
-		if txt == "" or uvs.has(key):
+func bake(entries: Array) -> void:
+	_bytes = PackedByteArray()
+	_bytes.resize(ATLAS_W * ATLAS_H * 4)
+	_font = load("res://assets/fonts/DejaVuSerif.ttf")
+	_fill(0, 0, WHITE, WHITE, Color.WHITE)
+	var center := Vector2(float(WHITE) * 0.5 / float(ATLAS_W), float(WHITE) * 0.5 / float(ATLAS_H))
+	var eps := 0.5 / float(ATLAS_W)
+	_uvs["__white"] = Rect2(center.x - eps, center.y - eps, eps * 2.0, eps * 2.0)
+	_sizes["__white"] = Vector2(WHITE, WHITE)
+	_draw_shapes()
+	var pen_x := 4
+	var pen_y := 28
+	var row_h := 0
+	for entry in entries:
+		var key := str(entry.get("key", ""))
+		if key == "":
 			continue
-
-		var lbl: Label = Label.new()
-		lbl.text = txt
-		if _font:
-			lbl.add_theme_font_override("font", _font)
-		lbl.add_theme_font_size_override("font_size", sz)
-		lbl.add_theme_color_override("font_color", Color(1,1,1,1))
-
-		var w: int = 0
-		var h: int = 0
-		if _font:
-			var text_size: Vector2 = _font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, sz)
-			w = int(ceil(text_size.x)) + 8
-			h = int(ceil(text_size.y)) + 8
-		else:
-			w = txt.length()*sz*0.6 + 8
-			h = sz + 8
-
-		if w <= 0 or h <= 0:
-			lbl.queue_free()
-			continue
-
-		if cursor_x + w + PADDING > ATLAS_W:
-			cursor_x = 0
-			cursor_y += row_h + PADDING
+		var text := str(entry.get("text", ""))
+		var font_size := int(entry.get("size", 14))
+		var measured := _measure(text, font_size)
+		var w := maxi(4, int(ceil(measured.x)) + 8)
+		var h := maxi(4, int(ceil(measured.y)) + 6)
+		if pen_x + w + 2 > ATLAS_W:
+			pen_x = 4
+			pen_y += row_h + 4
 			row_h = 0
-		if cursor_y + h + PADDING > ATLAS_H:
-			push_warning("Atlas overflow, skipping %s" % txt)
-			lbl.queue_free()
+		if pen_y + h + 2 > ATLAS_H:
+			push_warning("route graph atlas full, skipping '%s'" % key)
+			_uvs[key] = white_uv()
+			_sizes[key] = Vector2(4, 4)
 			continue
-
-		lbl.position = Vector2(cursor_x, cursor_y)
-		lbl.size = Vector2(w, h)
-		root.add_child(lbl)
-
-		labels.append({"label": lbl, "key": key, "x": cursor_x, "y": cursor_y, "w": w, "h": h})
-
-		cursor_x += w + PADDING
-		row_h = max(row_h, h)
-
-	# Wait for render
-	await Engine.get_main_loop().process_frame
-	await Engine.get_main_loop().process_frame
-	vp.render_target_update_mode = SubViewport.UPDATE_ONCE
-	await RenderingServer.frame_post_draw
-	await Engine.get_main_loop().process_frame
-
-	# Capture image
-	if not vp.is_inside_tree():
-		_create_dummy()
-		return
-
-	var tex: ViewportTexture = vp.get_texture()
-	if tex == null:
-		_create_dummy()
-		vp.queue_free()
-		return
-
-	image = tex.get_image()
-	if image == null:
-		_create_dummy()
-		vp.queue_free()
-		return
-
-	image.convert(Image.FORMAT_RGBA8)
-
-	image.set_pixel(0,0, Color(1,1,1,1))
-	image.set_pixel(1,0, Color(1,1,1,1))
-	image.set_pixel(0,1, Color(1,1,1,1))
-	image.set_pixel(1,1, Color(1,1,1,1))
-	white_uv = Rect2(0.0, 0.0, 2.0/ATLAS_W, 2.0/ATLAS_H)
-
-	var icon_start_x: int = 4
-	for i in range(4):
-		var kind: String = ["FLOW","STORY","CHOICE","BOOL"][i]
-		var sx: int = icon_start_x + i*(ICON_SIZE + PADDING)
-		_draw_shape_at(kind, sx, 0, ICON_SIZE)
-		var uv: Rect2 = Rect2(float(sx)/ATLAS_W, 0.0, float(ICON_SIZE)/ATLAS_W, float(ICON_SIZE)/ATLAS_H)
-		shape_uvs[kind] = uv
-
-	uvs.clear()
-	sizes.clear()
-	for item in labels:
-		var key: String = item.key
-		var x: int = item.x
-		var y: int = item.y
-		var w: int = item.w
-		var h: int = item.h
-		uvs[key] = Rect2(float(x)/ATLAS_W, float(y)/ATLAS_H, float(w)/ATLAS_W, float(h)/ATLAS_H)
-		sizes[key] = Vector2(w,h)
-
+		_draw_text(text, font_size, pen_x + 4, pen_y + 2)
+		_uvs[key] = Rect2(float(pen_x) / float(ATLAS_W), float(pen_y) / float(ATLAS_H), float(w) / float(ATLAS_W), float(h) / float(ATLAS_H))
+		_sizes[key] = Vector2(w, h)
+		pen_x += w + 4
+		row_h = maxi(row_h, h)
+	var image := Image.create_from_data(ATLAS_W, ATLAS_H, false, Image.FORMAT_RGBA8, _bytes)
 	texture = ImageTexture.create_from_image(image)
 
-	vp.queue_free()
 
-func _create_dummy() -> void:
-	image = Image.create(ATLAS_W, ATLAS_H, false, Image.FORMAT_RGBA8)
-	image.fill(Color(0,0,0,0))
-	image.set_pixel(0,0, Color(1,1,1,1))
-	image.set_pixel(1,0, Color(1,1,1,1))
-	image.set_pixel(0,1, Color(1,1,1,1))
-	image.set_pixel(1,1, Color(1,1,1,1))
-	white_uv = Rect2(0,0, 2.0/ATLAS_W, 2.0/ATLAS_H)
-	for k in ["FLOW","STORY","CHOICE","BOOL"]:
-		shape_uvs[k] = white_uv
-	texture = ImageTexture.create_from_image(image)
-	uvs["IN"] = white_uv
-	uvs["OUT"] = white_uv
-	sizes["IN"] = Vector2(20,12)
-	sizes["OUT"] = Vector2(20,12)
+func _draw_shapes() -> void:
+	var kinds: Array[String] = ["FLOW", "STORY", "CHOICE", "BOOL"]
+	var x := WHITE + 6
+	for kind in kinds:
+		_draw_shape(kind, x, 4, 16)
+		_uvs["shape:" + kind] = Rect2(float(x) / float(ATLAS_W), 4.0 / float(ATLAS_H), 16.0 / float(ATLAS_W), 16.0 / float(ATLAS_H))
+		_sizes["shape:" + kind] = Vector2(16, 16)
+		x += 20
 
-func _draw_shape_at(kind: String, ox: int, oy: int, sz: int) -> void:
-	if image == null:
+
+func _draw_shape(kind: String, ox: int, oy: int, s: int) -> void:
+	var c := Color.WHITE
+	if kind == "FLOW":
+		for y in s:
+			var t := float(y) / float(s - 1)
+			var x0 := int(absf(t - 0.5) * float(s))
+			for x in range(x0, s):
+				_set_px(ox + x, oy + y, c)
+	elif kind == "STORY":
+		var radius := float(s) * 0.5 - 0.5
+		var center := Vector2(radius, radius)
+		for y in s:
+			for x in s:
+				if Vector2(x, y).distance_to(center) <= radius:
+					_set_px(ox + x, oy + y, c)
+	elif kind == "CHOICE":
+		_fill(ox + 2, oy + 2, s - 4, s - 4, c)
+	else:
+		var mid := float(s - 1) * 0.5
+		for y in s:
+			for x in s:
+				if absf(float(x) - mid) + absf(float(y) - mid) <= mid:
+					_set_px(ox + x, oy + y, c)
+
+
+func _measure(text: String, font_size: int) -> Vector2:
+	if _font == null or text == "":
+		return Vector2(maxf(8.0, text.length() * font_size * 0.55), font_size + 4.0)
+	var sz: Vector2 = _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+	return Vector2(sz.x + 2.0, maxf(sz.y, _font.get_height(font_size)))
+
+
+func _draw_text(text: String, font_size: int, ox: int, oy: int) -> void:
+	if _font == null or text == "":
 		return
-	var cx: float = ox + sz*0.5
-	var cy: float = oy + sz*0.5
-	for py in range(sz):
-		for px in range(sz):
-			var x: float = ox + px
-			var y: float = oy + py
-			var inside: bool = false
-			match kind:
-				"FLOW":
-					var p1x: float = cx - 6
-					var p1y: float = cy - 8
-					var p2x: float = cx + 10
-					var p2y: float = cy
-					var p3x: float = cx - 6
-					var p3y: float = cy + 8
-					inside = _point_in_triangle(x,y, p1x,p1y, p2x,p2y, p3x,p3y)
-				"STORY":
-					var dx: float = x - cx
-					var dy: float = y - cy
-					inside = dx*dx + dy*dy <= 64.0
-				"CHOICE":
-					var dx: float = x - cx
-					var dy: float = y - cy
-					inside = abs(dx) <= 7 and abs(dy) <= 7
-				"BOOL":
-					var dx: float = x - cx
-					var dy: float = y - cy
-					inside = abs(dx) + abs(dy) <= 8
-			if inside:
-				image.set_pixel(ox+px, oy+py, Color(1,1,1,1))
+	var pen := 0.0
+	var baseline := float(oy) + _font.get_ascent(font_size)
+	var glyph_size := Vector2i(font_size, 0)
+	for i in text.length():
+		var glyph: int = _font.get_glyph_index(font_size, text.unicode_at(i), 0)
+		if glyph == 0:
+			pen += font_size * 0.34
+			continue
+		var advance: Vector2 = _font.get_glyph_advance(0, font_size, glyph)
+		_font.render_glyph(0, glyph_size, glyph)
+		var tex_idx: int = _font.get_glyph_texture_idx(0, glyph_size, glyph)
+		if tex_idx < 0:
+			pen += advance.x
+			continue
+		var src: Image = _font.get_texture_image(0, glyph_size, tex_idx)
+		var uv: Rect2 = _font.get_glyph_uv_rect(0, glyph_size, glyph)
+		var off: Vector2 = _font.get_glyph_offset(0, glyph_size, glyph)
+		if src != null and uv.size.x >= 1.0 and uv.size.y >= 1.0:
+			var rect := Rect2i(int(floor(uv.position.x)), int(floor(uv.position.y)), int(ceil(uv.size.x)), int(ceil(uv.size.y)))
+			rect = rect.intersection(Rect2i(Vector2i.ZERO, src.get_size()))
+			var dest := Vector2i(int(floor(float(ox) + pen + off.x)), int(floor(baseline + off.y)))
+			_blit_glyph(src, rect, dest)
+		pen += advance.x
 
-func _point_in_triangle(px: float, py: float, x1: float, y1: float, x2: float, y2: float, x3: float, y3: float) -> bool:
-	var d1: float = (px - x2)*(y1 - y2) - (x1 - x2)*(py - y2)
-	var d2: float = (px - x3)*(y2 - y3) - (x2 - x3)*(py - y3)
-	var d3: float = (px - x1)*(y3 - y1) - (x3 - x1)*(py - y1)
-	var has_neg: bool = (d1 < 0) or (d2 < 0) or (d3 < 0)
-	var has_pos: bool = (d1 > 0) or (d2 > 0) or (d3 > 0)
-	return not (has_neg and has_pos)
 
-func get_uv(key: String) -> Rect2:
-	if uvs.has(key):
-		return uvs[key]
-	return white_uv
+func _blit_glyph(src: Image, rect: Rect2i, dest: Vector2i) -> void:
+	# Dynamic fonts store coverage in the LA8 alpha byte. Image.get_pixel()
+	# reports that byte as 0, so the coverage is read from the raw buffer.
+	var src_bytes := src.get_data()
+	var src_w := src.get_width()
+	var la8 := src.get_format() == Image.FORMAT_LA8
+	var bpp := 2 if la8 else 4
+	var alpha_offset := 1 if la8 else 3
+	if src_bytes.size() < (rect.position.y + rect.size.y) * src_w * bpp:
+		return
+	for y in rect.size.y:
+		var dy := dest.y + y
+		if dy < 0 or dy >= ATLAS_H:
+			continue
+		for x in rect.size.x:
+			var dx := dest.x + x
+			if dx < 0 or dx >= ATLAS_W:
+				continue
+			var si := ((rect.position.y + y) * src_w + rect.position.x + x) * bpp + alpha_offset
+			if si < 0 or si >= src_bytes.size():
+				continue
+			var src_a := float(src_bytes[si]) / 255.0
+			if src_a <= 0.004:
+				continue
+			var di := (dy * ATLAS_W + dx) * 4
+			var dst_a := float(_bytes[di + 3]) / 255.0
+			var out_a := src_a + dst_a * (1.0 - src_a)
+			var dst_r := float(_bytes[di]) / 255.0
+			var dst_g := float(_bytes[di + 1]) / 255.0
+			var dst_b := float(_bytes[di + 2]) / 255.0
+			var out_r := (src_a + dst_r * dst_a * (1.0 - src_a)) / out_a
+			var out_g := (src_a + dst_g * dst_a * (1.0 - src_a)) / out_a
+			var out_b := (src_a + dst_b * dst_a * (1.0 - src_a)) / out_a
+			_bytes[di] = int(clampf(out_r * 255.0, 0.0, 255.0))
+			_bytes[di + 1] = int(clampf(out_g * 255.0, 0.0, 255.0))
+			_bytes[di + 2] = int(clampf(out_b * 255.0, 0.0, 255.0))
+			_bytes[di + 3] = int(clampf(out_a * 255.0, 0.0, 255.0))
 
-func get_size(key: String) -> Vector2:
-	if sizes.has(key):
-		return sizes[key]
-	return Vector2(10,10)
+
+func _fill(x: int, y: int, w: int, h: int, color: Color) -> void:
+	for yy in h:
+		for xx in w:
+			_set_px(x + xx, y + yy, color)
+
+
+func _set_px(x: int, y: int, color: Color) -> void:
+	if x < 0 or y < 0 or x >= ATLAS_W or y >= ATLAS_H:
+		return
+	var i := (y * ATLAS_W + x) * 4
+	_bytes[i] = int(clampf(color.r * 255.0, 0.0, 255.0))
+	_bytes[i + 1] = int(clampf(color.g * 255.0, 0.0, 255.0))
+	_bytes[i + 2] = int(clampf(color.b * 255.0, 0.0, 255.0))
+	_bytes[i + 3] = int(clampf(color.a * 255.0, 0.0, 255.0))
