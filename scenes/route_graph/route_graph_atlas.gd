@@ -1,5 +1,6 @@
 extends RefCounted
 ## One RGBA atlas for the route graph: a white texel, port icons, and baked labels.
+## Glyph scale multiplies texel density. The side grows to fit; callers do not pick a capacity.
 ## Glyphs are blitted from the font cache. No SubViewport and no add_child — those
 ## paths failed when this overlay was constructed off the tree.
 
@@ -35,56 +36,100 @@ func shape_uv(kind: String) -> Rect2:
 	return _uvs.get("shape:" + kind, white_uv())
 
 
-func bake(entries: Array, resolution: int = -1) -> void:
-	# Square side. Omitted or too small keeps the 1024 default so existing callers stay valid.
-	_side = ATLAS_W if resolution < MIN_SIDE else clampi(resolution, MIN_SIDE, MAX_SIDE)
-	_bytes = PackedByteArray()
-	_bytes.resize(_side * _side * 4)
+var glyph_scale := 1.0
+var use_mipmaps := false
+var _base_image: Image
+
+
+## glyph_scale is how many texels each on-map pixel of a symbol gets (1–4).
+## The atlas side grows to fit; it is not a user setting. size_of() stays in
+## graph pixels so the mesh layout does not change — only the texel density does.
+func bake(entries: Array, scale: float = 1.0) -> void:
+	glyph_scale = clampf(scale, 1.0, 4.0)
 	_font = load("res://assets/fonts/DejaVuSerif.ttf")
+	var side := ATLAS_W
+	var fit := false
+	while side <= MAX_SIDE:
+		fit = _pack(entries, side, side >= MAX_SIDE)
+		if fit:
+			break
+		side *= 2
+	_upload_texture()
+
+
+func set_mipmaps(on: bool) -> void:
+	if on == use_mipmaps and texture != null:
+		return
+	use_mipmaps = on
+	if _base_image != null:
+		_upload_texture()
+
+
+func _pack(entries: Array, side: int, warn: bool) -> bool:
+	_side = side
+	_uvs = {}
+	_sizes = {}
+	_bytes = PackedByteArray()
+	_bytes.resize(side * side * 4)
 	_fill(0, 0, WHITE, WHITE, Color.WHITE)
-	var center := Vector2(float(WHITE) * 0.5 / float(_side), float(WHITE) * 0.5 / float(_side))
-	var eps := 0.5 / float(_side)
+	var center := Vector2(float(WHITE) * 0.5 / float(side), float(WHITE) * 0.5 / float(side))
+	var eps := 0.5 / float(side)
 	_uvs["__white"] = Rect2(center.x - eps, center.y - eps, eps * 2.0, eps * 2.0)
 	_sizes["__white"] = Vector2(WHITE, WHITE)
-	_draw_shapes()
-	var pen_x := 4
-	var pen_y := 28
+	var shape_px := maxi(16, int(round(16.0 * glyph_scale)))
+	_draw_shapes(shape_px)
+	var pad := maxi(4, int(round(4.0 * glyph_scale)))
+	var pen_x := pad
+	var pen_y := 4 + shape_px + pad
 	var row_h := 0
+	var overflow := false
 	for entry in entries:
 		var key := str(entry.get("key", ""))
 		if key == "":
 			continue
-		var text := str(entry.get("text", ""))
-		var font_size := int(entry.get("size", 14))
-		var measured := _measure(text, font_size)
-		var w := maxi(4, int(ceil(measured.x)) + 8)
-		var h := maxi(4, int(ceil(measured.y)) + 6)
-		if pen_x + w + 2 > _side:
-			pen_x = 4
-			pen_y += row_h + 4
+		var label := str(entry.get("text", ""))
+		var font_size := maxi(1, int(round(float(entry.get("size", 14)) * glyph_scale)))
+		var measured := _measure(label, font_size)
+		var w := maxi(4, int(ceil(measured.x)) + pad * 2)
+		var h := maxi(4, int(ceil(measured.y)) + pad)
+		if pen_x + w + 2 > side:
+			pen_x = pad
+			pen_y += row_h + pad
 			row_h = 0
-		if pen_y + h + 2 > _side:
-			push_warning("route graph atlas full, skipping '%s'" % key)
+		if pen_y + h + 2 > side:
+			overflow = true
+			if warn:
+				push_warning("route graph atlas full, skipping '%s'" % key)
 			_uvs[key] = white_uv()
 			_sizes[key] = Vector2(4, 4)
 			continue
-		_draw_text(text, font_size, pen_x + 4, pen_y + 2)
-		_uvs[key] = Rect2(float(pen_x) / float(_side), float(pen_y) / float(_side), float(w) / float(_side), float(h) / float(_side))
-		_sizes[key] = Vector2(w, h)
-		pen_x += w + 4
+		_draw_text(label, font_size, pen_x + pad, pen_y + 2)
+		_uvs[key] = Rect2(float(pen_x) / float(side), float(pen_y) / float(side), float(w) / float(side), float(h) / float(side))
+		# Logical size: the quad stays the same on the map, the UV covers more texels.
+		_sizes[key] = Vector2(w, h) / glyph_scale
+		pen_x += w + pad
 		row_h = maxi(row_h, h)
-	var image := Image.create_from_data(_side, _side, false, Image.FORMAT_RGBA8, _bytes)
+	return not overflow
+
+
+func _upload_texture() -> void:
+	_base_image = Image.create_from_data(_side, _side, false, Image.FORMAT_RGBA8, _bytes)
+	var image := _base_image
+	if use_mipmaps:
+		image = _base_image.duplicate()
+		image.generate_mipmaps()
 	texture = ImageTexture.create_from_image(image)
 
 
-func _draw_shapes() -> void:
+func _draw_shapes(shape_px: int = 16) -> void:
 	var kinds: Array[String] = ["FLOW", "STORY", "CHOICE", "BOOL"]
-	var x := WHITE + 6
+	var gap := maxi(4, int(round(4.0 * glyph_scale)))
+	var x := WHITE + gap
 	for kind in kinds:
-		_draw_shape(kind, x, 4, 16)
-		_uvs["shape:" + kind] = Rect2(float(x) / float(_side), 4.0 / float(_side), 16.0 / float(_side), 16.0 / float(_side))
+		_draw_shape(kind, x, 4, shape_px)
+		_uvs["shape:" + kind] = Rect2(float(x) / float(_side), 4.0 / float(_side), float(shape_px) / float(_side), float(shape_px) / float(_side))
 		_sizes["shape:" + kind] = Vector2(16, 16)
-		x += 20
+		x += shape_px + gap
 
 
 func _draw_shape(kind: String, ox: int, oy: int, s: int) -> void:

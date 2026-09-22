@@ -154,7 +154,7 @@ the UI subtree — the background and character sprites stay untouched — while
 margins shrink with the scale so the panel keeps a constant, usable width at any size),
 fullscreen, V-Sync, a resolution dropdown of presets (1280×720 … 2560×1440) plus a custom
 width/height accepting any positive numbers (custom sizes flip the dropdown to "Custom",
-matching sizes re-select their preset), and a map-atlas size (the glyph texture the story map bakes, 128–4096, default 1024); *Audio*: master, music, voice and SFX volumes
+matching sizes re-select their preset), glyph scale for the story map (1×–4×, how many texels each symbol is baked with; the atlas grows to fit), and texture filtering for the game art and for the map (nearest, linear, or with mipmaps); *Audio*: master, music, voice and SFX volumes
 driving runtime-created buses (0 mutes, 100 = 0 dB); *Sprites*: character-sprite scale
 (pivoted at the bottom centre) and a Y offset, independent of the UI scale. Every control
 applies live and is

@@ -33,7 +33,9 @@ var _fitted := false
 var visited_only := true
 var player_state: Dictionary = {}
 var current_id := ""
-var atlas_resolution := 1024
+var glyph_scale := 2
+var map_filter := 1
+const FILTER_HINTS: Array[String] = ["filter_nearest", "filter_linear", "filter_nearest_mipmap", "filter_linear_mipmap"]
 
 
 func _ready() -> void:
@@ -58,12 +60,23 @@ func open_resource(resource = null, player: Dictionary = {}) -> void:
 	_fit_if_needed()
 
 
-func set_atlas_resolution(size: int, rebuild: bool = true) -> void:
-	var next := clampi(int(round(float(size) / 64.0)) * 64, 128, 4096)
-	var changed := next != atlas_resolution
-	atlas_resolution = next
+func set_glyph_scale(scale: int, rebuild: bool = true) -> void:
+	var next := clampi(scale, 1, 4)
+	var changed := next != glyph_scale
+	glyph_scale = next
 	if rebuild and changed and not full_nodes.is_empty():
 		_upload()
+
+
+func set_map_filter(index: int, rebuild: bool = true) -> void:
+	var next := clampi(index, 0, FILTER_HINTS.size() - 1)
+	var changed := next != map_filter
+	map_filter = next
+	_apply_map_shader()
+	if atlas != null and atlas.has_method("set_mipmaps"):
+		atlas.set_mipmaps(next >= 2)
+		if route_material != null and atlas.texture != null:
+			route_material.set_shader_parameter("atlas", atlas.texture)
 
 
 func set_visited_only(on: bool) -> void:
@@ -145,7 +158,8 @@ func _upload() -> void:
 	for entry in keys:
 		if str(entry.get("key", "")) == "here_badge":
 			entry["text"] = tr("You are here")
-	atlas.bake(keys, atlas_resolution)
+	atlas.use_mipmaps = map_filter >= 2
+	atlas.bake(keys, float(glyph_scale))
 	builder = MeshScript.new()
 	_ensure_mesh()
 	mesh_instance.mesh = builder.build(atlas, nodes, current_id)
@@ -161,10 +175,23 @@ func _ensure_mesh() -> void:
 	mesh_instance.position = Vector2.ZERO
 	add_child(mesh_instance)
 	route_material = ShaderMaterial.new()
-	var shader = load("res://scenes/route_graph/route_graph.gdshader")
-	if shader != null:
-		route_material.shader = shader
 	mesh_instance.material = route_material
+	_apply_map_shader()
+
+
+func _apply_map_shader() -> void:
+	if route_material == null:
+		return
+	var code := FileAccess.get_file_as_string("res://scenes/route_graph/route_graph.gdshader")
+	var hint := FILTER_HINTS[clampi(map_filter, 0, FILTER_HINTS.size() - 1)]
+	# Swap only the sampler hint. The fetch and the lack of branches stay as authored.
+	code = code.replace("filter_linear,", hint + ",")
+	var shader := Shader.new()
+	shader.code = code
+	route_material.shader = shader
+	if atlas != null and atlas.texture != null:
+		route_material.set_shader_parameter("atlas", atlas.texture)
+	sync_shader()
 
 
 func _process(delta: float) -> void:

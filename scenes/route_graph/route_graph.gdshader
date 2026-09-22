@@ -1,6 +1,7 @@
 shader_type canvas_item;
 render_mode blend_mix;
 
+// Default sampler hint. Settings may swap this token. One fetch, no branches.
 uniform sampler2D atlas : filter_linear, repeat_disable;
 uniform vec2 pan = vec2(0.0);
 uniform float zoom = 1.0;

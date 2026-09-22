@@ -150,8 +150,9 @@ class_name VNBalloon extends CanvasLayer
 @onready var resolution_option: OptionButton = %ResolutionOption
 @onready var res_width_spin: SpinBox = %ResWidthSpin
 @onready var res_height_spin: SpinBox = %ResHeightSpin
-@onready var atlas_size_spin: SpinBox = %AtlasSizeSpin
-@onready var atlas_size_value: Label = %AtlasSizeValue
+@onready var glyph_scale_option: OptionButton = %GlyphScaleOption
+@onready var game_filter_option: OptionButton = %GameFilterOption
+@onready var map_filter_option: OptionButton = %MapFilterOption
 @onready var master_vol_slider: HSlider = %MasterVolSlider
 @onready var master_vol_value: Label = %MasterVolValue
 @onready var music_vol_slider: HSlider = %MusicVolSlider
@@ -228,7 +229,11 @@ var portrait_mode: bool = false
 var force_portrait: bool = false
 var rotation_deg: int = 0
 var language: String = "en"
-var atlas_resolution: int = 1024
+var glyph_scale: int = 2
+var game_filter: int = 1
+var map_filter: int = 1
+const GLYPH_SCALE_LABELS: Array[String] = ["1× Low", "2× Medium", "3× High", "4× Ultra"]
+const FILTER_LABELS: Array[String] = ["Nearest", "Linear", "Nearest mipmaps", "Linear mipmaps"]
 ## Authored offset_top/bottom per sprite, captured once so the Y-offset
 ## setting is applied as a delta instead of flattening the rect.
 var _sprite_base_offsets: Dictionary = {}
@@ -321,6 +326,7 @@ func _ready() -> void:
 	_setup_key_bindings()
 	_load_seen()
 	_load_settings()
+	_apply_display_quality()
 	# Apply slider defaults even on a fresh install (set_value-less first run).
 	_on_text_size_changed(text_size_slider.value)
 	_on_skip_speed_changed(skip_speed_slider.value)
@@ -1106,6 +1112,8 @@ func _load_settings() -> void:
 	TranslationServer.set_locale(language)
 	_load_key_bindings(data.get("key_bindings", {}))
 	if data.is_empty():
+		_sync_quality_controls()
+		_apply_display_quality()
 		return
 	if data.has("text_speed"):
 		text_speed_slider.value = float(data.text_speed)
@@ -1156,12 +1164,13 @@ func _load_settings() -> void:
 		res_height_spin.value = float(data.res_h)
 		_sync_resolution_option()
 		_apply_resolution(int(data.res_w), int(data.res_h))
-	if data.has("atlas_size"):
-		var saved_atlas := clampi(int(round(float(data.atlas_size) / 64.0)) * 64, 128, 4096)
-		atlas_resolution = saved_atlas
-		atlas_size_spin.set_value_no_signal(float(saved_atlas))
-		if is_instance_valid(route_graph_panel) and route_graph_panel.has_method("set_atlas_resolution"):
-			route_graph_panel.set_atlas_resolution(atlas_resolution, false)
+	if data.has("glyph_scale"):
+		glyph_scale = clampi(int(data.glyph_scale), 1, 4)
+	if data.has("game_filter"):
+		game_filter = clampi(int(data.game_filter), 0, FILTER_LABELS.size() - 1)
+	if data.has("map_filter"):
+		map_filter = clampi(int(data.map_filter), 0, FILTER_LABELS.size() - 1)
+	_sync_quality_controls()
 	for key: String in ["vol_master", "vol_music", "vol_voice", "vol_sfx"]:
 		if data.has(key):
 			var slider: HSlider = {"vol_master": master_vol_slider, "vol_music": music_vol_slider,
@@ -1195,7 +1204,9 @@ func _save_settings() -> void:
 		"vsync": vsync_check.button_pressed,
 		"res_w": int(res_width_spin.value),
 		"res_h": int(res_height_spin.value),
-		"atlas_size": int(atlas_size_spin.value),
+		"glyph_scale": glyph_scale,
+		"game_filter": game_filter,
+		"map_filter": map_filter,
 		"vol_master": master_vol_slider.value,
 		"vol_music": music_vol_slider.value,
 		"vol_voice": voice_vol_slider.value,
@@ -1353,8 +1364,6 @@ func _update_slider_value_labels() -> void:
 	music_vol_value.text = "%d%%" % roundi(music_vol_slider.value)
 	voice_vol_value.text = "%d%%" % roundi(voice_vol_slider.value)
 	sfx_vol_value.text = "%d%%" % roundi(sfx_vol_slider.value)
-	if is_instance_valid(atlas_size_value):
-		atlas_size_value.text = "%d px" % int(atlas_size_spin.value)
 
 
 func _on_settings_close_pressed() -> void:
@@ -1394,7 +1403,8 @@ const UI_TEXT_KEYS: Array = [
 	["PortraitRowLabel", "Portrait layout"], ["PortraitCheck", "on"], ["RotationRowLabel", "Rotation"],
 	["FullscreenRowLabel", "Fullscreen"], ["FullscreenCheck", "on"], ["VsyncRowLabel", "V-Sync"],
 	["VsyncCheck", "on"], ["ResolutionRowLabel", "Resolution"], ["ResCustomLabel", "Custom size"],
-	["AtlasRowLabel", "Map atlas"],
+	["GlyphScaleRowLabel", "Glyph scale"],
+	["GameFilterRowLabel", "Game filter"], ["MapFilterRowLabel", "Map filter"],
 	["AudioHeader", "Audio"], ["MasterVolRowLabel", "Master volume"],
 	["MusicVolRowLabel", "Music volume"], ["VoiceVolRowLabel", "Voice volume"],
 	["SfxVolRowLabel", "SFX volume"], ["SpritesHeader", "Sprites"],
@@ -1421,6 +1431,13 @@ func _retranslate_dynamic() -> void:
 		skip_mode_option.set_item_text(1, tr("Seen only"))
 	if is_instance_valid(resolution_option):
 		resolution_option.set_item_text(RES_PRESETS.size(), tr("Custom"))
+	if is_instance_valid(glyph_scale_option):
+		for i in GLYPH_SCALE_LABELS.size():
+			glyph_scale_option.set_item_text(i, tr(GLYPH_SCALE_LABELS[i]))
+	for option in [game_filter_option, map_filter_option]:
+		if is_instance_valid(option):
+			for i in FILTER_LABELS.size():
+				option.set_item_text(i, tr(FILTER_LABELS[i]))
 	if is_instance_valid(save_menu_title) and save_menu_panel.visible:
 		save_menu_title.text = tr("Save") if save_menu_mode == "save" else tr("Load")
 	if is_instance_valid(route_graph_panel) and route_graph_panel.has_method("refresh_locale"):
@@ -1559,16 +1576,67 @@ func _on_res_height_changed(_v: float) -> void:
 	_save_settings()
 
 
-## Map glyph atlas side, in pixels. Snaps to 64 so the baker stays aligned.
-func _on_atlas_size_changed(v: float) -> void:
-	var next := clampi(int(round(v / 64.0)) * 64, 128, 4096)
-	if int(atlas_size_spin.value) != next:
-		atlas_size_spin.set_value_no_signal(float(next))
-	atlas_resolution = next
-	_update_slider_value_labels()
+func _sync_quality_controls() -> void:
+	if is_instance_valid(glyph_scale_option):
+		glyph_scale_option.set_block_signals(true)
+		glyph_scale_option.selected = clampi(glyph_scale - 1, 0, GLYPH_SCALE_LABELS.size() - 1)
+		glyph_scale_option.set_block_signals(false)
+	if is_instance_valid(game_filter_option):
+		game_filter_option.set_block_signals(true)
+		game_filter_option.selected = game_filter
+		game_filter_option.set_block_signals(false)
+	if is_instance_valid(map_filter_option):
+		map_filter_option.set_block_signals(true)
+		map_filter_option.selected = map_filter
+		map_filter_option.set_block_signals(false)
+
+
+func _apply_display_quality() -> void:
+	_apply_game_filter()
+	if is_instance_valid(route_graph_panel):
+		if route_graph_panel.has_method("set_glyph_scale"):
+			route_graph_panel.set_glyph_scale(glyph_scale, false)
+		if route_graph_panel.has_method("set_map_filter"):
+			route_graph_panel.set_map_filter(map_filter, false)
+
+
+func _apply_game_filter() -> void:
+	var mode := _canvas_filter(game_filter)
+	for node in [background, sprite_left, sprite_right]:
+		if is_instance_valid(node):
+			node.texture_filter = mode
+
+
+func _canvas_filter(index: int) -> CanvasItem.TextureFilter:
+	match clampi(index, 0, 3):
+		0:
+			return CanvasItem.TEXTURE_FILTER_NEAREST
+		2:
+			return CanvasItem.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+		3:
+			return CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		_:
+			return CanvasItem.TEXTURE_FILTER_LINEAR
+
+
+func _on_glyph_scale_selected(idx: int) -> void:
+	glyph_scale = clampi(idx, 0, 3) + 1
 	_save_settings()
-	if is_instance_valid(route_graph_panel) and route_graph_panel.has_method("set_atlas_resolution"):
-		route_graph_panel.set_atlas_resolution(atlas_resolution)
+	if is_instance_valid(route_graph_panel) and route_graph_panel.has_method("set_glyph_scale"):
+		route_graph_panel.set_glyph_scale(glyph_scale)
+
+
+func _on_game_filter_selected(idx: int) -> void:
+	game_filter = clampi(idx, 0, FILTER_LABELS.size() - 1)
+	_apply_game_filter()
+	_save_settings()
+
+
+func _on_map_filter_selected(idx: int) -> void:
+	map_filter = clampi(idx, 0, FILTER_LABELS.size() - 1)
+	_save_settings()
+	if is_instance_valid(route_graph_panel) and route_graph_panel.has_method("set_map_filter"):
+		route_graph_panel.set_map_filter(map_filter)
 
 
 func _apply_resolution(w: int, h: int) -> void:
@@ -2034,7 +2102,9 @@ func _on_route_button_pressed() -> void:
 	if is_instance_valid(route_graph_panel):
 		_open_overlay(route_graph_panel)
 		if route_graph_panel.has_method("show_graph"):
-			route_graph_panel.show_graph(dialogue_resource, _route_player_state(), atlas_resolution)
+			if route_graph_panel.has_method("set_map_filter"):
+				route_graph_panel.set_map_filter(map_filter, false)
+			route_graph_panel.show_graph(dialogue_resource, _route_player_state(), glyph_scale)
 	else:
 		_toast("Route graph not available")
 

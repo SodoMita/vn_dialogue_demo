@@ -43,16 +43,21 @@ func _ready() -> void:
 	_sync_toggle_look()
 
 
-func set_atlas_resolution(size: int, rebuild: bool = true) -> void:
-	if view != null and is_instance_valid(view) and view.has_method("set_atlas_resolution"):
-		view.set_atlas_resolution(size, rebuild)
+func set_glyph_scale(scale: int, rebuild: bool = true) -> void:
+	if view != null and is_instance_valid(view) and view.has_method("set_glyph_scale"):
+		view.set_glyph_scale(scale, rebuild)
 
 
-func show_graph(resource = null, player: Dictionary = {}, atlas_resolution: int = -1) -> void:
+func set_map_filter(index: int, rebuild: bool = true) -> void:
+	if view != null and is_instance_valid(view) and view.has_method("set_map_filter"):
+		view.set_map_filter(index, rebuild)
+
+
+func show_graph(resource = null, player: Dictionary = {}, glyph_scale: int = -1) -> void:
 	visible = true
 	_apply_texts()
-	if atlas_resolution >= 64:
-		set_atlas_resolution(atlas_resolution, false)
+	if glyph_scale >= 1:
+		set_glyph_scale(glyph_scale, false)
 	if view != null and is_instance_valid(view) and view.has_method("open_resource"):
 		view.open_resource(resource, player)
 		if view.has_method("set_visited_only"):

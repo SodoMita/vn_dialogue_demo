@@ -404,3 +404,36 @@ msgstr "иначе"
 
 msgid "Choice %s"
 msgstr "Выбор %s"
+
+msgid "Glyph scale"
+msgstr "Масштаб глифов"
+
+msgid "Game filter"
+msgstr "Фильтр игры"
+
+msgid "Map filter"
+msgstr "Фильтр карты"
+
+msgid "1× Low"
+msgstr "1× низкое"
+
+msgid "2× Medium"
+msgstr "2× среднее"
+
+msgid "3× High"
+msgstr "3× высокое"
+
+msgid "4× Ultra"
+msgstr "4× ультра"
+
+msgid "Nearest"
+msgstr "Ближайший"
+
+msgid "Linear"
+msgstr "Линейный"
+
+msgid "Nearest mipmaps"
+msgstr "Ближайший, мипмапы"
+
+msgid "Linear mipmaps"
+msgstr "Линейный, мипмапы"
