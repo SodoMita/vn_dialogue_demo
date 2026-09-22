@@ -29,6 +29,10 @@ var dragging := false
 var _press_local := Vector2.ZERO
 var _press_graph := Vector2.ZERO
 var _moved := false
+var _touches: Dictionary = {}
+var _pinching := false
+var _pinch_dist := 0.0
+var _pinch_anchor := Vector2.ZERO
 var _fitted := false
 var visited_only := true
 var player_state: Dictionary = {}
@@ -291,6 +295,8 @@ func _focus_here() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		_fit_if_needed()
+	elif what == NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree():
+		_clear_pinch()
 
 
 func _to_graph(local: Vector2) -> Vector2:
@@ -298,16 +304,24 @@ func _to_graph(local: Vector2) -> Vector2:
 
 
 func _gui_input(event: InputEvent) -> void:
+	if _pinching and event is InputEventMouseButton:
+		dragging = false
+		_moved = true
+		accept_event()
+		return
 	if event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
 		if button.button_index == MOUSE_BUTTON_WHEEL_UP and button.pressed:
-			_zoom_at(button.position, 1.12)
+			apply_pinch(button.position, 1.12)
 			accept_event()
 		elif button.button_index == MOUSE_BUTTON_WHEEL_DOWN and button.pressed:
-			_zoom_at(button.position, 1.0 / 1.12)
+			apply_pinch(button.position, 1.0 / 1.12)
 			accept_event()
 		elif button.button_index == MOUSE_BUTTON_LEFT or button.button_index == MOUSE_BUTTON_MIDDLE:
-			if button.pressed:
+			if _pinching:
+				dragging = false
+				_moved = true
+			elif button.pressed:
 				dragging = true
 				_moved = false
 				_press_local = button.position
@@ -317,7 +331,7 @@ func _gui_input(event: InputEvent) -> void:
 				if not _moved and button.button_index == MOUSE_BUTTON_LEFT:
 					_activate_at(_press_graph)
 			accept_event()
-	elif event is InputEventMouseMotion and dragging:
+	elif event is InputEventMouseMotion and dragging and not _pinching:
 		var motion := event as InputEventMouseMotion
 		if motion.position.distance_to(_press_local) > 4.0:
 			_moved = true
@@ -325,6 +339,132 @@ func _gui_input(event: InputEvent) -> void:
 		target_pan = pan
 		sync_shader()
 		accept_event()
+
+
+func _input(event: InputEvent) -> void:
+	if not is_visible_in_tree() or _pinch_blocked():
+		if _pinching or not _touches.is_empty():
+			_clear_pinch()
+		return
+	if event is InputEventMagnifyGesture and not _pinching:
+		var magnify := event as InputEventMagnifyGesture
+		var local := _screen_to_local(magnify.position)
+		if Rect2(Vector2.ZERO, size).has_point(local):
+			apply_pinch(local, magnify.factor)
+			get_viewport().set_input_as_handled()
+		return
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			if _touches.is_empty() and not _touch_on_view(touch.position):
+				return
+			_touches[touch.index] = touch.position
+		else:
+			if not _touches.has(touch.index):
+				return
+			_touches.erase(touch.index)
+		_sync_pinch()
+		if _pinching:
+			get_viewport().set_input_as_handled()
+	elif event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if not _touches.has(drag.index):
+			return
+		_touches[drag.index] = drag.position
+		if _pinching:
+			_apply_two_finger()
+			get_viewport().set_input_as_handled()
+
+
+## Zoom around a local point. Wheel and trackpad pinch both come through here.
+func apply_pinch(local: Vector2, factor: float) -> void:
+	if factor <= 0.0 or is_equal_approx(factor, 1.0):
+		return
+	_zoom_at(local, factor)
+
+
+## Keep a graph point under the moving midpoint while the finger distance changes.
+func apply_two_finger(local_mid: Vector2, factor: float, anchor: Vector2) -> void:
+	var next := clampf(zoom * factor, 0.2, 2.6)
+	zoom = next
+	target_zoom = next
+	pan = local_mid / zoom - anchor
+	target_pan = pan
+	sync_shader()
+
+
+func _pinch_blocked() -> bool:
+	var node: Node = get_parent()
+	while node != null:
+		var spoiler := node.get_node_or_null("SpoilerPanel")
+		if spoiler is CanvasItem and (spoiler as CanvasItem).visible:
+			return true
+		node = node.get_parent()
+	return false
+
+
+func _touch_on_view(screen_pos: Vector2) -> bool:
+	return Rect2(Vector2.ZERO, size).has_point(_screen_to_local(screen_pos))
+
+
+func _screen_to_local(screen_pos: Vector2) -> Vector2:
+	return get_global_transform_with_canvas().affine_inverse() * screen_pos
+
+
+func _clear_pinch() -> void:
+	_touches.clear()
+	_pinching = false
+	_pinch_dist = 0.0
+
+
+func _sync_pinch() -> void:
+	if _touches.size() >= 2:
+		if not _pinching:
+			_pinching = true
+			dragging = false
+			_moved = true
+			var mid := _screen_to_local(_touch_mid())
+			_pinch_anchor = _to_graph(mid)
+			_pinch_dist = _touch_dist()
+		else:
+			_apply_two_finger()
+	else:
+		_pinching = false
+		_pinch_dist = 0.0
+
+
+func _apply_two_finger() -> void:
+	if _touches.size() < 2:
+		return
+	var dist := _touch_dist()
+	# A tiny span is not a pinch yet. Adopt it as the baseline instead of zooming.
+	if dist < 12.0 or _pinch_dist < 12.0:
+		_pinch_dist = dist
+		_pinch_anchor = _to_graph(_screen_to_local(_touch_mid()))
+		return
+	var factor := dist / _pinch_dist
+	var mid := _screen_to_local(_touch_mid())
+	apply_two_finger(mid, factor, _pinch_anchor)
+	_pinch_dist = dist
+
+
+func _touch_mid() -> Vector2:
+	var pts := _two_points()
+	return (pts[0] + pts[1]) * 0.5
+
+
+func _touch_dist() -> float:
+	var pts := _two_points()
+	return pts[0].distance_to(pts[1])
+
+
+func _two_points() -> Array:
+	var pts: Array = []
+	for key in _touches:
+		pts.append(_touches[key])
+		if pts.size() == 2:
+			break
+	return pts
 
 
 func _zoom_at(local: Vector2, factor: float) -> void:

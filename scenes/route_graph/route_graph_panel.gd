@@ -153,7 +153,7 @@ func _apply_texts() -> void:
 	if title_label:
 		title_label.text = tr("Story map")
 	if hint_label:
-		hint_label.text = tr("Drag to pan  ·  Wheel to zoom  ·  Port → other side  ·  Edge → furthest of its two nodes  ·  Header → play there")
+		hint_label.text = tr("Drag to pan  ·  Pinch or wheel to zoom  ·  Port → other side  ·  Edge → furthest of its two nodes  ·  Header → play there")
 	if close_btn:
 		close_btn.text = tr("Close")
 	if spoiler_title:

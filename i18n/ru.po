@@ -387,8 +387,8 @@ msgstr "Переход: %s"
 msgid "Nothing to show there"
 msgstr "Там нечего показать"
 
-msgid "Drag to pan  ·  Wheel to zoom  ·  Port → other side  ·  Edge → furthest of its two nodes  ·  Header → play there"
-msgstr "Тяните, чтобы двигать  ·  Колёсико — масштаб  ·  Порт → другая сторона  ·  Ребро → дальнейший из двух узлов  ·  Заголовок → перейти в игру"
+msgid "Drag to pan  ·  Pinch or wheel to zoom  ·  Port → other side  ·  Edge → furthest of its two nodes  ·  Header → play there"
+msgstr "Тяните, чтобы двигать  ·  Щипок или колёсико — масштаб  ·  Порт → другая сторона  ·  Ребро → дальнейший из двух узлов  ·  Заголовок → перейти в игру"
 
 msgid "Map atlas"
 msgstr "Атлас карты"

@@ -214,7 +214,7 @@ corner X leave it.
 
 **Mobile**: `input_devices/pointing/emulate_mouse_from_touch = true` is enabled in
 `project.godot`, so touch taps become the mouse clicks the balloon already understands; all
-system-row buttons are authored ≥ 44 px tall touch targets.
+system-row buttons are authored ≥ 44 px tall touch targets. On the story map, one finger drags to pan and a pinch zooms around the fingers.
 
 ## Run it
 

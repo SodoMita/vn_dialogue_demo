@@ -17,7 +17,7 @@ typewriter box, centered choices) built on the
 | Advance / finish typing | click or `Enter` (first press finishes the typewriter, next advances) |
 | Hold to skip | Hold `Ctrl` (release to stop) |
 | Close the top overlay | `Backspace`, or press-and-hold the empty space around any menu |
-| Story map | `Map` on the system row. Drag to pan, wheel to zoom. A gold ring marks where you are. A port click jumps to the other side of that line; an edge click (including the arrow) jumps to the further of that edge's two nodes; a header click goes to that place in the game. **Visited only** is on by default — turning it off asks before revealing unread routes. `Esc` or Close leaves the map |
+| Story map | `Map` on the system row. Drag to pan, pinch or wheel to zoom. A gold ring marks where you are. A port click jumps to the other side of that line; an edge click (including the arrow) jumps to the further of that edge's two nodes; a header click goes to that place in the game. **Visited only** is on by default — turning it off asks before revealing unread routes. `Esc` or Close leaves the map |
 | Open history | `H` |
 | Choose an option | `Up`/`Down` then `Enter` (or click) |
 | Roll back one line | mouse wheel up (Ren'Py-style, non-destructive) |

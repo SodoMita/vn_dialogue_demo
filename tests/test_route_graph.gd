@@ -42,6 +42,7 @@ func run() -> void:
 	_check_atlas()
 	_check_panel_guard()
 	_check_locale_and_atlas()
+	_check_pinch()
 	check(ViewScript != null and AtlasScript != null, "route-graph scripts preload without a class cache")
 
 
@@ -617,4 +618,32 @@ func _check_locale_and_atlas() -> void:
 	check(balloon.contains("show_graph(dialogue_resource, _route_player_state(), glyph_scale)"), "opening the map uses the saved glyph scale")
 	check(balloon.contains("texture_filter"), "game filter is applied to the stage art")
 	check(not balloon.contains("GlyphScaleOption.new("), "quality controls are not built in code")
+
+func _check_pinch() -> void:
+	var view = ViewScript.new()
+	view.zoom = 1.0
+	view.target_zoom = 1.0
+	view.pan = Vector2.ZERO
+	view.target_pan = Vector2.ZERO
+	view.apply_pinch(Vector2(100, 80), 2.0)
+	check(is_equal_approx(view.zoom, 2.0), "pinch out doubles zoom around the fingers")
+	check(is_equal_approx(view.pan.x, 50.0 - 100.0) and is_equal_approx(view.pan.y, 40.0 - 80.0), "pinch keeps the graph point under the pinch")
+	view.apply_pinch(Vector2(100, 80), 0.5)
+	check(is_equal_approx(view.zoom, 1.0), "pinch in restores zoom")
+	view.apply_pinch(Vector2(10, 10), 100.0)
+	check(is_equal_approx(view.zoom, 2.6), "pinch zoom clamps")
+	view.zoom = 1.0
+	view.target_zoom = 1.0
+	view.pan = Vector2.ZERO
+	view.apply_two_finger(Vector2(140, 60), 1.0, Vector2(80, 40))
+	check(is_equal_approx(view.zoom, 1.0) and is_equal_approx(view.pan.x, 60.0) and is_equal_approx(view.pan.y, 20.0), "a pinch that slides pans with the fingers")
+	view.apply_two_finger(Vector2(140, 60), 2.0, Vector2(80, 40))
+	check(is_equal_approx(view.zoom, 2.0), "two-finger pinch zooms")
+	check(is_equal_approx(view.pan.x, 70.0 - 80.0) and is_equal_approx(view.pan.y, 30.0 - 40.0), "two-finger pinch keeps the anchor under the midpoint")
+	var source := FileAccess.get_file_as_string("res://scenes/route_graph/route_graph_view.gd")
+	check(source.contains("InputEventMagnifyGesture"), "trackpad pinch is handled")
+	check(source.contains("InputEventScreenTouch"), "two-finger pinch is handled")
+	check(source.contains("SpoilerPanel"), "an open spoiler prompt blocks pinch")
+	check(not source.contains("instantiate("), "pinch support does not instantiate a scene")
+	view.free()
 
