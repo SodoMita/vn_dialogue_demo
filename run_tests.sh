@@ -21,7 +21,10 @@ echo "== Importing project (editor headless) =="
 
 echo
 echo "== Script checks =="
-for s in scenes/vn_balloon.gd scenes/vn_scene.gd autoloads/game_state.gd tests/test_vn_ui.gd; do
+for s in scenes/vn_balloon.gd scenes/vn_scene.gd autoloads/game_state.gd tests/test_vn_ui.gd \
+         route_graph/route_graph_data.gd route_graph/route_graph_compiler.gd \
+         route_graph/route_graph_layout.gd route_graph/route_graph_atlas.gd \
+         route_graph/route_graph_mesh.gd route_graph/route_graph_view.gd; do
   if "$GODOT" --headless --check-only --script "res://$s" >/tmp/vn_check.log 2>&1; then
     echo "  [OK]   $s"
   else

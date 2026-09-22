@@ -27,11 +27,12 @@ typewriter box, centered choices) built on the
 | Mobile | tap = advance, swipe up = backlog |
 
 The bottom system row mirrors Kirikiri/Ren'Py toolbars:
-`QS QL Save Load Auto Skip < Choice Choice > Log Set Panic Pause`
+`QS QL Save Load Auto Skip < Choice Choice > Log Map Set Panic Pause`
 (`Pause` covers touch devices that have no pause key). On narrow aspects or
 big UI scales the row wraps onto as many lines as it needs.
 `< Choice` / `Choice >` jump straight to the previous/next decision point; `Log` opens the
-scrolling backlog; `Set` opens settings.
+scrolling backlog; `Map` opens the story's choice graph (pan / zoom / jump to a visited
+node); `Set` opens settings.
 
 ## Modes
 

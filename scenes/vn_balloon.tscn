@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://scenes/vn_balloon.gd" id="1_balloon"]
 [ext_resource type="PackedScene" uid="uid://ckvgyvclnwggo" path="res://addons/dialogue_manager/nodes/dialogue_label/dialogue_label.tscn" id="2_dlabel"]
@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" path="res://assets/characters/maya.webp" id="8_maya"]
 [ext_resource type="Texture2D" path="res://assets/characters/maya_smile.webp" id="9_maya_smile"]
 [ext_resource type="Texture2D" path="res://assets/characters/rook.webp" id="10_rook"]
+[ext_resource type="Script" path="res://route_graph/route_graph_view.gd" id="11_route"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
 bg_color = Color(0.045, 0.06, 0.12, 0.94)
@@ -502,6 +503,21 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
 text = "Log"
+
+[node name="MapButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(56, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+theme_override_colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("StyleBoxFlat_hist_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
+text = "Map"
 
 [node name="SettingsButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
 unique_name_in_owner = true
@@ -1686,6 +1702,63 @@ one_shot = true
 unique_name_in_owner = true
 bus = &"Voice"
 
+[node name="RouteGraphPanel" type="PanelContainer" parent="Balloon/UIRoot"]
+unique_name_in_owner = true
+z_index = 10
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_history")
+
+[node name="RouteGraphMargin" type="MarginContainer" parent="Balloon/UIRoot/RouteGraphPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 20
+
+[node name="RouteGraphVBox" type="VBoxContainer" parent="Balloon/UIRoot/RouteGraphPanel/RouteGraphMargin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="RouteGraphHeader" type="HBoxContainer" parent="Balloon/UIRoot/RouteGraphPanel/RouteGraphMargin/RouteGraphVBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="RouteGraphTitle" type="Label" parent="Balloon/UIRoot/RouteGraphPanel/RouteGraphMargin/RouteGraphVBox/RouteGraphHeader"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
+theme_override_fonts/font = ExtResource("5_serifbold")
+theme_override_font_sizes/font_size = 26
+text = "Story map"
+
+[node name="RouteGraphHint" type="Label" parent="Balloon/UIRoot/RouteGraphPanel/RouteGraphMargin/RouteGraphVBox/RouteGraphHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.75, 0.75, 0.8, 0.8)
+theme_override_font_sizes/font_size = 15
+text = "Drag to pan · wheel to zoom · click a visited node to jump"
+horizontal_alignment = 2
+
+[node name="RouteGraphCloseButton" type="Button" parent="Balloon/UIRoot/RouteGraphPanel/RouteGraphMargin/RouteGraphVBox/RouteGraphHeader"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 22
+text = "X"
+
+[node name="RouteGraphView" type="Control" parent="Balloon/UIRoot/RouteGraphPanel/RouteGraphMargin/RouteGraphVBox"]
+unique_name_in_owner = true
+clip_contents = true
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("11_route")
+
 [node name="SettingsCloseButton" type="Button" parent="Balloon/UIRoot"]
 unique_name_in_owner = true
 visible = false
@@ -1714,6 +1787,7 @@ text = "X"
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/PrevChoiceButton" to="." method="_on_prev_choice_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/NextChoiceButton" to="." method="_on_next_choice_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/LogButton" to="." method="_on_log_pressed"]
+[connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/MapButton" to="." method="_on_map_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/SettingsButton" to="." method="_on_settings_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/PanicButton" to="." method="_on_panic_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/PauseButton" to="." method="_on_pause_button_pressed"]
@@ -1747,6 +1821,8 @@ text = "X"
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteScaleRow/SpriteScaleSlider" to="." method="_on_sprite_scale_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteYRow/SpriteYSlider" to="." method="_on_sprite_y_changed"]
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SyncVoiceRow/SyncVoiceCheck" to="." method="_on_sync_voice_toggled"]
+[connection signal="pressed" from="Balloon/UIRoot/RouteGraphPanel/RouteGraphMargin/RouteGraphVBox/RouteGraphHeader/RouteGraphCloseButton" to="." method="_on_map_close_pressed"]
+[connection signal="node_clicked" from="Balloon/UIRoot/RouteGraphPanel/RouteGraphMargin/RouteGraphVBox/RouteGraphView" to="." method="_on_route_graph_node_clicked"]
 [connection signal="pressed" from="Balloon/UIRoot/SettingsCloseButton" to="." method="_on_settings_close_pressed"]
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PortraitRow/PortraitCheck" to="." method="_on_portrait_toggled"]
 [connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot0Button" to="." method="_on_rot_0_pressed"]

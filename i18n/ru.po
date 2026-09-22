@@ -338,3 +338,15 @@ msgstr "Пауза"
 
 msgid "+ New slot"
 msgstr "+ Новый слот"
+
+msgid "Map"
+msgstr "Карта"
+
+msgid "Story map"
+msgstr "Карта сюжета"
+
+msgid "Drag to pan · wheel to zoom · click a visited node to jump"
+msgstr "Перетащите для панорамы · колесо — масштаб · клик по посещённому узлу — переход"
+
+msgid "Not yet reached"
+msgstr "Ещё не достигнуто"

@@ -17,6 +17,10 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
   Skip (`Ctrl`) key fast-forwards only while held
 - bobbing "next" indicator
 - centred choice buttons via the addon's `DialogueResponsesMenu`
+- **story map (choice graph)**: a single-pass route-graph renderer (`docs/ROUTE_GRAPH_DESIGN.md`)
+  that compiles the `.dialogue` file into a port-and-arrow DAG and draws it in **one**
+  atlas-sampled mesh (no per-node CanvasItems). Open it with **Map** on the system row;
+  drag to pan, wheel to zoom, click a visited node to jump back to it
 - **history (backlog) panel with rollback**: `H` opens it (scrollable with wheel / keys),
   clicking any logged line jumps back to it and restores the story state + stage exactly as
   they were; Ren'Py-style the rollback is non-destructive — the mouse wheel rolls the game
@@ -64,7 +68,7 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - **styled text**: BBCode (`[b]`, `[i]`, `[color=…]`, …) renders in the typewriter label;
   the backlog and save-slot labels store the same lines without markup
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **259/259 checks pass**, zero
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **386/386 checks pass**, zero
 `SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
 saved in `docs/` (captured under Xvfb).
 
@@ -123,7 +127,7 @@ other autoloads are not snapshotted.
 The bottom system row (authored in `vn_balloon.tscn`, `Balloon/BottomUI/SystemRow`) mirrors the
 control bars of Kirikiri / Ren'Py / Monogatari-style engines: `QS`/`QL` quick-save/load slot 0,
 `Save`/`Load` open the slot menu, `Auto`/`Skip` toggle modes (the button tints gold while on),
-`Log` opens the backlog, `Set` the settings panel, `Panic` the boss screen, and `< Choice` /
+`Log` opens the backlog, `Map` the story's choice graph, `Set` the settings panel, `Panic` the boss screen, and `< Choice` /
 `Choice >` jump back to the previous choice / forward to the next one (Kirikiri-style). The
 same actions work from the keyboard: `F5`/`F9` quick save/load, `Esc` or right-click pauses,
 `F12` panics, mouse wheel rolls the game back/forward through the backlog.
@@ -252,7 +256,7 @@ the sprite sliders slide again.
 - `docs/CUSTOMIZING.md` — swapping art/voices/story content, theming, settings ranges.
 - `docs/RECREATION.md` — rebuilding this balloon from scratch with Dialogue Manager,
   layout blueprint and the pitfalls list.
-- `docs/ROUTE_GRAPH_DESIGN.md` — the deferred single-pass route-graph renderer design.
+- `docs/ROUTE_GRAPH_DESIGN.md` — the single-pass route-graph renderer (atlas + CPU mesh + shader).
 
 Rendered screenshots (under Xvfb + software GL):
 

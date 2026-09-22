@@ -1,29 +1,34 @@
-# Route graph — design notes (future work)
+# Route graph — single-pass choice graph renderer
 
-A visual route/flow graph of the story is planned. **Status: deferred.** Godot's immediate
-Canvas drawing is too slow for a graph of this size, so the plan is a custom single-pass
-renderer — effectively a small graphics engine from scratch.
+A visual route/flow graph of the story. Godot's immediate Canvas drawing is too slow for a
+graph of this size, so this is a custom single-pass renderer — a small graphics engine.
+
+**Status: implemented** in `route_graph/`. Open it in play with the system-row **Map**
+button (story map overlay). Drag to pan, wheel to zoom, click a visited node to jump.
 
 ## Rendering architecture
 
-- **One draw call.** A single surface/mesh rendered by one shader pass; no per-node
-  CanvasItems.
+- **One draw call.** A single `ArrayMesh` surface rendered by one canvas_item shader pass;
+  no per-node CanvasItems.
 - **CPU builds the buffers.** Vertices carry `position` + `uv`; the CPU generates the quad
   soup (node rects, port labels, arrows) whenever the graph changes and uploads it once.
 - **Everything glyph-shaped is a texture.** Text, symbols and slot/line thumbnails are
-  baked into a texture atlas; the fragment shader samples the atlas via the vertex uv.
+  baked into a RGBA atlas; the fragment shader samples the atlas via the vertex uv.
 - **Nodes are rects** whose left edge hosts named *input* ports and right edge named
-  *output* ports; arrows connect output → input ports.
+  *output* ports; arrows connect output → input ports (cubic ribbons + arrow heads).
 - **Conditions are written on the graph** (edge labels / node annotations), sourced from
   the `if`/`do` metadata compiled from the `.dialogue` files.
+- **Pan/zoom** is a shader uniform transform (`u_pan`, `u_zoom`, `u_origin`) so the mesh
+  is not rebuilt while navigating.
 
-## Work breakdown (rough)
+## Modules
 
-1. Atlas baker: rasterize labels/symbols/thumbnails into a WebP/RGBA atlas + uv table.
-2. CPU mesh builder: node layout (layered DAG), port slots, arrow geometry (curves as
-   triangle strips), condition-label quads.
-3. Shader: single pass sampling the atlas; optional pan/zoom via uniform transform.
-4. Data source: compile `dialogue/*.dialogue` to nodes/edges (cues, choices, conditions).
-5. Integration: editor-style overlay panel + a player-facing "story map" if desired.
-
-Estimated large; kept out of the v1.x line on purpose.
+1. `route_graph_atlas.gd` — rasterize labels/symbols/thumbnails into an RGBA atlas + uv table.
+2. `route_graph_mesh.gd` — CPU mesh builder: node layout is applied first, then port slots,
+   bezier arrow ribbons, condition-label quads.
+3. `route_graph.gdshader` — single pass sampling the atlas; pan/zoom via uniform transform.
+4. `route_graph_compiler.gd` — compile `dialogue/*.dialogue` (via `DialogueResource.lines`)
+   to nodes/edges (cues, choices, conditions, mutations, gotos).
+5. `route_graph_layout.gd` — layered DAG (longest-path layers + barycenter ordering).
+6. `route_graph_view.gd` — overlay Control that issues one `draw_mesh` and handles input.
+7. Integration: authored `RouteGraphPanel` on the balloon + player-facing **Map** button.

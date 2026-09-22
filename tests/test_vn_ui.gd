@@ -147,7 +147,7 @@ func run() -> void:
 	sf.close()
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button", "PauseButton", "PanicCloseButton", "LanguageOption", "AdvanceKeyButton", "SkipKeyButton", "CloseKeyButton", "HistoryKeyButton", "QuickSaveKeyButton", "QuickLoadKeyButton", "PauseKeyButton", "PanicKeyButton"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "MapButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button", "PauseButton", "PanicCloseButton", "LanguageOption", "AdvanceKeyButton", "SkipKeyButton", "CloseKeyButton", "HistoryKeyButton", "QuickSaveKeyButton", "QuickLoadKeyButton", "PauseKeyButton", "PanicKeyButton", "RouteGraphPanel", "RouteGraphView", "RouteGraphCloseButton"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -470,7 +470,10 @@ func run() -> void:
 	skip_key_event.keycode = KEY_CTRL
 	balloon._input(skip_key_event)
 	check(alive() and balloon.skip_mode, "Skip key enables skip mode")
-	balloon._input(skip_key_event)
+	var skip_key_up := InputEventKey.new()
+	skip_key_up.pressed = false
+	skip_key_up.keycode = KEY_CTRL
+	balloon._input(skip_key_up)
 	check(alive() and not balloon.skip_mode, "Skip key toggles skip mode off")
 
 	# Skip: runs the dialogue to the next choices without further input.
@@ -482,7 +485,13 @@ func run() -> void:
 		return not alive() or balloon.dialogue_line.responses.size() > 0
 	, 6000)
 	check(alive() and balloon.dialogue_line.responses.size() > 0, "skip mode ran to the next choices")
-	check(alive() and not balloon.skip_mode, "skip mode stops at choices")
+	check(alive() and balloon.responses_menu.visible, "skip mode stops at choices")
+	# Toolbar skip latches on and remembers to resume after a choice; disarm both
+	# so picking a response doesn't skip the rest of the suite to END.
+	if alive():
+		balloon._resume_skip_after_choice = false
+		balloon._skip_key_held = false
+		balloon._set_skip_active(false)
 	await choose(0)
 
 	# Pause via the Esc action. Start a known clip so the regression check proves
@@ -957,6 +966,89 @@ func run() -> void:
 		"skip halted on the first unread line")
 	check(alive() and "unseen" in balloon.toast_label.text, "the halt is announced to the player")
 	balloon.skip_seen_only = false
+
+	# --- 18: high-performance single-pass choice graph ---
+	var graph: RouteGraph = RouteGraphCompiler.from_resource(resource)
+	check(graph.nodes.size() >= 12, "compiler emits a node per cue/line/choice/condition")
+	var kinds: Dictionary = {}
+	var choice_nodes := 0
+	var cond_nodes := 0
+	var cue_nodes := 0
+	for n: RouteGraph.RouteNode in graph.nodes:
+		kinds[n.kind] = int(kinds.get(n.kind, 0)) + 1
+		if n.kind == "choice":
+			choice_nodes += 1
+		elif n.kind == "condition":
+			cond_nodes += 1
+		elif n.kind == "cue":
+			cue_nodes += 1
+		check(n.inputs.size() >= 1, "node %s has an input port" % n.id)
+	check(cue_nodes >= 2, "cues ~ start and ~ rooftop are nodes")
+	check(choice_nodes >= 6, "both decision points become choice nodes")
+	check(cond_nodes >= 1, "if/else is written on the graph")
+	check(graph.edges.size() >= 12, "arrows connect output ports to input ports")
+	var cond_edges := 0
+	var choice_edges := 0
+	for e: RouteGraph.RouteEdge in graph.edges:
+		check(graph.node_index.has(e.from_id) and graph.node_index.has(e.to_id), "edge endpoints exist")
+		if e.kind == "condition":
+			cond_edges += 1
+		elif e.kind == "choice":
+			choice_edges += 1
+	check(cond_edges >= 1 and choice_edges >= 6, "condition and choice edges carry their kind")
+	RouteGraphLayout.apply(graph)
+	var layered := true
+	for e: RouteGraph.RouteEdge in graph.edges:
+		var src: RouteGraph.RouteNode = graph.get_node(e.from_id)
+		var dst: RouteGraph.RouteNode = graph.get_node(e.to_id)
+		if src.position.x >= dst.position.x:
+			layered = false
+			break
+	check(layered, "layered DAG places sources left of their sinks")
+	var atlas := RouteGraphAtlas.new()
+	var atlas_tex: ImageTexture = atlas.bake(graph, balloon.backgrounds)
+	check(atlas_tex != null and atlas.size.x >= 64 and atlas.uvs.size() >= 8, "atlas baker packed swatches and labels")
+	check(atlas.has("swatch_choice") and atlas.has("circle_in"), "atlas holds colour swatches and port glyphs")
+	var builder := RouteGraphMeshBuilder.new()
+	var mesh: ArrayMesh = builder.build(graph, atlas)
+	check(builder.surface_count == 1, "CPU mesh is a single surface (one draw call)")
+	check(builder.vertex_count >= 24 and builder.triangle_count >= 8, "quad soup has node/edge geometry")
+	var uv_ok := true
+	var st := mesh.surface_get_arrays(0)
+	var mesh_uvs: PackedVector2Array = st[Mesh.ARRAY_TEX_UV]
+	for uv: Vector2 in mesh_uvs:
+		if uv.x < -0.01 or uv.y < -0.01 or uv.x > 1.01 or uv.y > 1.01:
+			uv_ok = false
+			break
+	check(uv_ok, "every vertex uv addresses the atlas")
+	check(FileAccess.file_exists("res://route_graph/route_graph.gdshader"), "single-pass atlas shader exists")
+
+	var stress: RouteGraph = RouteGraphCompiler.make_stress(180)
+	RouteGraphLayout.apply(stress)
+	var t0: int = Time.get_ticks_msec()
+	var stress_atlas := RouteGraphAtlas.new()
+	stress_atlas.bake(stress)
+	var stress_builder := RouteGraphMeshBuilder.new()
+	stress_builder.build(stress, stress_atlas)
+	var dt: int = Time.get_ticks_msec() - t0
+	check(stress.nodes.size() == 180 and stress_builder.surface_count == 1, "stress DAG still one surface")
+	check(dt < 4000, "180-node atlas+mesh build stays off the CanvasItem path (%d ms)" % dt)
+
+	if alive():
+		balloon.open_route_graph()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(alive() and balloon.route_graph_panel.visible, "Map overlay opens the story map")
+	check(alive() and balloon.route_graph_view.mesh != null
+		and balloon.route_graph_view.mesh.get_surface_count() == 1,
+		"story map view holds the single-pass mesh")
+	check(alive() and balloon.route_graph_view.graph != null
+		and balloon.route_graph_view.graph.nodes.size() >= 12,
+		"story map is compiled from the running dialogue resource")
+	press(&"dialogue_close")
+	await get_tree().process_frame
+	check(alive() and not balloon.route_graph_panel.visible, "Close dismisses the story map")
+	check(alive() and balloon.is_waiting_for_input, "balloon waits for input again after the map closes")
 
 	finish()
 

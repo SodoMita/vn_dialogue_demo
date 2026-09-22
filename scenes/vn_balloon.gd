@@ -3,7 +3,7 @@ class_name VNBalloon extends CanvasLayer
 ##
 ## The whole UI (background stage, sprite slots, name plate, dialogue box,
 ## next indicator, responses menu, history panel, save-slot menu, settings,
-## pause menu, panic screen and the bottom system row) is AUTHORED in
+## pause menu, panic screen, story map and the bottom system row) is AUTHORED in
 ## `vn_balloon.tscn` and freely editable in the Godot editor. This script only
 ## adds behaviour: it never creates structural nodes - dynamic list entries
 ## (history, slots) duplicate authored template buttons, the standard DM pattern.
@@ -88,6 +88,11 @@ class_name VNBalloon extends CanvasLayer
 @onready var history_entry_template: Button = %HistoryEntry
 @onready var history_scroll: ScrollContainer = %HistoryScroll
 
+## Single-pass choice/route graph (story map)
+@onready var route_graph_panel: PanelContainer = %RouteGraphPanel
+@onready var route_graph_view: RouteGraphView = %RouteGraphView
+@onready var route_graph_close_button: Button = %RouteGraphCloseButton
+
 ## System row + chrome
 @onready var qs_button: Button = %QSButton
 @onready var ql_button: Button = %QLButton
@@ -96,6 +101,7 @@ class_name VNBalloon extends CanvasLayer
 @onready var auto_button: Button = %AutoButton
 @onready var skip_button: Button = %SkipButton
 @onready var log_button: Button = %LogButton
+@onready var map_button: Button = %MapButton
 @onready var settings_button: Button = %SettingsButton
 @onready var panic_button: Button = %PanicButton
 @onready var prev_choice_button: Button = %PrevChoiceButton
@@ -299,6 +305,7 @@ var dialogue_line: DialogueLine:
 func _ready() -> void:
 	balloon.hide()
 	history_panel.hide()
+	route_graph_panel.hide()
 	history_entry_template.hide()
 	save_menu_panel.hide()
 	slot_template.hide()
@@ -520,7 +527,7 @@ func next(next_id: String) -> void:
 
 func _any_overlay_open() -> bool:
 	return history_panel.visible or save_menu_panel.visible or settings_panel.visible \
-		or pause_panel.visible or panic_screen.visible
+		or pause_panel.visible or panic_screen.visible or route_graph_panel.visible
 
 
 func _open_overlay(p: Control) -> void:
@@ -547,6 +554,8 @@ func _close_top_overlay() -> void:
 		_close_overlay(save_menu_panel)
 	elif history_panel.visible:
 		close_history()
+	elif route_graph_panel.visible:
+		close_route_graph()
 
 
 ## Hand the balloon back its waiting state (and focus) once every overlay is gone.
@@ -707,6 +716,42 @@ func open_history() -> void:
 
 func close_history() -> void:
 	_close_overlay(history_panel)
+
+
+func open_route_graph() -> void:
+	if not is_instance_valid(dialogue_resource):
+		return
+	var thumbs: Dictionary = {}
+	for key: Variant in backgrounds.keys():
+		thumbs[str(key)] = backgrounds[key]
+	for key: Variant in sprites.keys():
+		thumbs[str(key)] = sprites[key]
+	route_graph_view.load_dialogue(dialogue_resource, thumbs)
+	var current: String = dialogue_line.id if is_instance_valid(dialogue_line) else ""
+	route_graph_view.set_progress(_seen_ids, current)
+	_open_overlay(route_graph_panel)
+	route_graph_close_button.grab_focus()
+
+
+func close_route_graph() -> void:
+	_close_overlay(route_graph_panel)
+
+
+func _on_map_pressed() -> void:
+	open_route_graph()
+
+
+func _on_map_close_pressed() -> void:
+	close_route_graph()
+
+
+func _on_route_graph_node_clicked(id: String) -> void:
+	for i: int in history.size():
+		if str(history[i].get("id", "")) == id:
+			close_route_graph()
+			rollback_to(i)
+			return
+	_toast(tr("Not yet reached"))
 
 
 ## Jump back to a previously shown line, restoring the story state snapshot.
@@ -1357,7 +1402,7 @@ func _on_language_changed(idx: int) -> void:
 const UI_TEXT_KEYS: Array = [
 	["SaveButton", "Save"], ["LoadButton", "Load"], ["AutoButton", "Auto"],
 	["SkipButton", "Skip"], ["PrevChoiceButton", "< Choice"], ["NextChoiceButton", "Choice >"],
-	["LogButton", "Log"], ["SettingsButton", "Set"], ["PanicButton", "Panic"], ["PauseButton", "Pause"],
+	["LogButton", "Log"], ["MapButton", "Map"], ["SettingsButton", "Set"], ["PanicButton", "Panic"], ["PauseButton", "Pause"],
 	["NewSlotButton", "+ New slot"], ["SettingsTitle", "Settings"],
 	["LanguageRowLabel", "Language"], ["TextSpeedRowLabel", "Text speed"],
 	["TextSizeRowLabel", "Text size"], ["SyncVoiceRowLabel", "Sync text to voice"],
@@ -1381,6 +1426,8 @@ const UI_TEXT_KEYS: Array = [
 	["PanicBody", "Lecture 12: The time-independent Schroedinger equation. H psi = E psi, where H is the Hamiltonian operator. For a particle in a 1-D infinite well of width L the energy eigenvalues are E_n = n^2 h^2 / (8 m L^2). Reminder: problem set 4 is due Friday - problems 3.7, 3.9 and the derivation of the uncertainty principle for position and momentum."],
 	["HistoryTitle", "History"],
 	["HistoryHint", "Click a line to roll back to it - H or Esc closes"],
+	["RouteGraphTitle", "Story map"],
+	["RouteGraphHint", "Drag to pan · wheel to zoom · click a visited node to jump"],
 ]
 
 
