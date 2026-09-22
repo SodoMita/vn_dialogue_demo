@@ -101,6 +101,7 @@ class_name VNBalloon extends CanvasLayer
 @onready var prev_choice_button: Button = %PrevChoiceButton
 @onready var next_choice_button: Button = %NextChoiceButton
 @onready var toast_label: Label = %ToastLabel
+@onready var hold_indicator: HoldIndicator = %HoldIndicator
 @onready var toast_timer: Timer = %ToastTimer
 @onready var auto_timer: Timer = %AutoTimer
 
@@ -110,6 +111,7 @@ class_name VNBalloon extends CanvasLayer
 @onready var slot_list: VBoxContainer = %SlotList
 @onready var slot_template: Button = %SlotButton
 @onready var new_slot_button: Button = %NewSlotButton
+@onready var save_close_button: Button = %SaveCloseButton
 
 ## Settings
 @onready var settings_panel: PanelContainer = %SettingsPanel
@@ -158,6 +160,9 @@ class_name VNBalloon extends CanvasLayer
 @onready var voice_vol_value: Label = %VoiceVolValue
 @onready var sfx_vol_slider: HSlider = %SfxVolSlider
 @onready var sfx_vol_value: Label = %SfxVolValue
+@onready var procedural_music_check: CheckBox = %ProceduralMusicCheck
+@onready var typewriter_sfx_check: CheckBox = %TypewriterSfxCheck
+@onready var button_sfx_check: CheckBox = %ButtonSfxCheck
 
 ## Pause + panic
 @onready var pause_panel: PanelContainer = %PausePanel
@@ -180,6 +185,9 @@ class_name VNBalloon extends CanvasLayer
 
 ## Temporary game states
 var temporary_game_states: Array = []
+
+## The AudioDirector autoload (music + SFX); null when a scene runs standalone.
+var audio: Node = null
 
 ## See if we are waiting for the player
 var is_waiting_for_input: bool = false
@@ -218,6 +226,34 @@ var ui_scale: float = 1.0
 var sprite_scale: float = 1.0
 var sprite_y: float = 0.0
 var sync_voice: bool = false
+## Whether music is generated at runtime (Settings "Generated music"); off
+## falls back to the mood-matched OGG loops in assets/music.
+var procedural_music: bool = true
+## Whether the typewriter ticks per typed character (Settings "Typewriter sound").
+var typewriter_sfx: bool = true
+## Whether UI buttons/overlays/choices play feedback (Settings "Button sound").
+var button_sfx: bool = true
+
+## Distinct pitch per selected choice (wrap-around), so options sound different.
+const CHOICE_PITCHES: Array[float] = [1.0, 1.12, 1.26, 1.33, 1.5]
+
+## Hold-to-close on menu empty space: a long tap confirms, a quick tap is
+## ignored (accidental-tap protection) and a swipe/move cancels so dragging to
+## scroll still works. The ring appears after HOLD_APPEAR and closes the menu
+## when released at/after HOLD_SECONDS.
+const HOLD_SECONDS: float = 0.55
+const HOLD_APPEAR: float = 0.12
+const HOLD_CANCEL_DIST: float = 10.0
+
+var _hold_active: bool = false
+var _hold_elapsed: float = 0.0
+var _hold_from: Vector2 = Vector2.ZERO
+
+## Whether the current press turned into a drag/swipe. Row handlers (slots,
+## history entries, rebind/rot buttons) check this so a scroll gesture ending
+## on a button never activates it.
+var _press_dragged: bool = false
+var _press_from: Vector2 = Vector2.ZERO
 var portrait_mode: bool = false
 var force_portrait: bool = false
 var rotation_deg: int = 0
@@ -305,11 +341,18 @@ func _ready() -> void:
 	settings_panel.hide()
 	pause_panel.hide()
 	panic_screen.hide()
+	hold_indicator.hide()
 	DirAccess.make_dir_recursive_absolute(saves_dir)
 	_ensure_audio_buses()
+	audio = get_node_or_null("/root/AudioDirector")
+	if audio != null:
+		dialogue_label.spoke.connect(_on_label_spoke)
+		_connect_ui_sfx()
 	_setup_key_bindings()
 	_load_seen()
 	_load_settings()
+	if audio != null:
+		audio.set_procedural_enabled(procedural_music)
 	# Apply slider defaults even on a fresh install (set_value-less first run).
 	_on_text_size_changed(text_size_slider.value)
 	_on_skip_speed_changed(skip_speed_slider.value)
@@ -333,9 +376,22 @@ func _ready() -> void:
 		start()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if _swipe_guard_frames > 0:
 		_swipe_guard_frames -= 1
+	if _hold_active:
+		if not _any_overlay_open():
+			_cancel_hold()
+		else:
+			_hold_elapsed += delta
+			if _hold_elapsed >= HOLD_APPEAR:
+				if not hold_indicator.visible:
+					hold_indicator.show_at(_hold_from)
+					if button_sfx and audio != null:
+						audio.hold_start()
+				hold_indicator.progress = _hold_elapsed / HOLD_SECONDS
+				if button_sfx and audio != null:
+					audio.hold_progress(hold_indicator.progress)
 	if is_instance_valid(dialogue_line):
 		next_indicator.visible = not dialogue_label.is_typing \
 			and dialogue_line.responses.size() == 0 \
@@ -395,6 +451,9 @@ func start(with_dialogue_resource: DialogueResource = null, cue: String = "", ex
 	if not cue.is_empty():
 		start_from_cue = cue
 	show()
+	# Ambient music under the conversation; tagged #music= lines override this.
+	if audio != null and audio.music_source == "":
+		audio.play_theme(&"calm")
 	dialogue_line = await dialogue_resource.get_next_dialogue_line(start_from_cue, temporary_game_states)
 
 
@@ -527,10 +586,12 @@ func _open_overlay(p: Control) -> void:
 	auto_timer.stop()
 	is_waiting_for_input = false
 	p.show()
+	_sfx("open")
 
 
 func _close_overlay(p: Control) -> void:
 	p.hide()
+	_sfx("close")
 	if p == settings_panel:
 		_listening_for_action = &""
 		_refresh_binding_labels()
@@ -585,6 +646,10 @@ func _apply_stage_tags(line: DialogueLine) -> void:
 			dialogue_box.show()
 		elif tag.begins_with("voice="):
 			_play_voice(tag.substr(6))
+		elif tag.begins_with("music=") and audio != null:
+			audio.request_music(tag.substr(6))
+		elif tag.begins_with("sfx=") and audio != null:
+			audio.play_sfx(tag.substr(4))
 
 
 ## Play the voiced clip for a line on the Voice bus; lines without a clip
@@ -740,6 +805,8 @@ func roll_forward() -> void:
 
 
 func _on_history_entry_pressed(index: int) -> void:
+	if _press_dragged:
+		return
 	rollback_to(index)
 
 
@@ -757,6 +824,7 @@ func _slot_path(i: int) -> String:
 func save_to_slot(i: int) -> Error:
 	if history.is_empty():
 		_toast(tr("Nothing to save"))
+		_sfx("error")
 		return ERR_INVALID_DATA
 
 	var current: Dictionary = history[history_cursor] if history_cursor >= 0 else history[history.size() - 1]
@@ -779,10 +847,12 @@ func save_to_slot(i: int) -> Error:
 	var file: FileAccess = FileAccess.open(_slot_path(i), FileAccess.WRITE)
 	if file == null:
 		_toast(tr("Save failed"))
+		_sfx("error")
 		return FileAccess.get_open_error()
 	file.store_string(JSON.stringify(data))
 	file.close()
 	_toast(tr("Saved to slot %d") % i)
+	_sfx("save")
 	return OK
 
 
@@ -791,11 +861,13 @@ func load_from_slot(i: int) -> void:
 	var path: String = _slot_path(i)
 	if not FileAccess.file_exists(path):
 		_toast(tr("Empty slot"))
+		_sfx("error")
 		return
 
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if data is not Dictionary or not (data.get("history") is Array) or (data.history as Array).is_empty():
 		_toast(tr("Save is broken"))
+		_sfx("error")
 		return
 
 	var resource_path: String = data.get("resource", "")
@@ -811,6 +883,7 @@ func load_from_slot(i: int) -> void:
 	var cursor: int = clampi(int(data.get("cursor", history.size() - 1)), 0, history.size() - 1)
 	rollback_to(cursor)
 	_toast(tr("Loaded slot %d") % i)
+	_sfx("save")
 
 
 func quick_save() -> void:
@@ -916,6 +989,8 @@ func _focus_first_slot() -> void:
 
 
 func _on_slot_pressed(i: int) -> void:
+	if _press_dragged:
+		return
 	_close_overlay(save_menu_panel)
 	if save_menu_mode == "save":
 		save_to_slot(i)
@@ -924,6 +999,8 @@ func _on_slot_pressed(i: int) -> void:
 
 
 func _on_new_slot_pressed() -> void:
+	if _press_dragged:
+		return
 	var max_i: int = 0
 	for s: Dictionary in _scan_slots():
 		max_i = max(max_i, s.index)
@@ -950,7 +1027,7 @@ func _setup_key_bindings() -> void:
 		&"dialogue_panic": panic_key_button,
 	}
 	for action: StringName in BINDABLE_ACTIONS:
-		(_binding_buttons[action] as Button).pressed.connect(_begin_rebind.bind(action))
+		(_binding_buttons[action] as Button).pressed.connect(_on_rebind_button_pressed.bind(action))
 	_refresh_binding_labels()
 
 
@@ -975,6 +1052,33 @@ func _action_released(event: InputEvent, action: StringName) -> bool:
 ## Capture before GUI/unhandled input so even Escape, Enter and the boss key can
 ## become a binding without also closing the panel or triggering their action.
 func _input(event: InputEvent) -> void:
+	# Track press -> drag so list-row handlers can tell a swipe from a tap.
+	if event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		if (event as InputEventMouseButton).pressed:
+			_press_from = (event as InputEventMouseButton).position
+			_press_dragged = false
+	elif event is InputEventMouseMotion and not _press_dragged \
+			and ((event as InputEventMouseMotion).button_mask & MOUSE_BUTTON_MASK_LEFT) != 0 \
+			and ((event as InputEventMouseMotion).position - _press_from).length() > HOLD_CANCEL_DIST:
+		_press_dragged = true
+	elif event is InputEventScreenDrag and not _press_dragged \
+			and ((event as InputEventScreenDrag).position - _press_from).length() > HOLD_CANCEL_DIST:
+		_press_dragged = true
+	# Hold-to-close bookkeeping runs first so scrolling drags that the GUI
+	# consumes later still cancel the gesture (and the release can be swallowed).
+	if _hold_active:
+		if event is InputEventMouseMotion and ((event as InputEventMouseMotion).position - _hold_from).length() > HOLD_CANCEL_DIST:
+			_cancel_hold()
+		elif event is InputEventScreenDrag and ((event as InputEventScreenDrag).position - _hold_from).length() > HOLD_CANCEL_DIST:
+			_cancel_hold()
+		elif event is InputEventMouseButton:
+			var mb_hold: InputEventMouseButton = event
+			if not mb_hold.pressed and mb_hold.button_index == MOUSE_BUTTON_LEFT:
+				if _hold_elapsed >= HOLD_SECONDS:
+					get_viewport().set_input_as_handled()
+					_finish_hold()
+				else:
+					_cancel_hold()
 	if not _listening_for_action.is_empty() and settings_panel.visible:
 		if event is InputEventKey and event.pressed and not event.echo:
 			var action := _listening_for_action
@@ -1150,6 +1254,15 @@ func _load_settings() -> void:
 	_set_bus_volume("Music", music_vol_slider.value)
 	_set_bus_volume("Voice", voice_vol_slider.value)
 	_set_bus_volume("SFX", sfx_vol_slider.value)
+	if data.has("procedural_music"):
+		procedural_music = bool(data.procedural_music)
+		procedural_music_check.button_pressed = procedural_music
+	if data.has("sfx_typewriter"):
+		typewriter_sfx = bool(data.sfx_typewriter)
+		typewriter_sfx_check.button_pressed = typewriter_sfx
+	if data.has("sfx_buttons"):
+		button_sfx = bool(data.sfx_buttons)
+		button_sfx_check.button_pressed = button_sfx
 
 
 func _save_settings() -> void:
@@ -1178,6 +1291,9 @@ func _save_settings() -> void:
 		"vol_music": music_vol_slider.value,
 		"vol_voice": voice_vol_slider.value,
 		"vol_sfx": sfx_vol_slider.value,
+		"procedural_music": procedural_music_check.button_pressed,
+		"sfx_typewriter": typewriter_sfx_check.button_pressed,
+		"sfx_buttons": button_sfx_check.button_pressed,
 	}))
 	file.close()
 
@@ -1372,7 +1488,10 @@ const UI_TEXT_KEYS: Array = [
 	["VsyncCheck", "on"], ["ResolutionRowLabel", "Resolution"], ["ResCustomLabel", "Custom size"],
 	["AudioHeader", "Audio"], ["MasterVolRowLabel", "Master volume"],
 	["MusicVolRowLabel", "Music volume"], ["VoiceVolRowLabel", "Voice volume"],
-	["SfxVolRowLabel", "SFX volume"], ["SpritesHeader", "Sprites"],
+	["SfxVolRowLabel", "SFX volume"], ["ProceduralMusicRowLabel", "Generated music"],
+	["ProceduralMusicCheck", "on"], ["TypewriterSfxRowLabel", "Typewriter sound"],
+	["TypewriterSfxCheck", "on"], ["ButtonSfxRowLabel", "Button sound"],
+	["ButtonSfxCheck", "on"], ["SpritesHeader", "Sprites"],
 	["SpriteScaleRowLabel", "Sprite scale"], ["SpriteYRowLabel", "Sprite Y offset"],
 	["SettingsHint", "Settings are saved automatically. Use Close or X to exit."],
 	["PauseTitle", "Paused"], ["ResumeButton", "Resume"], ["PauseHistoryButton", "History"],
@@ -1408,19 +1527,33 @@ func _retranslate_dynamic() -> void:
 ## rotates the window): 0/90/180/270 degrees. Rotation flips the logical
 ## resolution's X/Y, so the turned view fills the window with no letterbox
 ## gaps, and flips the effective orientation for a real portrait preview.
+func _on_rebind_button_pressed(action: StringName) -> void:
+	if _press_dragged:
+		return
+	_begin_rebind(action)
+
+
 func _on_rot_0_pressed() -> void:
+	if _press_dragged:
+		return
 	_set_rotation(0)
 
 
 func _on_rot_90_pressed() -> void:
+	if _press_dragged:
+		return
 	_set_rotation(90)
 
 
 func _on_rot_180_pressed() -> void:
+	if _press_dragged:
+		return
 	_set_rotation(180)
 
 
 func _on_rot_270_pressed() -> void:
+	if _press_dragged:
+		return
 	_set_rotation(270)
 
 
@@ -1578,6 +1711,135 @@ func _on_sfx_vol_changed(v: float) -> void:
 	_save_settings()
 
 
+func _on_procedural_music_toggled(on: bool) -> void:
+	procedural_music = on
+	if audio != null:
+		audio.set_procedural_enabled(on)
+	_save_settings()
+
+
+#endregion
+
+
+#region Audio director (music + SFX)
+
+
+## Play UI feedback through the AudioDirector (gated by "Button sound";
+## story `#sfx=` tags call the director directly and ignore the toggle).
+func _sfx(key: String, pitch: float = 1.0) -> void:
+	if button_sfx and audio != null:
+		audio.play_sfx(key, pitch)
+
+
+## Typewriter blips: one request per typed character; the director throttles
+## density and pitch, and skip mode types too fast to sound good.
+func _on_label_spoke(letter: String, _letter_index: int, _speed: float) -> void:
+	if not typewriter_sfx:
+		return
+	if skip_mode or _seeking_choice:
+		return
+	if audio != null:
+		audio.typing_tick(letter)
+
+
+## Every static chrome button gets a UI tick alongside its own handler.
+func _connect_ui_sfx() -> void:
+	for btn: Button in [qs_button, ql_button, save_button, load_button, auto_button,
+			skip_button, log_button, settings_button, panic_button, pause_button,
+			prev_choice_button, next_choice_button, settings_close_button,
+			panic_close_button, resume_button, new_slot_button, save_close_button]:
+		btn.pressed.connect(_on_ui_button_sfx)
+	responses_menu.response_selected.connect(_on_response_selected_sfx)
+
+
+func _on_ui_button_sfx() -> void:
+	if _press_dragged:
+		return
+	_sfx("click")
+
+
+func _on_response_selected_sfx(response: DialogueResponse) -> void:
+	# Each option plays its own pitch; a #sfx= tag on the response picks the clip.
+	var key: String = "confirm"
+	var pitch: float = CHOICE_PITCHES[0]
+	if is_instance_valid(dialogue_line):
+		pitch = CHOICE_PITCHES[maxi(0, dialogue_line.responses.find(response)) % CHOICE_PITCHES.size()]
+	for tag: String in response.tags:
+		if tag.begins_with("sfx="):
+			key = tag.substr(4)
+			pitch = 1.0
+	_sfx(key, pitch)
+
+
+## Press-and-hold on empty menu space runs the hold-to-close gesture
+## (containers and labels pass the press up to the full-rect panel). The panic
+## screen deliberately has no hold-to-close: it must swallow everything.
+func _on_menu_empty_press(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mb: InputEventMouseButton = event
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT and not _press_on_interactive(mb.position):
+			_begin_hold(mb.position)
+
+
+## True when the press landed on an interactive control (buttons pass drags up
+## to their ScrollContainer, so their presses also reach the panel).
+func _press_on_interactive(pos: Vector2) -> bool:
+	for menu: Control in [save_menu_panel, settings_panel, pause_panel, history_panel]:
+		if menu.visible and _hits_interactive(menu, pos):
+			return true
+	return false
+
+
+func _hits_interactive(c: Control, pos: Vector2) -> bool:
+	for child: Node in c.get_children():
+		if not child is Control or not (child as Control).visible:
+			continue
+		var ch: Control = child
+		if ch.mouse_filter != Control.MOUSE_FILTER_IGNORE \
+				and (ch is BaseButton or ch is Range or ch is LineEdit or ch is TextEdit \
+				or ch is ItemList or ch is Tree) \
+				and ch.get_global_rect().has_point(pos):
+			return true
+		if _hits_interactive(ch, pos):
+			return true
+	return false
+
+
+func _begin_hold(pos: Vector2) -> void:
+	_hold_active = true
+	_hold_elapsed = 0.0
+	_hold_from = pos
+
+
+func _cancel_hold() -> void:
+	_hold_active = false
+	hold_indicator.hide_ring()
+	if audio != null:
+		audio.hold_stop()
+
+
+func _finish_hold() -> void:
+	_hold_active = false
+	hold_indicator.hide_ring()
+	if audio != null:
+		audio.hold_stop()
+	_close_top_overlay()
+
+
+func _on_save_close_pressed() -> void:
+	_close_overlay(save_menu_panel)
+
+
+func _on_typewriter_sfx_toggled(on: bool) -> void:
+	typewriter_sfx = on
+	_save_settings()
+
+
+func _on_button_sfx_toggled(on: bool) -> void:
+	button_sfx = on
+	_save_settings()
+
+
 #endregion
 
 
@@ -1595,6 +1857,7 @@ func close_pause() -> void:
 	pause_panel.hide()
 	dialogue_label.set_process(true)
 	_silence_audio(false)
+	_sfx("close")
 	_restore_waiting()
 
 
@@ -1605,9 +1868,11 @@ func toggle_panic() -> void:
 		is_waiting_for_input = false
 		dialogue_label.set_process(false)
 		_silence_audio(true)
+		_sfx("open")
 	else:
 		dialogue_label.set_process(true)
 		_silence_audio(false)
+		_sfx("close")
 		_restore_waiting()
 
 

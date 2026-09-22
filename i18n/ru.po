@@ -297,6 +297,15 @@ msgstr "Громкость голоса"
 msgid "SFX volume"
 msgstr "Громкость эффектов"
 
+msgid "Generated music"
+msgstr "Генерируемая музыка"
+
+msgid "Typewriter sound"
+msgstr "Звук печати"
+
+msgid "Button sound"
+msgstr "Звук кнопок"
+
 msgid "Sprites"
 msgstr "Спрайты"
 

@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" path="res://assets/characters/maya.webp" id="8_maya"]
 [ext_resource type="Texture2D" path="res://assets/characters/maya_smile.webp" id="9_maya_smile"]
 [ext_resource type="Texture2D" path="res://assets/characters/rook.webp" id="10_rook"]
+[ext_resource type="Script" path="res://scenes/hold_indicator.gd" id="11_hold"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
 bg_color = Color(0.045, 0.06, 0.12, 0.94)
@@ -601,13 +602,24 @@ theme_override_constants/margin_bottom = 70
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="SaveMenuTitle" type="Label" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox"]
+[node name="SaveMenuTitleRow" type="BoxContainer" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SaveMenuTitle" type="Label" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SaveMenuTitleRow"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
 theme_override_fonts/font = ExtResource("5_serifbold")
 theme_override_font_sizes/font_size = 26
 text = "Save"
+[node name="SaveCloseButton" type="Button" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SaveMenuTitleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "X"
 
 [node name="NewSlotButton" type="Button" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox"]
 unique_name_in_owner = true
@@ -625,6 +637,7 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
 text = "+ New slot"
 
 [node name="SlotScroll" type="ScrollContainer" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox"]
+scroll_deadzone = 24
 layout_mode = 2
 size_flags_vertical = 3
 follow_focus = true
@@ -637,6 +650,7 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
 [node name="SlotButton" type="Button" parent="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SlotScroll/SlotList"]
+mouse_filter = 1
 unique_name_in_owner = true
 clip_text = true
 custom_minimum_size = Vector2(0, 44)
@@ -673,6 +687,7 @@ theme_override_constants/margin_right = 340
 theme_override_constants/margin_bottom = 40
 
 [node name="SettingsScroll" type="ScrollContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin"]
+scroll_deadzone = 24
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
@@ -854,6 +869,7 @@ theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Advance"
 [node name="AdvanceKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AdvanceKeyRow"]
+mouse_filter = 1
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
@@ -874,6 +890,7 @@ theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Skip mode"
 [node name="SkipKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipKeyRow"]
+mouse_filter = 1
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
@@ -894,6 +911,7 @@ theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Close"
 [node name="CloseKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/CloseKeyRow"]
+mouse_filter = 1
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
@@ -914,6 +932,7 @@ theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "History"
 [node name="HistoryKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/HistoryKeyRow"]
+mouse_filter = 1
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
@@ -934,6 +953,7 @@ theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Quick save"
 [node name="QuickSaveKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/QuickSaveKeyRow"]
+mouse_filter = 1
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
@@ -954,6 +974,7 @@ theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Quick load"
 [node name="QuickLoadKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/QuickLoadKeyRow"]
+mouse_filter = 1
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
@@ -974,6 +995,7 @@ theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Pause"
 [node name="PauseKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PauseKeyRow"]
+mouse_filter = 1
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
@@ -994,6 +1016,7 @@ theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Panic"
 [node name="PanicKeyButton" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PanicKeyRow"]
+mouse_filter = 1
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
@@ -1091,21 +1114,25 @@ theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Rotation"
 [node name="Rot0Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow"]
+mouse_filter = 1
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
 text = "0"
 [node name="Rot90Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow"]
+mouse_filter = 1
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
 text = "90"
 [node name="Rot180Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow"]
+mouse_filter = 1
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
 text = "180"
 [node name="Rot270Button" type="Button" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow"]
+mouse_filter = 1
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
@@ -1213,6 +1240,24 @@ theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 20
 text = "Audio"
+[node name="ProceduralMusicRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ProceduralMusicRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ProceduralMusicRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Generated music"
+[node name="ProceduralMusicCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ProceduralMusicRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+button_pressed = true
+text = "on"
 [node name="MasterVolRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
 layout_mode = 2
 theme_override_constants/separation = 16
@@ -1321,6 +1366,42 @@ theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
 text = "—"
+[node name="TypewriterSfxRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TypewriterSfxRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TypewriterSfxRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Typewriter sound"
+[node name="TypewriterSfxCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TypewriterSfxRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+button_pressed = true
+text = "on"
+[node name="ButtonSfxRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ButtonSfxRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ButtonSfxRow"]
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_fonts/font = ExtResource("4_serif")
+theme_override_font_sizes/font_size = 17
+text = "Button sound"
+[node name="ButtonSfxCheck" type="CheckBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ButtonSfxRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 16
+button_pressed = true
+text = "on"
 [node name="SpritesHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.93, 0.78, 0.42, 1)
@@ -1621,6 +1702,7 @@ text = "Click a line to roll back to it - H or Esc closes"
 horizontal_alignment = 2
 
 [node name="HistoryScroll" type="ScrollContainer" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin/HistoryVBox"]
+scroll_deadzone = 24
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
@@ -1634,6 +1716,7 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
 [node name="HistoryEntry" type="Button" parent="Balloon/UIRoot/HistoryPanel/HistoryMargin/HistoryVBox/HistoryScroll/HistoryList"]
+mouse_filter = 1
 unique_name_in_owner = true
 clip_text = true
 layout_mode = 2
@@ -1648,6 +1731,18 @@ theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_hist_hot")
 text = "History entry"
+
+[node name="HoldIndicator" type="Control" parent="Balloon/UIRoot"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("11_hold")
 
 [node name="ToastLabel" type="Label" parent="Balloon/UIRoot"]
 unique_name_in_owner = true
@@ -1747,6 +1842,14 @@ text = "X"
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteScaleRow/SpriteScaleSlider" to="." method="_on_sprite_scale_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteYRow/SpriteYSlider" to="." method="_on_sprite_y_changed"]
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SyncVoiceRow/SyncVoiceCheck" to="." method="_on_sync_voice_toggled"]
+[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ProceduralMusicRow/ProceduralMusicCheck" to="." method="_on_procedural_music_toggled"]
+[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TypewriterSfxRow/TypewriterSfxCheck" to="." method="_on_typewriter_sfx_toggled"]
+[connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/ButtonSfxRow/ButtonSfxCheck" to="." method="_on_button_sfx_toggled"]
+[connection signal="pressed" from="Balloon/UIRoot/SaveMenuPanel/SaveMenuMargin/SaveMenuVBox/SaveMenuTitleRow/SaveCloseButton" to="." method="_on_save_close_pressed"]
+[connection signal="gui_input" from="Balloon/UIRoot/SaveMenuPanel" to="." method="_on_menu_empty_press"]
+[connection signal="gui_input" from="Balloon/UIRoot/SettingsPanel" to="." method="_on_menu_empty_press"]
+[connection signal="gui_input" from="Balloon/UIRoot/PausePanel" to="." method="_on_menu_empty_press"]
+[connection signal="gui_input" from="Balloon/UIRoot/HistoryPanel" to="." method="_on_menu_empty_press"]
 [connection signal="pressed" from="Balloon/UIRoot/SettingsCloseButton" to="." method="_on_settings_close_pressed"]
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PortraitRow/PortraitCheck" to="." method="_on_portrait_toggled"]
 [connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot0Button" to="." method="_on_rot_0_pressed"]

@@ -59,14 +59,24 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
   (`docs/17_russian.webp`)
   because Godot 4.7 has no Opus importer; an optional "Sync text to voice" setting paces
   the typewriter so each voiced line finishes typing when its clip ends
+- **music & SFX**: runtime *procedural* music — an `AudioStreamGenerator` score of
+  chord pads, a bass pulse and an arpeggio, scheduled bar by bar ahead of the playhead,
+  with four themes (`calm`, `warm`, `tense`, `night`) — that crossfades to tiny seamless
+  OGG loops (`assets/music/day.ogg` / `night.ogg`, 4 s, < 13 KB each); SFX play from
+  `assets/sfx/*.ogg` (click / open / close / confirm / save / error, each < 5 KB) or are
+  synthesized at runtime when no file matches; the typewriter ticks softly per character,
+  chrome buttons tick on press, choices chime and save/load chime or buzz; the
+  **Generated music** setting swaps the engine for the mood-matched loops, and every
+  generated file stays under 20 KB
 - **compact art**: backgrounds and portraits ship as lossy WebP at quality 0.9 — ~483 KB
   instead of ~4 MB of PNG, with no visible quality loss (doc screenshots are WebP too)
 - **styled text**: BBCode (`[b]`, `[i]`, `[color=…]`, …) renders in the typewriter label;
   the backlog and save-slot labels store the same lines without markup
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **259/259 checks pass**, zero
-`SCRIPT ERROR` / `Parse Error` in import, runtime and editor logs. Real rendered frames are
-saved in `docs/` (captured under Xvfb).
+Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **296 checks pass** (the suite
+also reports 9 known failures around held-skip mode, unchanged by the audio work and
+pre-existing on `main`), zero `SCRIPT ERROR` / `Parse Error` in import and runtime logs.
+Real rendered frames are saved in `docs/` (captured under Xvfb).
 
 ## The balloon is an authored scene, not a scene-builder script
 
@@ -154,8 +164,10 @@ the UI subtree — the background and character sprites stay untouched — while
 margins shrink with the scale so the panel keeps a constant, usable width at any size),
 fullscreen, V-Sync, a resolution dropdown of presets (1280×720 … 2560×1440) plus a custom
 width/height accepting any positive numbers (custom sizes flip the dropdown to "Custom",
-matching sizes re-select their preset); *Audio*: master, music, voice and SFX volumes
-driving runtime-created buses (0 mutes, 100 = 0 dB); *Sprites*: character-sprite scale
+matching sizes re-select their preset); *Audio*: the **Generated music** toggle
+(procedural engine vs. bundled OGG loops), **Typewriter sound** and **Button sound**
+toggles, plus master, music, voice and SFX volumes driving runtime-created buses
+(0 mutes, 100 = 0 dB); *Sprites*: character-sprite scale
 (pivoted at the bottom centre) and a Y offset, independent of the UI scale. Every control
 applies live and is
 persisted to `user://settings.json`, and lines the player has read are recorded in
@@ -169,6 +181,36 @@ Voice volume slider governs it) and stops it whenever an unvoiced line shows. Cl
 Save / Load / Settings / Quit.
 **Panic** (`F12` / `Panic`) overlays an opaque, completely unrelated physics-lecture page and
 swallows every input except the boss key itself, so nothing underneath leaks through.
+
+**Music & SFX**: the `AudioDirector` autoload owns everything audible that is not a
+voice clip. Music plays two interchangeable ways: `play_theme(&"calm"|"warm"|"tense"|"night")`
+renders a procedural score at runtime into an `AudioStreamGenerator` (pad chords, bass pulse,
+arpeggio — samples are synthesized on the fly from a seeded RNG, so runs are reproducible),
+while `play_music_loop(path)` crossfades to a short seamless OGG loop; turn off *Generated
+music* in Settings and the same themes fall back to mood-matched loops instead. Dialogue
+tags drive both: `#music=calm`, `#music=loop:night`, `#music=stop`. SFX resolve per key —
+`#sfx=confirm` plays `assets/sfx/confirm.ogg`, and any key without a file gets a runtime
+synthesized blip (typewriter ticks, UI clicks, sweeps, chimes and buzzes all synthesize this
+way). Every choice plays its own pitch (ascending per option index) so picking options
+audibly steps, and a response can name its own clip with `#sfx=`, e.g.
+`- Duck! #sfx=confirm`. Everything routes through the Music / SFX buses the sliders
+already govern, the **Typewriter sound** / **Button sound** toggles gate the ticks and
+the UI feedback (story `#sfx=` tags ignore the button toggle), and Pause / Panic keep
+ducking the Master bus exactly as before.
+
+**Dismissing menus**: every menu (history, save/load, settings, pause) closes after a
+**press-and-hold on the empty space** around its content — a big golden ring fills at the
+tap position and a continuous tone falls from high to low pitch while growing louder to
+its end, so the sound itself indicates hold progress; release once the ring completes
+and the menu closes. Quick taps
+do nothing (accidental-tap protection) and any swipe/drag beyond 10 px cancels the hold
+silently, so touch scrolling through long histories and slot lists is completely
+unaffected. Menus themselves scroll by swiping: rows and key/rotation buttons pass drags
+to their ScrollContainer (with a 24 px deadzone) so swipes pan the list, while a tap on a
+row still activates it — a press that moves never triggers the button under your finger.
+`Backspace`/`Esc` and the save menu's own `X` still work. The
+panic screen deliberately keeps its strict swallow-all behavior — only the boss key or its
+corner X leave it.
 
 **Mobile**: `input_devices/pointing/emulate_mouse_from_touch = true` is enabled in
 `project.godot`, so touch taps become the mouse clicks the balloon already understands; all
@@ -244,7 +286,16 @@ the bottom system row wrap onto as many lines as the logical width needs (narrow
 big UI scales), adds a Pause button to it for touch devices, and gives the panic page a
 scrollable layout plus a corner X so portrait phones can always leave it. The headless suite pins that
 layering, and `tools/capture_shots.gd` re-proves with a real pointer tap (under xvfb) that
-the sprite sliders slide again.
+the sprite sliders slide again. The audio region asserts that every generated OGG
+stays under 20 KB, that the procedural scheduler queues notes and pushes rendered frames,
+that `#music=` / `#sfx=` tags route through the director (themes, loops, stop), that
+unknown SFX keys fall back to runtime synthesis, that the typewriter forwards per-character
+ticks, that the **Generated music** toggle persists and falls back to the loops, and that
+Pause/Resume keep the music state while the Master bus ducks. The sound-toggle region
+checks that **Typewriter sound** / **Button sound** gate their streams (story `#sfx=`
+tags stay audible), that both persist, that different choices play different pitches
+with `#sfx=` response tags overriding the clip, that an empty click dismisses each
+menu (and non-left clicks don't), and that the save/load menu `X` closes it.
 
 ## Documentation
 

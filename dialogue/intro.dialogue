@@ -3,7 +3,7 @@
 using GameState
 
 ~ start
-The afternoon light pools between the desks. Somewhere, a chalk tap-taps against the board. [#bg=classroom, #sprite=none:left, #sprite=none:right]
+The afternoon light pools between the desks. Somewhere, a chalk tap-taps against the board. [#bg=classroom, #sprite=none:left, #sprite=none:right, #music=calm]
 Rook: Another transfer student. Just what this school needed. [#sprite=rook:right, #focus=right, #voice=r1]
 Maya: H-hey! The bell hasn't even rung yet, I'm not late! [#sprite=maya:left, #focus=left, #voice=m1]
 Rook: The bell rang four minutes ago. [#focus=right, #voice=r2]
@@ -21,17 +21,17 @@ Maya: Fine, you win, clock-watch person. I'm {{player_name}}. And you are? [#voi
 Rook: Enjoy the rooftop if you like. Everyone ends up there eventually. [#sprite=rook:right, #focus=right, #voice=r3]
 do met_rook = true
 if day == 1:
-	The first bell of the day finally rings, [color=#9fd8ff]sharp and bright[/color].
+	The first bell of the day finally rings, [color=#9fd8ff]sharp and bright[/color]. [#sfx=confirm]
 else:
 	Another day at {{school_name}}. The halls already hum with gossip.
 => rooftop
 
 ~ rooftop
-Wind over the chain-link fence. The city glitters below like scattered coins. [#bg=rooftop, #sprite=none:left, #sprite=none:right]
+Wind over the chain-link fence. The city glitters below like scattered coins. [#bg=rooftop, #sprite=none:left, #sprite=none:right, #music=warm]
 Maya: See? Told you the view was worth the stairs. [#sprite=maya_smile:left, #focus=left, #voice=m6]
 Rook: You brought a witness to my hiding spot. Unforgivable. [#sprite=rook:right, #focus=right, #voice=r4]
 - Ask what Rook hides up here.
-	Rook: Quiet. It's the only currency this school respects. [#voice=r5]
+	Rook: Quiet. It's the only currency this school respects. [#voice=r5, #music=tense]
 	do knows_secret = true
 - Ask Maya why she's so kind.
 	Maya: Kind? I just collect interesting people. You're exhibit A. [#sprite=maya_smile:left, #voice=m7]
@@ -39,5 +39,5 @@ Rook: You brought a witness to my hiding spot. Unforgivable. [#sprite=rook:right
 	[speed=0.5]The sun goes down slow, and for once, nobody says a word.[/speed]
 Maya: Same time tomorrow? [#sprite=maya:left, #voice=m8]
 Rook: ...Hmph. Don't be late. [#sprite=rook:right, #voice=r6]
-The three of you watch until the sky burns out. [#box=hide]
+The three of you watch until the sky burns out. [#box=hide, #music=loop:night]
 => END
