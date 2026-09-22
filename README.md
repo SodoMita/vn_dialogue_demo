@@ -200,10 +200,14 @@ ducking the Master bus exactly as before.
 
 **Dismissing menus**: every menu (history, save/load, settings, pause) closes after a
 **press-and-hold on the empty space** around its content — an animated ring fills at the
-tap position and a soft cue sounds as you hold; release once the ring completes and the
-menu closes. Quick taps do nothing (accidental-tap protection) and any swipe/drag beyond
-10 px cancels the hold silently, so touch scrolling through long histories and slot lists
-is completely unaffected. `Backspace`/`Esc` and the save menu's own `X` still work. The
+tap position and a continuous tone rises in pitch as the ring fills, so the sound itself
+indicates hold progress; release once the ring completes and the menu closes. Quick taps
+do nothing (accidental-tap protection) and any swipe/drag beyond 10 px cancels the hold
+silently, so touch scrolling through long histories and slot lists is completely
+unaffected. Menus themselves scroll by swiping: rows and key/rotation buttons pass drags
+to their ScrollContainer (with a 24 px deadzone) so swipes pan the list, while a tap on a
+row still activates it — a press that moves never triggers the button under your finger.
+`Backspace`/`Esc` and the save menu's own `X` still work. The
 panic screen deliberately keeps its strict swallow-all behavior — only the boss key or its
 corner X leave it.
 

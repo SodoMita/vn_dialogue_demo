@@ -47,9 +47,10 @@ dialogue resource, the full history, the history cursor and a small stage snapsh
 rows show a runtime-rendered thumbnail. Loading restores story state, stage dressing and the
 exact line. `QS`/`QL` and `F5`/`F9` always use slot 0. The menu closes with `Backspace`,
 its `X` button, or a long press on the empty space around it — hold and a ring fills at
-your finger (with a soft cue) until the menu closes on release; quick taps do nothing on
-purpose and moving your finger cancels the gesture, so touch scrolling still works.
-Every menu dismisses that way.
+your finger while a soft tone rises in pitch with the hold progress until the menu closes
+on release; quick taps do nothing on purpose and moving your finger cancels the gesture,
+so touch scrolling still works. Lists scroll by swiping over their rows without
+activating them. Every menu dismisses that way.
 
 ## Settings (`Set`)
 

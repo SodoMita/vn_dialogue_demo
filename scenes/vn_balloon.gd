@@ -248,6 +248,12 @@ const HOLD_CANCEL_DIST: float = 10.0
 var _hold_active: bool = false
 var _hold_elapsed: float = 0.0
 var _hold_from: Vector2 = Vector2.ZERO
+
+## Whether the current press turned into a drag/swipe. Row handlers (slots,
+## history entries, rebind/rot buttons) check this so a scroll gesture ending
+## on a button never activates it.
+var _press_dragged: bool = false
+var _press_from: Vector2 = Vector2.ZERO
 var portrait_mode: bool = false
 var force_portrait: bool = false
 var rotation_deg: int = 0
@@ -381,8 +387,11 @@ func _process(delta: float) -> void:
 			if _hold_elapsed >= HOLD_APPEAR:
 				if not hold_indicator.visible:
 					hold_indicator.show_at(_hold_from)
-					_sfx("hold")
+					if button_sfx and audio != null:
+						audio.hold_start()
 				hold_indicator.progress = _hold_elapsed / HOLD_SECONDS
+				if button_sfx and audio != null:
+					audio.hold_progress(hold_indicator.progress)
 	if is_instance_valid(dialogue_line):
 		next_indicator.visible = not dialogue_label.is_typing \
 			and dialogue_line.responses.size() == 0 \
@@ -796,6 +805,8 @@ func roll_forward() -> void:
 
 
 func _on_history_entry_pressed(index: int) -> void:
+	if _press_dragged:
+		return
 	rollback_to(index)
 
 
@@ -978,6 +989,8 @@ func _focus_first_slot() -> void:
 
 
 func _on_slot_pressed(i: int) -> void:
+	if _press_dragged:
+		return
 	_close_overlay(save_menu_panel)
 	if save_menu_mode == "save":
 		save_to_slot(i)
@@ -986,6 +999,8 @@ func _on_slot_pressed(i: int) -> void:
 
 
 func _on_new_slot_pressed() -> void:
+	if _press_dragged:
+		return
 	var max_i: int = 0
 	for s: Dictionary in _scan_slots():
 		max_i = max(max_i, s.index)
@@ -1012,7 +1027,7 @@ func _setup_key_bindings() -> void:
 		&"dialogue_panic": panic_key_button,
 	}
 	for action: StringName in BINDABLE_ACTIONS:
-		(_binding_buttons[action] as Button).pressed.connect(_begin_rebind.bind(action))
+		(_binding_buttons[action] as Button).pressed.connect(_on_rebind_button_pressed.bind(action))
 	_refresh_binding_labels()
 
 
@@ -1037,6 +1052,18 @@ func _action_released(event: InputEvent, action: StringName) -> bool:
 ## Capture before GUI/unhandled input so even Escape, Enter and the boss key can
 ## become a binding without also closing the panel or triggering their action.
 func _input(event: InputEvent) -> void:
+	# Track press -> drag so list-row handlers can tell a swipe from a tap.
+	if event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		if (event as InputEventMouseButton).pressed:
+			_press_from = (event as InputEventMouseButton).position
+			_press_dragged = false
+	elif event is InputEventMouseMotion and not _press_dragged \
+			and ((event as InputEventMouseMotion).button_mask & MOUSE_BUTTON_MASK_LEFT) != 0 \
+			and ((event as InputEventMouseMotion).position - _press_from).length() > HOLD_CANCEL_DIST:
+		_press_dragged = true
+	elif event is InputEventScreenDrag and not _press_dragged \
+			and ((event as InputEventScreenDrag).position - _press_from).length() > HOLD_CANCEL_DIST:
+		_press_dragged = true
 	# Hold-to-close bookkeeping runs first so scrolling drags that the GUI
 	# consumes later still cancel the gesture (and the release can be swallowed).
 	if _hold_active:
@@ -1500,19 +1527,33 @@ func _retranslate_dynamic() -> void:
 ## rotates the window): 0/90/180/270 degrees. Rotation flips the logical
 ## resolution's X/Y, so the turned view fills the window with no letterbox
 ## gaps, and flips the effective orientation for a real portrait preview.
+func _on_rebind_button_pressed(action: StringName) -> void:
+	if _press_dragged:
+		return
+	_begin_rebind(action)
+
+
 func _on_rot_0_pressed() -> void:
+	if _press_dragged:
+		return
 	_set_rotation(0)
 
 
 func _on_rot_90_pressed() -> void:
+	if _press_dragged:
+		return
 	_set_rotation(90)
 
 
 func _on_rot_180_pressed() -> void:
+	if _press_dragged:
+		return
 	_set_rotation(180)
 
 
 func _on_rot_270_pressed() -> void:
+	if _press_dragged:
+		return
 	_set_rotation(270)
 
 
@@ -1712,6 +1753,8 @@ func _connect_ui_sfx() -> void:
 
 
 func _on_ui_button_sfx() -> void:
+	if _press_dragged:
+		return
 	_sfx("click")
 
 
@@ -1734,8 +1777,32 @@ func _on_response_selected_sfx(response: DialogueResponse) -> void:
 func _on_menu_empty_press(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mb: InputEventMouseButton = event
-		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT and not _press_on_interactive(mb.position):
 			_begin_hold(mb.position)
+
+
+## True when the press landed on an interactive control (buttons pass drags up
+## to their ScrollContainer, so their presses also reach the panel).
+func _press_on_interactive(pos: Vector2) -> bool:
+	for menu: Control in [save_menu_panel, settings_panel, pause_panel, history_panel]:
+		if menu.visible and _hits_interactive(menu, pos):
+			return true
+	return false
+
+
+func _hits_interactive(c: Control, pos: Vector2) -> bool:
+	for child: Node in c.get_children():
+		if not child is Control or not (child as Control).visible:
+			continue
+		var ch: Control = child
+		if ch.mouse_filter != Control.MOUSE_FILTER_IGNORE \
+				and (ch is BaseButton or ch is Range or ch is LineEdit or ch is TextEdit \
+				or ch is ItemList or ch is Tree) \
+				and ch.get_global_rect().has_point(pos):
+			return true
+		if _hits_interactive(ch, pos):
+			return true
+	return false
 
 
 func _begin_hold(pos: Vector2) -> void:
@@ -1747,11 +1814,15 @@ func _begin_hold(pos: Vector2) -> void:
 func _cancel_hold() -> void:
 	_hold_active = false
 	hold_indicator.hide_ring()
+	if audio != null:
+		audio.hold_stop()
 
 
 func _finish_hold() -> void:
 	_hold_active = false
 	hold_indicator.hide_ring()
+	if audio != null:
+		audio.hold_stop()
 	_close_top_overlay()
 
 

@@ -1,12 +1,10 @@
 extends Node
 ## Runtime audio: procedural music, tiny OGG loops and SFX. play_theme()
-## renders a runtime score (THEMES is the whole score); play_music_loop()
-## crossfades to a seamless loop; "Generated music" off swaps themes for
-## mood-matched loops. play_sfx() plays an OGG or synthesizes the blip.
-## Music->Music bus, SFX->SFX; Pause/Panic mute Master, state untouched.
+## renders a runtime score; play_music_loop() crossfades to a loop; "Generated
+## music" off swaps themes for loops. play_sfx() plays OGG or synthesizes.
 
 
-const SAMPLE_RATE: int = 22050        ## rate of every generated stream
+const SAMPLE_RATE: int = 22050        ## stream rate
 const MAX_PUSH_PER_FRAME: int = 4096  ## ~0.19 s of audio per process frame
 const LOOKAHEAD: float = 0.6          ## notes scheduled this far ahead
 const BLOCK: int = 256                ## render quantum; events snap to blocks
@@ -14,7 +12,7 @@ const MUSIC_GAIN: float = 0.5         ## peak theme level on top of the bus slid
 const LOOP_DB: float = -8.0           ## OGG loop level ...
 const LOOP_SILENT_DB: float = -60.0   ## ... and its faded-out floor (dB)
 
-## Mood-matched loop fallbacks per theme.
+## Fallback loops per theme.
 const THEME_LOOPS: Dictionary = {
 	&"calm": "res://assets/music/day.ogg",
 	&"warm": "res://assets/music/day.ogg",
@@ -22,8 +20,7 @@ const THEME_LOOPS: Dictionary = {
 	&"night": "res://assets/music/night.ogg",
 }
 
-## The procedural score: chords as scale degrees (wrapping across octaves);
-## plucks = arpeggio notes per bar, bass_hits = bass pulses per bar.
+## Procedural score: chords as scale degrees; plucks/bass_hits per bar.
 const THEMES: Dictionary = {
 	&"calm": {
 		"bpm": 72.0, "root": 60, "scale": [0, 2, 4, 7, 9],
@@ -59,7 +56,7 @@ var last_sfx: String = ""              ## key of the most recent SFX
 var last_sfx_source: String = ""       ## "ogg" or "synth"
 var last_sfx_pitch: float = 1.0        ## pitch of the most recent SFX
 var typing_ticks: int = 0              ## typewriter tick requests
-var music_seed: int = 20260921         ## fixed arpeggio RNG seed
+var music_seed: int = 20260921         ## arpeggio RNG seed
 
 var _gen: AudioStreamGenerator
 var _gen_player: AudioStreamPlayer
@@ -67,14 +64,13 @@ var _playback: AudioStreamGeneratorPlayback
 var _theme: Dictionary = {}
 var _rng := RandomNumberGenerator.new()
 
-## Generator timeline (seconds of pushed audio), bar cursor and event queue
-## ({t, midi, kind, dur, peak, pan}, sorted by t).
+## Pushed-audio timeline, bar cursor and event queue (sorted by t).
 var _playhead: float = 0.0
 var _next_bar: float = 0.0
 var _bar_index: int = 0
 var _queue: Array[Dictionary] = []
 
-## Live voices as parallel arrays (fast mix loop): kind 0 pad, 1 pluck, 2 bass.
+## Voices as parallel arrays: kind 0 pad, 1 pluck, 2 bass.
 var _v_px := PackedFloat64Array()
 var _v_py := PackedFloat64Array()
 var _v_dx := PackedFloat64Array()
@@ -90,7 +86,7 @@ var _v_gr := PackedFloat64Array()
 var _v_kind := PackedFloat64Array()
 var _voice_count: int = 0
 
-## Crossfade gain for the engine + last theme (for the toggle).
+## Crossfade gain + last theme.
 var _gain: float = 0.0
 var _gain_target: float = 0.0
 var _last_theme: StringName = &""
@@ -102,7 +98,9 @@ var _loop_path: String = ""
 var _auto_loop: bool = false   ## true when the loop was a procedural fallback
 
 var _sfx_pool: Array[AudioStreamPlayer] = []
-var _synth_cache: Dictionary = {}   ## synthesized blips, rendered on first use
+var _hold_player: AudioStreamPlayer
+var hold_pitch: float = 0.75          ## live pitch of the hold tone
+var _synth_cache: Dictionary = {}   ## synth blips, on first use
 var _last_tick_ms: int = -1000
 var _tick_parity: int = 0
 
@@ -125,6 +123,10 @@ func _ready() -> void:
 		p.bus = &"SFX"
 		add_child(p)
 		_sfx_pool.append(p)
+	_hold_player = AudioStreamPlayer.new()
+	_hold_player.name = "HoldTone"
+	_hold_player.bus = &"SFX"
+	add_child(_hold_player)
 	_rng.seed = music_seed
 
 
@@ -147,7 +149,7 @@ func _process(delta: float) -> void:
 ## Drop stream refs before teardown (fewer shutdown leaks).
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_EXIT_TREE or what == NOTIFICATION_PREDELETE:
-		var players: Array[AudioStreamPlayer] = [_gen_player, _loop_a, _loop_b]
+		var players: Array[AudioStreamPlayer] = [_gen_player, _loop_a, _loop_b, _hold_player]
 		players.append_array(_sfx_pool)
 		for p: AudioStreamPlayer in players:
 			if is_instance_valid(p):
@@ -157,14 +159,13 @@ func _notification(what: int) -> void:
 		_playback = null
 
 
-## Ramp the crossfade gain toward its target (~0.6 s).
+## Ramp the crossfade gain.
 func _ramp_gain(delta: float) -> void:
 	_gain = move_toward(_gain, _gain_target, delta * 0.85)
 
 
 
-## Start/switch a procedural theme. "stop"/unknown names stop the music;
-## with generation disabled this plays the mood-matched OGG loop instead.
+## Start/switch a theme; "stop"/unknown stop it; off -> mood-matched loop.
 func play_theme(theme: StringName) -> void:
 	if theme == &"stop" or not THEMES.has(theme):
 		stop_music()
@@ -191,8 +192,7 @@ func play_theme(theme: StringName) -> void:
 		_playback = _gen_player.get_stream_playback() as AudioStreamGeneratorPlayback
 
 
-## Crossfade to an OGG loop. `as_fallback` marks a stand-in for procedural
-## music so the settings toggle can restore the engine.
+## Crossfade to an OGG loop; as_fallback marks a stand-in for the engine.
 func play_music_loop(path: String, as_fallback: bool = false) -> void:
 	if music_source == "loop" and _loop_path == path:
 		return
@@ -272,7 +272,7 @@ func request_music(spec: String) -> void:
 
 
 
-## Play SFX by key: assets/sfx/<key>.ogg, else a synthesized equivalent.
+## Play SFX by key: OGG if present, else synthesized.
 func play_sfx(key: String, pitch: float = 1.0) -> void:
 	sfx_played += 1
 	last_sfx = key
@@ -287,7 +287,7 @@ func play_sfx(key: String, pitch: float = 1.0) -> void:
 		_play_stream(_synth_stream(key), pitch + _rng.randf_range(-0.05, 0.05))
 
 
-## Typewriter tick: silent on whitespace, throttled, pitch varies per letter.
+## Typewriter tick: silent on whitespace, throttled.
 func typing_tick(letter: String) -> void:
 	typing_ticks += 1
 	if letter.strip_edges().is_empty():
@@ -301,6 +301,28 @@ func typing_tick(letter: String) -> void:
 		return
 	var bucket: int = absi(letter.hash()) % 6
 	_play_stream(_synth_stream("tick%d" % bucket), 0.55 + _rng.randf_range(-0.05, 0.05))
+
+
+## Rising tone for a hold gesture; hold_progress() re-pitches it.
+func hold_start() -> void:
+	sfx_played += 1
+	last_sfx = "hold"
+	last_sfx_source = "synth"
+	if _hold_player.stream == null:
+		_hold_player.stream = _synth_stream("holdtone")
+	hold_progress(0.0)
+	_hold_player.play()
+
+
+func hold_progress(p: float) -> void:
+	hold_pitch = 0.75 + 0.65 * clampf(p, 0.0, 1.0)
+	last_sfx_pitch = hold_pitch
+	_hold_player.pitch_scale = hold_pitch
+
+
+func hold_stop() -> void:
+	if _hold_player.playing:
+		_hold_player.stop()
 
 
 func _play_stream(stream: AudioStream, pitch: float = 1.0) -> void:
@@ -368,7 +390,7 @@ func _render_frames(n: int) -> PackedVector2Array:
 				else:
 					env = maxf(0.0, (_v_dur[vi] - t) / _v_rel[vi])
 				if env <= 0.0002 and t > _v_atk[vi]:
-					# Dead voice: swap-remove, arrays stay == _voice_count.
+					# Dead voice: swap-remove.
 					_voice_count -= 1
 					_copy_voice(vi, _voice_count)
 					_trim_voices()
@@ -376,14 +398,14 @@ func _render_frames(n: int) -> PackedVector2Array:
 				var s: float = _v_py[vi] * env * _v_peak[vi]
 				l += s * _v_gl[vi]
 				r += s * _v_gr[vi]
-				# Rotate the phasor.
+				# Rotate.
 				var px: float = _v_px[vi]
 				var py: float = _v_py[vi]
 				_v_px[vi] = px * _v_dx[vi] - py * _v_dy[vi]
 				_v_py[vi] = px * _v_dy[vi] + py * _v_dx[vi]
 				_v_t[vi] = t + inv_sr
 				vi += 1
-			# Soft saturation against clipping.
+			# Saturation.
 			l = l / (1.0 + absf(l)) * 1.4
 			r = r / (1.0 + absf(r)) * 1.4
 			out[pos + i] = Vector2(l * _gain, r * _gain)
@@ -403,7 +425,7 @@ func _copy_voice(from_i: int, to_i: int) -> void:
 			a[from_i] = a[to_i]
 
 
-## Size the parallel arrays to the live count after a swap-remove.
+## Keep arrays == live count.
 func _trim_voices() -> void:
 	for a: PackedFloat64Array in _voice_arrays():
 		a.resize(_voice_count)
@@ -493,7 +515,7 @@ func _add_voice(ev: Dictionary, peak: float, pan: float, detune: float) -> void:
 
 
 
-## Render + cache a synthesized blip; unknown kinds fall back to the click.
+## Render + cache a blip; unknown kinds -> click.
 func _synth_stream(kind: String) -> AudioStream:
 	if _synth_cache.has(kind):
 		return _synth_cache[kind]
@@ -510,8 +532,6 @@ func _synth_stream(kind: String) -> AudioStream:
 		samples = _synth_chime([523.25, 659.25, 783.99], 0.1)
 	elif kind == "error":
 		samples = _synth_buzz()
-	elif kind == "hold":
-		samples = _synth_hold()
 	elif kind == "click":
 		samples = _synth_click()
 	else:
@@ -521,7 +541,7 @@ func _synth_stream(kind: String) -> AudioStream:
 	return stream
 
 
-## 12 ms sine blip; bucket shifts the pitch so typing has texture.
+## 12 ms sine blip; bucket shifts typing pitch.
 func _synth_tick(bucket: float) -> PackedFloat32Array:
 	var n: int = int(0.012 * SAMPLE_RATE)
 	var out := PackedFloat32Array()
@@ -585,23 +605,21 @@ func _synth_buzz() -> PackedFloat32Array:
 	return out
 
 
-## Rising blip announcing a hold gesture (~90 ms).
-func _synth_hold() -> PackedFloat32Array:
-	var n: int = int(0.09 * SAMPLE_RATE)
+## Sustained soft tone for the hold-to-close charge (pitch = progress).
+func _synth_holdtone() -> PackedFloat32Array:
+	var n: int = int(1.0 * SAMPLE_RATE)
 	var out := PackedFloat32Array()
 	out.resize(n)
-	var phase: float = 0.0
 	for i: int in n:
-		var x: float = float(i) / n
-		phase += TAU * (220.0 + 140.0 * x) / SAMPLE_RATE
-		out[i] = sin(phase) * (0.25 + 0.45 * x) * 0.8
+		var t: float = float(i) / SAMPLE_RATE
+		out[i] = (sin(TAU * 330.0 * t) + 0.25 * sin(TAU * 660.0 * t)) * minf(1.0, t / 0.02) * 0.35
 	return out
 
 
 var _noise_rng := RandomNumberGenerator.new()
 
 
-## Wrap raw samples in a 16-bit mono AudioStreamWAV.
+## Wrap samples in 16-bit mono WAV.
 func _to_wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 	var wav := AudioStreamWAV.new()
 	wav.format = AudioStreamWAV.FORMAT_16_BITS
@@ -616,7 +634,7 @@ func _to_wav(samples: PackedFloat32Array) -> AudioStreamWAV:
 
 
 
-## Idempotent with the balloon's own bus setup.
+## Idempotent with the balloon's setup.
 func _ensure_audio_buses() -> void:
 	for bus_name: String in ["Music", "Voice", "SFX"]:
 		if AudioServer.get_bus_index(bus_name) == -1:

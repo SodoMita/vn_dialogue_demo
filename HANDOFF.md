@@ -49,17 +49,25 @@ Follow-up iteration on the same branch adds the UI-sound layer:
   pause) connect `gui_input`; container/label defaults (PASS / IGNORE) bubble empty-area
   presses up to the panel. Dismissal is a **press-and-hold** (0.55 s): an authored
   `HoldIndicator` ring (`scenes/hold_indicator.gd`) fills at the press point after a
-  0.12 s grace and a synthesized `hold` cue announces it; release closes the top overlay.
+  0.12 s grace and a continuous synthesized tone rises in pitch with the hold progress
+  (0.75 → 1.4 as the ring fills; `hold_start/hold_progress/hold_stop` in AudioDirector),
+  so the sound itself indicates hold progress; release closes the top overlay.
   Quick taps are ignored (accidental-tap protection) and any move/swipe > 10 px cancels
   the hold (tracked in `_input` so GUI-consumed drag events still cancel) — touch
   scrolling is unaffected. The panic screen is intentionally excluded.
+- **Touch scrolling** — rows and key/rotation buttons inside the three ScrollContainers
+  use `mouse_filter = PASS` with `scroll_deadzone = 24`, so drags pan the lists (STOP
+  buttons used to swallow the press and block scrolling on touch); `_press_dragged`
+  guards the row handlers so a swipe never activates a button, and presses on interactive
+  controls never start the hold (they bubble up with mouse_filter PASS).
 - **Save/Load close button** — the save menu title becomes `SaveMenuTitleRow` with an
   authored `SaveCloseButton` (`X`), same pattern as `SettingsCloseButton`.
 
-`tests/test_vn_ui.gd` covers all of it (suite at **326 passed** with the same 9
+`tests/test_vn_ui.gd` covers all of it (suite at **335 passed** with the same 9
 pre-existing held-skip failures as `main`): hold-to-close on the load/settings/pause
-menus, quick-tap guard, indicator + sound announcement, indicator fill, swipe-cancel,
-non-left guard, and the save menu `X`.
+menus, quick-tap guard, indicator + rising hold tone (continuity, progress pitch, stop),
+swipe-cancel, non-left guard, the save menu `X`, PASS row filters, scroll deadzones,
+the drag-gesture no-activate guard and interactive-press discrimination.
 
 ## Audio details
 
@@ -70,12 +78,12 @@ non-left guard, and the save menu `X`.
 
 ## Verification
 
-`bash run_tests.sh` on this branch: **296 passed, 9 failed**. The 9 failures are the same
+`bash run_tests.sh` on this branch: **335 passed, 9 failed**. The 9 failures are the same
 pre-existing failures of `main` @ `07d8378` (baseline before this work: 268 passed, same 9
 failed) — all around the held-skip-mode behavior changes of recent mainline commits
 (`07d8378`, `87d33aa`, `ad2a181`, …): skip toggling, skip-to-choices, seen-only skip,
 voice-resume, panic-resume, backlog seek and history scroll. **No new failures** were
-introduced; all 28 new audio checks pass. Script checks cover
+introduced; all new audio, hold-gesture and scroll-guard checks pass. Script checks cover
 `autoloads/audio_director.gd` as well.
 
 The runner still reports shutdown resource-leak warnings (engine-side Ogg/generator

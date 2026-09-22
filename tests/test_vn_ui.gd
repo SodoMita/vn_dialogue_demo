@@ -1151,11 +1151,17 @@ func run() -> void:
 	await wait_until(func() -> bool: return not balloon._hold_active or balloon.hold_indicator.visible, 200)
 	check(alive() and balloon.hold_indicator.visible, "holding empty space shows the animated indicator")
 	check(ad.sfx_played == hold_sfx0 + 1 and ad.last_sfx == "hold", "the hold gesture is announced with sound")
+	check(ad._hold_player.playing, "the hold tone plays continuously while charging")
+	var tone_p0: float = ad._hold_player.pitch_scale
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(ad._hold_player.pitch_scale > tone_p0, "the hold tone rises with progress")
 	check(alive() and balloon.hold_indicator.progress > 0.0, "the indicator fills toward the close")
 	await wait_until(func() -> bool: return not balloon._hold_active or balloon._hold_elapsed >= balloon.HOLD_SECONDS, 300)
 	balloon._input(release)
 	check(alive() and not balloon.save_menu_panel.visible and not balloon._hold_active and not balloon.hold_indicator.visible,
 		"a long tap closes the menu and clears the indicator")
+	check(not ad._hold_player.playing, "the hold tone stops with the gesture")
 	# A swipe cancels the hold so touch scrolling still works.
 	balloon.open_history()
 	check(alive() and balloon.history_panel.visible, "the history panel opens")
@@ -1166,6 +1172,7 @@ func run() -> void:
 	swipe.relative = Vector2(40, 0)
 	balloon._input(swipe)
 	check(not balloon._hold_active and not balloon.hold_indicator.visible, "a swipe cancels the hold")
+	check(not ad._hold_player.playing, "a swipe silences the hold tone")
 	for i: int in 80:
 		await get_tree().process_frame
 	balloon._input(release)
@@ -1197,6 +1204,48 @@ func run() -> void:
 	balloon.save_menu_panel.gui_input.emit(rclick)
 	check(alive() and balloon.save_menu_panel.visible and not balloon._hold_active,
 		"non-left presses do not start the hold")
+	balloon._close_overlay(balloon.save_menu_panel)
+
+	# --- Touch scrolling: rows pass drags to their ScrollContainer ---
+	check(alive() and balloon.slot_template.mouse_filter == Control.MOUSE_FILTER_PASS
+		and balloon.history_entry_template.mouse_filter == Control.MOUSE_FILTER_PASS,
+		"list row templates pass input up so drags scroll the menu")
+	check(alive() and balloon.history_scroll.get("scroll_deadzone") > 0.0
+		and balloon.settings_scroll.get("scroll_deadzone") > 0.0
+		and (balloon.slot_list.get_parent() as ScrollContainer).get("scroll_deadzone") > 0.0,
+		"menu scroll containers carry a drag deadzone")
+	# A press that moves is a drag: row handlers must not activate on release.
+	var dp: InputEventMouseButton = InputEventMouseButton.new()
+	dp.pressed = true
+	dp.button_index = MOUSE_BUTTON_LEFT
+	dp.position = Vector2(400, 300)
+	balloon._input(dp)
+	var dm: InputEventMouseMotion = InputEventMouseMotion.new()
+	dm.position = Vector2(400, 340)
+	dm.relative = Vector2(0, 40)
+	dm.button_mask = MOUSE_BUTTON_MASK_LEFT
+	balloon._input(dm)
+	var dr: InputEventMouseButton = InputEventMouseButton.new()
+	dr.pressed = false
+	dr.button_index = MOUSE_BUTTON_LEFT
+	dr.position = dm.position
+	balloon._input(dr)
+	check(balloon._press_dragged, "a moved press is tracked as a drag gesture")
+	balloon.open_save_menu("save")
+	var slots_before: int = balloon._scan_slots().size()
+	balloon._on_slot_pressed(9)
+	check(balloon._scan_slots().size() == slots_before,
+		"a drag gesture ending on a row does not activate it")
+	balloon._close_overlay(balloon.save_menu_panel)
+	balloon._press_dragged = false
+	# Presses on interactive controls never start the hold.
+	balloon.open_save_menu("load")
+	var over_btn: InputEventMouseButton = InputEventMouseButton.new()
+	over_btn.pressed = true
+	over_btn.button_index = MOUSE_BUTTON_LEFT
+	over_btn.position = balloon.save_close_button.get_global_rect().get_center()
+	balloon.save_menu_panel.gui_input.emit(over_btn)
+	check(not balloon._hold_active, "a press on a control does not start the hold")
 	balloon._close_overlay(balloon.save_menu_panel)
 
 	finish()
