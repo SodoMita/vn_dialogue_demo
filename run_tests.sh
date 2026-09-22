@@ -21,7 +21,7 @@ echo "== Importing project (editor headless) =="
 
 echo
 echo "== Script checks =="
-for s in scenes/vn_balloon.gd scenes/vn_scene.gd autoloads/game_state.gd tests/test_vn_ui.gd; do
+for s in scenes/vn_balloon.gd scenes/vn_scene.gd autoloads/game_state.gd autoloads/audio_director.gd tests/test_vn_ui.gd; do
   if "$GODOT" --headless --check-only --script "res://$s" >/tmp/vn_check.log 2>&1; then
     echo "  [OK]   $s"
   else

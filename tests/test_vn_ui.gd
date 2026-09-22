@@ -147,7 +147,7 @@ func run() -> void:
 	sf.close()
 	# --- 0: the balloon is an authored, editable scene; the script builds nothing ---
 	var tscn_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
-	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button", "PauseButton", "PanicCloseButton", "LanguageOption", "AdvanceKeyButton", "SkipKeyButton", "CloseKeyButton", "HistoryKeyButton", "QuickSaveKeyButton", "QuickLoadKeyButton", "PauseKeyButton", "PanicKeyButton"]:
+	for n in ["Balloon", "Background", "SpriteLeft", "SpriteRight", "DialogueBox", "NamePlate", "CharacterLabel", "DialogueLabel", "NextIndicator", "ResponsesMenu", "MutationCooldown", "HistoryPanel", "HistoryList", "HistoryEntry", "SaveMenuPanel", "SlotList", "SlotButton", "SettingsPanel", "TextSpeedSlider", "AutoDelaySlider", "PausePanel", "PanicScreen", "SystemRow", "QSButton", "QLButton", "AutoButton", "SkipButton", "LogButton", "PanicButton", "AutoTimer", "FullscreenCheck", "QuitButton", "PrevChoiceButton", "NextChoiceButton", "HistoryScroll", "SettingsScroll", "SettingsMargin", "UIRoot", "TextSizeSlider", "SkipSpeedSlider", "SkipModeOption", "UIScaleSlider", "VsyncCheck", "ResolutionOption", "ResWidthSpin", "ResHeightSpin", "MasterVolSlider", "MusicVolSlider", "VoiceVolSlider", "SfxVolSlider", "ProceduralMusicCheck", "SpriteScaleSlider", "SpriteYSlider", "SkipTimer", "VoicePlayer", "SyncVoiceCheck", "SettingsCloseButton", "PortraitCheck", "Rot0Button", "Rot90Button", "Rot180Button", "Rot270Button", "PauseButton", "PanicCloseButton", "LanguageOption", "AdvanceKeyButton", "SkipKeyButton", "CloseKeyButton", "HistoryKeyButton", "QuickSaveKeyButton", "QuickLoadKeyButton", "PauseKeyButton", "PanicKeyButton"]:
 		check(tscn_text.contains("[node name=\"%s\"" % n), "vn_balloon.tscn authors node '%s'" % n)
 	var gd_text: String = FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
 	check(not "Button.new(" in gd_text and not "PanelContainer.new(" in gd_text and not "Control.new(" in gd_text and not "RichTextLabel.new(" in gd_text and not "TextureRect.new(" in gd_text and not "Label.new(" in gd_text, "vn_balloon.gd builds no structural UI in code")
@@ -957,6 +957,118 @@ func run() -> void:
 		"skip halted on the first unread line")
 	check(alive() and "unseen" in balloon.toast_label.text, "the halt is announced to the player")
 	balloon.skip_seen_only = false
+
+	# --- Audio: procedural music, OGG loops and SFX -------------------------
+	var ad: Node = get_tree().root.get_node("AudioDirector")
+	check(ad != null, "AudioDirector autoload is registered")
+	# Every bundled audio asset must stay tiny (< 20 KB).
+	var oversize: Array[String] = []
+	var music_files: int = 0
+	var sfx_files: int = 0
+	for dir_path: String in ["res://assets/music", "res://assets/sfx"]:
+		var assets: DirAccess = DirAccess.open(dir_path)
+		check(assets != null, "%s exists" % dir_path)
+		if assets != null:
+			assets.list_dir_begin()
+			var asset_name: String = assets.get_next()
+			while asset_name != "":
+				if not assets.current_is_dir() and asset_name.ends_with(".ogg"):
+					if dir_path.ends_with("music"):
+						music_files += 1
+					else:
+						sfx_files += 1
+					if FileAccess.get_file_as_bytes(dir_path + "/" + asset_name).size() >= 20 * 1024:
+						oversize.append(dir_path + "/" + asset_name)
+				asset_name = assets.get_next()
+	check(music_files >= 2, "two tiny OGG music loops ship with the project")
+	check(sfx_files >= 6, "the OGG SFX set is complete (click/open/close/confirm/save/error)")
+	check(oversize.is_empty(), "every generated audio file is under 20 KB %s" % [oversize])
+
+	# Procedural engine: starting a theme schedules notes and renders frames.
+	var notes0: int = ad.notes_scheduled
+	var frames0: int = ad.frames_pushed
+	ad.play_theme(&"tense")
+	for i in 30:
+		await get_tree().process_frame
+	check(ad.music_source == "procedural" and ad.current_theme == &"tense",
+		"procedural theme 'tense' runs the generator")
+	check(ad.notes_scheduled > notes0, "the scheduler queued notes for the theme")
+	check(ad.frames_pushed > frames0, "rendered audio frames reached the generator")
+
+	# Theme switching, idempotence and stop.
+	ad.play_theme(&"night")
+	check(ad.current_theme == &"night", "switching themes re-targets the generator")
+	ad.play_theme(&"night")
+	ad.play_theme(&"stop")
+	await get_tree().process_frame
+	check(ad.music_source == "", "play_theme stop silences the music")
+
+	# Bundled OGG loop playback.
+	ad.play_music_loop("res://assets/music/day.ogg")
+	check(ad.music_source == "loop", "play_music_loop() crossfades to a loop source")
+	check(String(ad._loop_path).ends_with("day.ogg"), "the loop player tracks the active OGG")
+
+	# SFX: OGG assets, then the synthesized fallback for unknown keys.
+	var played0: int = ad.sfx_played
+	ad.play_sfx("confirm")
+	check(ad.sfx_played == played0 + 1 and ad.last_sfx == "confirm" and ad.last_sfx_source == "ogg",
+		"play_sfx('confirm') uses the OGG asset")
+	ad.play_sfx("no_such_blip")
+	check(ad.last_sfx == "no_such_blip" and ad.last_sfx_source == "synth",
+		"unknown SFX keys fall back to runtime synthesis")
+
+	# Typewriter ticks arrive per character (whitespace still counts a request).
+	var ticks0: int = ad.typing_ticks
+	balloon._on_label_spoke("a", 1, 0.018)
+	balloon._on_label_spoke(" ", 2, 0.018)
+	balloon._on_label_spoke("b", 3, 0.018)
+	check(ad.typing_ticks == ticks0 + 3, "the typewriter forwards a tick per typed character")
+
+	# Stage tags route through the director.
+	var tagged: DialogueLine = DialogueLine.new()
+	tagged.tags = ["music=warm"]
+	balloon._apply_stage_tags(tagged)
+	check(ad.current_theme == &"warm" and ad.music_source == "procedural",
+		"#music= tag switches the procedural theme")
+	var sfx_tag: DialogueLine = DialogueLine.new()
+	sfx_tag.tags = ["sfx=open"]
+	var tagged0: int = ad.sfx_played
+	balloon._apply_stage_tags(sfx_tag)
+	check(ad.sfx_played == tagged0 + 1 and ad.last_sfx == "open", "#sfx= tag plays through the director")
+	var loop_tag: DialogueLine = DialogueLine.new()
+	loop_tag.tags = ["music=loop:night"]
+	balloon._apply_stage_tags(loop_tag)
+	check(ad.music_source == "loop", "#music=loop:<key> plays a bundled OGG loop")
+	var stop_tag: DialogueLine = DialogueLine.new()
+	stop_tag.tags = ["music=stop"]
+	balloon._apply_stage_tags(stop_tag)
+	check(ad.music_source == "", "#music=stop fades the music out")
+
+	# The "Generated music" toggle: persistence and the loop fallback.
+	ad.play_theme(&"calm")
+	check(ad.music_source == "procedural", "generation on -> themes use the engine")
+	balloon.procedural_music_check.button_pressed = false
+	balloon.procedural_music_check.toggled.emit(false)
+	var pm_data: Variant = JSON.parse_string(FileAccess.get_file_as_string("user://settings.json"))
+	check(ad.procedural_enabled == false, "the toggle reaches the AudioDirector")
+	check(pm_data is Dictionary and pm_data.get("procedural_music") == false,
+		"generated-music preference persists")
+	ad.play_theme(&"calm")
+	check(ad.music_source == "loop", "generation off -> themes fall back to OGG loops")
+	balloon.procedural_music_check.button_pressed = true
+	balloon.procedural_music_check.toggled.emit(true)
+	check(ad.procedural_enabled == true and ad.music_source == "procedural",
+		"re-enabling generation restores the procedural engine")
+
+	# Pause ducks audio without dropping the music; resume keeps it playing.
+	ad.play_theme(&"calm")
+	var theme_kept: StringName = ad.current_theme
+	balloon.open_pause()
+	check(ad.current_theme == theme_kept and ad.music_source == "procedural",
+		"pause keeps the music state (Master bus duck only)")
+	balloon.close_pause()
+	check(ad.music_source == "procedural" and ad.current_theme == theme_kept,
+		"resume keeps the same music going")
 
 	finish()
 

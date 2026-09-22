@@ -297,6 +297,9 @@ msgstr "Громкость голоса"
 msgid "SFX volume"
 msgstr "Громкость эффектов"
 
+msgid "Generated music"
+msgstr "Генерируемая музыка"
+
 msgid "Sprites"
 msgstr "Спрайты"
 

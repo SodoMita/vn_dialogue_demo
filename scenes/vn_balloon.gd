@@ -158,6 +158,7 @@ class_name VNBalloon extends CanvasLayer
 @onready var voice_vol_value: Label = %VoiceVolValue
 @onready var sfx_vol_slider: HSlider = %SfxVolSlider
 @onready var sfx_vol_value: Label = %SfxVolValue
+@onready var procedural_music_check: CheckBox = %ProceduralMusicCheck
 
 ## Pause + panic
 @onready var pause_panel: PanelContainer = %PausePanel
@@ -180,6 +181,9 @@ class_name VNBalloon extends CanvasLayer
 
 ## Temporary game states
 var temporary_game_states: Array = []
+
+## The AudioDirector autoload (music + SFX); null when a scene runs standalone.
+var audio: Node = null
 
 ## See if we are waiting for the player
 var is_waiting_for_input: bool = false
@@ -218,6 +222,9 @@ var ui_scale: float = 1.0
 var sprite_scale: float = 1.0
 var sprite_y: float = 0.0
 var sync_voice: bool = false
+## Whether music is generated at runtime (Settings "Generated music"); off
+## falls back to the mood-matched OGG loops in assets/music.
+var procedural_music: bool = true
 var portrait_mode: bool = false
 var force_portrait: bool = false
 var rotation_deg: int = 0
@@ -307,9 +314,15 @@ func _ready() -> void:
 	panic_screen.hide()
 	DirAccess.make_dir_recursive_absolute(saves_dir)
 	_ensure_audio_buses()
+	audio = get_node_or_null("/root/AudioDirector")
+	if audio != null:
+		dialogue_label.spoke.connect(_on_label_spoke)
+		_connect_ui_sfx()
 	_setup_key_bindings()
 	_load_seen()
 	_load_settings()
+	if audio != null:
+		audio.set_procedural_enabled(procedural_music)
 	# Apply slider defaults even on a fresh install (set_value-less first run).
 	_on_text_size_changed(text_size_slider.value)
 	_on_skip_speed_changed(skip_speed_slider.value)
@@ -395,6 +408,9 @@ func start(with_dialogue_resource: DialogueResource = null, cue: String = "", ex
 	if not cue.is_empty():
 		start_from_cue = cue
 	show()
+	# Ambient music under the conversation; tagged #music= lines override this.
+	if audio != null and audio.music_source == "":
+		audio.play_theme(&"calm")
 	dialogue_line = await dialogue_resource.get_next_dialogue_line(start_from_cue, temporary_game_states)
 
 
@@ -527,10 +543,12 @@ func _open_overlay(p: Control) -> void:
 	auto_timer.stop()
 	is_waiting_for_input = false
 	p.show()
+	_sfx("open")
 
 
 func _close_overlay(p: Control) -> void:
 	p.hide()
+	_sfx("close")
 	if p == settings_panel:
 		_listening_for_action = &""
 		_refresh_binding_labels()
@@ -585,6 +603,10 @@ func _apply_stage_tags(line: DialogueLine) -> void:
 			dialogue_box.show()
 		elif tag.begins_with("voice="):
 			_play_voice(tag.substr(6))
+		elif tag.begins_with("music=") and audio != null:
+			audio.request_music(tag.substr(6))
+		elif tag.begins_with("sfx=") and audio != null:
+			audio.play_sfx(tag.substr(4))
 
 
 ## Play the voiced clip for a line on the Voice bus; lines without a clip
@@ -757,6 +779,7 @@ func _slot_path(i: int) -> String:
 func save_to_slot(i: int) -> Error:
 	if history.is_empty():
 		_toast(tr("Nothing to save"))
+		_sfx("error")
 		return ERR_INVALID_DATA
 
 	var current: Dictionary = history[history_cursor] if history_cursor >= 0 else history[history.size() - 1]
@@ -779,10 +802,12 @@ func save_to_slot(i: int) -> Error:
 	var file: FileAccess = FileAccess.open(_slot_path(i), FileAccess.WRITE)
 	if file == null:
 		_toast(tr("Save failed"))
+		_sfx("error")
 		return FileAccess.get_open_error()
 	file.store_string(JSON.stringify(data))
 	file.close()
 	_toast(tr("Saved to slot %d") % i)
+	_sfx("save")
 	return OK
 
 
@@ -791,11 +816,13 @@ func load_from_slot(i: int) -> void:
 	var path: String = _slot_path(i)
 	if not FileAccess.file_exists(path):
 		_toast(tr("Empty slot"))
+		_sfx("error")
 		return
 
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if data is not Dictionary or not (data.get("history") is Array) or (data.history as Array).is_empty():
 		_toast(tr("Save is broken"))
+		_sfx("error")
 		return
 
 	var resource_path: String = data.get("resource", "")
@@ -811,6 +838,7 @@ func load_from_slot(i: int) -> void:
 	var cursor: int = clampi(int(data.get("cursor", history.size() - 1)), 0, history.size() - 1)
 	rollback_to(cursor)
 	_toast(tr("Loaded slot %d") % i)
+	_sfx("save")
 
 
 func quick_save() -> void:
@@ -1150,6 +1178,9 @@ func _load_settings() -> void:
 	_set_bus_volume("Music", music_vol_slider.value)
 	_set_bus_volume("Voice", voice_vol_slider.value)
 	_set_bus_volume("SFX", sfx_vol_slider.value)
+	if data.has("procedural_music"):
+		procedural_music = bool(data.procedural_music)
+		procedural_music_check.button_pressed = procedural_music
 
 
 func _save_settings() -> void:
@@ -1178,6 +1209,7 @@ func _save_settings() -> void:
 		"vol_music": music_vol_slider.value,
 		"vol_voice": voice_vol_slider.value,
 		"vol_sfx": sfx_vol_slider.value,
+		"procedural_music": procedural_music_check.button_pressed,
 	}))
 	file.close()
 
@@ -1372,7 +1404,8 @@ const UI_TEXT_KEYS: Array = [
 	["VsyncCheck", "on"], ["ResolutionRowLabel", "Resolution"], ["ResCustomLabel", "Custom size"],
 	["AudioHeader", "Audio"], ["MasterVolRowLabel", "Master volume"],
 	["MusicVolRowLabel", "Music volume"], ["VoiceVolRowLabel", "Voice volume"],
-	["SfxVolRowLabel", "SFX volume"], ["SpritesHeader", "Sprites"],
+	["SfxVolRowLabel", "SFX volume"], ["ProceduralMusicRowLabel", "Generated music"],
+	["ProceduralMusicCheck", "on"], ["SpritesHeader", "Sprites"],
 	["SpriteScaleRowLabel", "Sprite scale"], ["SpriteYRowLabel", "Sprite Y offset"],
 	["SettingsHint", "Settings are saved automatically. Use Close or X to exit."],
 	["PauseTitle", "Paused"], ["ResumeButton", "Resume"], ["PauseHistoryButton", "History"],
@@ -1578,6 +1611,52 @@ func _on_sfx_vol_changed(v: float) -> void:
 	_save_settings()
 
 
+func _on_procedural_music_toggled(on: bool) -> void:
+	procedural_music = on
+	if audio != null:
+		audio.set_procedural_enabled(on)
+	_save_settings()
+
+
+#endregion
+
+
+#region Audio director (music + SFX)
+
+
+## Play an SFX through the AudioDirector (no-op without the autoload).
+func _sfx(key: String) -> void:
+	if audio != null:
+		audio.play_sfx(key)
+
+
+## Typewriter blips: one request per typed character; the director throttles
+## density and pitch, and skip mode types too fast to sound good.
+func _on_label_spoke(letter: String, _letter_index: int, _speed: float) -> void:
+	if skip_mode or _seeking_choice:
+		return
+	if audio != null:
+		audio.typing_tick(letter)
+
+
+## Every static chrome button gets a UI tick alongside its own handler.
+func _connect_ui_sfx() -> void:
+	for btn: Button in [qs_button, ql_button, save_button, load_button, auto_button,
+			skip_button, log_button, settings_button, panic_button, pause_button,
+			prev_choice_button, next_choice_button, settings_close_button,
+			panic_close_button, resume_button, new_slot_button]:
+		btn.pressed.connect(_on_ui_button_sfx)
+	responses_menu.response_selected.connect(_on_response_selected_sfx)
+
+
+func _on_ui_button_sfx() -> void:
+	_sfx("click")
+
+
+func _on_response_selected_sfx(_response: DialogueResponse) -> void:
+	_sfx("confirm")
+
+
 #endregion
 
 
@@ -1595,6 +1674,7 @@ func close_pause() -> void:
 	pause_panel.hide()
 	dialogue_label.set_process(true)
 	_silence_audio(false)
+	_sfx("close")
 	_restore_waiting()
 
 
@@ -1605,9 +1685,11 @@ func toggle_panic() -> void:
 		is_waiting_for_input = false
 		dialogue_label.set_process(false)
 		_silence_audio(true)
+		_sfx("open")
 	else:
 		dialogue_label.set_process(true)
 		_silence_audio(false)
+		_sfx("close")
 		_restore_waiting()
 
 
