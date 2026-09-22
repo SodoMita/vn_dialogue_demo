@@ -4,6 +4,9 @@ extends Control
 # - Atlas holds glyphs + shape icons + white pixel
 # - Clicking on port -> other side, clicking on edge -> furthest node
 # - Pan/drag + zoom wheel
+# - Data source: runtime compile of dialogue/*.dialogue (if available) else static mockup
+
+@export var dialogue_resource: DialogueResource = preload("res://dialogue/intro.dialogue")
 
 var atlas: RouteGraphAtlas
 var mesh_builder: RouteGraphMeshBuilder
@@ -24,8 +27,16 @@ var drag_start_mouse: Vector2
 var drag_start_pan: Vector2
 
 func _ready() -> void:
-	# Load data
-	nodes = RouteGraphData.get_nodes()
+	# Load data: try runtime compile from dialogue, fallback to static v4
+	var compiled: Dictionary = {}
+	if dialogue_resource != null and ResourceLoader.exists(dialogue_resource.resource_path):
+		compiled = RouteGraphCompiler.compile(dialogue_resource)
+		nodes = compiled.get("nodes", [])
+		if nodes.is_empty():
+			nodes = RouteGraphData.get_nodes()
+	else:
+		nodes = RouteGraphData.get_nodes()
+
 	node_by_id.clear()
 	for n in nodes:
 		node_by_id[n.id] = n

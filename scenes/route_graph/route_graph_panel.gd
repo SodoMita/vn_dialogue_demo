@@ -16,9 +16,17 @@ func _ready() -> void:
 
 func show_graph() -> void:
 	visible = true
-	# center on first start
-	if view and view.has_method("_pan_to_node"):
-		view.call_deferred("_pan_to_node", "crossroads")
+	# center on first start (runtime data)
+	if view:
+		var first_start: String = "start"
+		if view.node_by_id.size() > 0:
+			for nid in view.node_by_id.keys():
+				var n: Dictionary = view.node_by_id[nid]
+				if n.type == "START":
+					first_start = nid
+					break
+		if view.has_method("_pan_to_node"):
+			view.call_deferred("_pan_to_node", first_start)
 
 func _on_close() -> void:
 	visible = false
