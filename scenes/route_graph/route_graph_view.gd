@@ -55,7 +55,9 @@ func _ready() -> void:
 		entries.append({"key": key, "text": text, "size": size})
 
 	for n in nodes:
-		add_entry.call(n.id + "_header", n.type + " • " + n.id, 10)
+		var header_txt: String = n.type + " • " + n.id
+		add_entry.call(n.id + "_header", header_txt, 10)
+		add_entry.call(header_txt, header_txt, 10)
 		add_entry.call(n.title + "_title", n.title, 16)
 		add_entry.call(n.title, n.title, 14)
 		add_entry.call(n.subtitle, n.subtitle, 11)
