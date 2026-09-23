@@ -40,7 +40,7 @@ small graphics engine: one mesh, one shader pass, one texture atlas.
    always the leftmost node, and END is always the rightmost. Linear lines and mutations
    collapse. A port click jumps to the other side of that line. An edge click — including
    the arrow — jumps to the further of that edge's two nodes, not the source and not a
-   node past the edge. A header click travels to that place in the game.
+   node past the edge. A header click travels to that place in the game. If that line is already in the backlog, travel rolls back to its snapshot. Otherwise the engine replays from the current line, then from the start, along one choice sequence (the played branch as far as it still reaches). A path that rewrites earlier choices waits for the same spoiler approval as the full map. Only a scene that cannot be reached at all is opened directly, and the player is told the story state was not established. Random rolls use the playthrough seed stored with each history snapshot.
 5. Player overlay: the Map button on the system row. Drag pans; pinch or the wheel zooms around the fingers or cursor. The current scene is marked on the
    graph and named in the bar. **Visited only** is on by default and hides routes the
    player has not reached. Turning it off asks for approval before showing spoilers.

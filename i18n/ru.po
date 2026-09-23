@@ -446,3 +446,9 @@ msgstr "Ближайший, мипмапы"
 
 msgid "Linear mipmaps"
 msgstr "Линейный, мипмапы"
+
+msgid "That path rewrites earlier choices."
+msgstr "Этот путь переписывает прежние выборы."
+
+msgid "Moved to %s, but the story state was not established."
+msgstr "Переход: %s, но состояние сюжета не установлено."

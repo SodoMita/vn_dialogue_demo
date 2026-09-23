@@ -493,6 +493,8 @@ func _activate_at(graph_pos: Vector2) -> void:
 			"id": str(hit.get("node_id", "")),
 			"jump_key": jump_key,
 			"file_path": str(hit.get("file_path", "")),
+			"file_uid": str(hit.get("file_uid", "")),
+			"line_ids": hit.get("line_ids", []),
 			"title": str(hit.get("title", "")),
 			"history_index": index,
 		})

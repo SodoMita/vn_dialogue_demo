@@ -12,7 +12,7 @@ var passes := 0
 
 
 func _ready() -> void:
-	run()
+	await run()
 	print("route-graph %d passed, %d failed" % [passes, fails])
 	get_tree().quit(1 if fails else 0)
 
@@ -43,6 +43,7 @@ func run() -> void:
 	_check_panel_guard()
 	_check_locale_and_atlas()
 	_check_pinch()
+	await _check_travel()
 	check(ViewScript != null and AtlasScript != null, "route-graph scripts preload without a class cache")
 
 
@@ -647,3 +648,87 @@ func _check_pinch() -> void:
 	check(not source.contains("instantiate("), "pinch support does not instantiate a scene")
 	view.free()
 
+
+
+func _line_id_containing(resource, needle: String) -> String:
+	for key in resource.lines:
+		var data = resource.lines[key]
+		if data is Dictionary and str(data.get("text", "")).contains(needle):
+			return str(key)
+	var source := FileAccess.get_file_as_string(resource.resource_path)
+	if not source.contains(needle):
+		return ""
+	return ""
+
+
+func _check_travel() -> void:
+	var travel = load("res://scenes/route_graph/route_graph_travel.gd")
+	var resource = load("res://dialogue/intro.dialogue")
+	var gs = get_tree().root.get_node("GameState")
+	gs.story_seed = 7
+	gs.reset()
+	check(gs.player_name == "Alex" and gs.school_name == "Sakuragaoka High" and not gs.met_rook, "reset clears story flags and the school name")
+	var seeded: int = gs.rng.state
+	gs.rng.randi()
+	var snap: Dictionary = gs.snapshot()
+	check(typeof(snap.get("rng_state", 0)) == TYPE_STRING and not snap.has("rng"), "snapshot stores the RNG stream as a string")
+	gs.rng.randi()
+	gs.player_name = "Changed"
+	var parsed: Variant = JSON.parse_string(JSON.stringify(snap))
+	gs.restore(parsed)
+	check(gs.rng.state == int(snap["rng_state"]) and gs.player_name == "Alex", "a saved snapshot resumes the RNG stream and the story variables")
+	var manager = get_tree().root.get_node_or_null("DialogueManager")
+	check(manager != null and str(snap.get("dm_rng_state", "")) != "" and manager._rng.state == int(snap["dm_rng_state"]), "a saved snapshot also resumes Dialogue Manager's randomizer")
+	gs.reset()
+	check(gs.rng.state == seeded, "reset reseeds from the playthrough seed")
+
+	var secret_id := _line_id_containing(resource, "only currency")
+	var kindness_id := _line_id_containing(resource, "exhibit A")
+	check(secret_id != "" and kindness_id != "", "secret and kindness lines are findable")
+	if secret_id == "" or kindness_id == "":
+		return
+	var secret_target := {"line_ids": [secret_id], "jump_key": secret_id}
+	var kindness_target := {"line_ids": [kindness_id], "jump_key": kindness_id}
+
+	var secret: Dictionary = await travel.replay(resource, "", secret_target, [], 0, gs, [], true, true, {})
+	var secret_lines: Array = secret.get("lines", [])
+	var first_state: Dictionary = secret_lines[0].get("state", {}) if not secret_lines.is_empty() else {}
+	check(bool(secret.get("ok", false)) and gs.met_maya and gs.met_rook and not gs.knows_secret, "arriving at the secret line has run the mutations before it")
+	check(not bool(first_state.get("met_maya", true)) and not bool(first_state.get("met_rook", true)), "a line snapshot is the state on arrival, not the end of the walk")
+	var tomorrow := _line_id_containing(resource, "Same time tomorrow")
+	gs.reset()
+	var ending: Dictionary = await travel.replay(resource, "", {"line_ids": [tomorrow], "jump_key": tomorrow}, [], 0, gs, [], true, true, {})
+	check(tomorrow != "" and bool(ending.get("ok", false)) and gs.knows_secret, "passing the secret answer on the way to a later line sets the flag")
+
+	gs.reset()
+	var kindness: Dictionary = await travel.replay(resource, "", kindness_target, [], 0, gs, [], true, true, {})
+	check(bool(kindness.get("ok", false)) and not gs.knows_secret and gs.met_rook, "the other rooftop answer does not set the secret")
+	var kindness_lines: Array = kindness.get("lines", [])
+	check(kindness_lines.size() > 1, "a replay records the lines it walked")
+	if kindness_lines.size() > 1:
+		gs.player_name = "Sam"
+		var later: Dictionary = kindness_lines[kindness_lines.size() - 1]
+		var continued: Dictionary = await travel.replay(resource, str(kindness_lines[0].get("id", "")), {"line_ids": [later.get("id", "")], "jump_key": str(later.get("id", ""))}, kindness_lines, 0, gs, [], true, false, {})
+		check(bool(continued.get("ok", false)) and gs.player_name == "Sam" and gs.met_rook, "replaying from the current line does not reset the story")
+
+	gs.reset()
+	var blocked: Dictionary = await travel.replay(resource, "", secret_target, kindness_lines, 0, gs, [], false, true, {})
+	check(not bool(blocked.get("ok", false)) and bool(blocked.get("blocked", false)), "a path that rewrites the played choice is refused")
+	check(not gs.knows_secret and not gs.met_rook, "a refused replay restores the story state from before the walk")
+
+	gs.reset()
+	var rewrite: Dictionary = await travel.replay(resource, "", secret_target, kindness_lines, 0, gs, [], true, true, {})
+	check(bool(rewrite.get("ok", false)) and bool(rewrite.get("diverged", false)) and str(rewrite.get("line", null).text).contains("only currency"), "an approved rewrite can leave the played branch")
+
+	gs.reset()
+	gs.player_name = "Sam"
+	gs.met_rook = true
+	var missing: Dictionary = await travel.replay(resource, "", {"line_ids": ["missing-line"], "jump_key": "missing-line"}, [], 0, gs, [], true, true, {})
+	check(not bool(missing.get("ok", false)) and not bool(missing.get("blocked", false)) and gs.player_name == "Sam" and gs.met_rook, "an unreachable target is not a rewrite and restores state")
+	gs.reset()
+
+	var panel := FileAccess.get_file_as_string("res://scenes/route_graph/route_graph_panel.gd")
+	var view := FileAccess.get_file_as_string("res://scenes/route_graph/route_graph_view.gd")
+	var balloon := FileAccess.get_file_as_string("res://scenes/vn_balloon.gd")
+	check(panel.contains("spoilers_ok") and view.contains("line_ids"), "header travel carries the lines and the spoiler flag")
+	check(balloon.contains("_silent_travel") and balloon.contains("That path rewrites earlier choices.") and balloon.contains("story state was not established."), "the balloon rolls back, replays, then admits a raw jump")

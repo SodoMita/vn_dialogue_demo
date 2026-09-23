@@ -1,4 +1,5 @@
 class_name VNBalloon extends CanvasLayer
+const RouteTravel = preload("res://scenes/route_graph/route_graph_travel.gd")
 ## A classical visual-novel balloon for Dialogue Manager.
 ##
 ## The whole UI (background stage, sprite slots, name plate, dialogue box,
@@ -255,6 +256,9 @@ const HOLD_CANCEL_DIST: float = 10.0
 var _hold_active: bool = false
 var _hold_elapsed: float = 0.0
 var _hold_from: Vector2 = Vector2.ZERO
+## Set while a map jump replays lines through Dialogue Manager. Mutations still
+## run, but they must not hide the box or play the mutation beat.
+var _silent_travel: bool = false
 
 ## Whether the current press turned into a drag/swipe. Row handlers (slots,
 ## history entries, rebind/rot buttons) check this so a scroll gesture ending
@@ -2414,13 +2418,7 @@ func _route_player_state() -> Dictionary:
 func _on_route_travel_requested(target: Dictionary) -> void:
 	_close_route_graph()
 	_halt_modes_for_travel()
-	var title := str(target.get("title", ""))
-	var index := int(target.get("history_index", -1))
-	if index >= 0 and index < history.size():
-		rollback_to(index)
-		_toast(tr("Moved to %s") % title)
-		return
-	_jump_to_route_key(str(target.get("jump_key", "")), str(target.get("file_path", "")), title)
+	_travel_to_target(target)
 
 
 func _halt_modes_for_travel() -> void:
@@ -2432,10 +2430,168 @@ func _halt_modes_for_travel() -> void:
 	_set_skip_active(false)
 
 
-func _jump_to_route_key(jump_key: String, file_path: String, title: String) -> void:
-	if jump_key == "" or jump_key == "END" or jump_key == "end":
+## Rollback if this place is already in the backlog. Otherwise replay the engine
+## from the current line, then from the start, and only then jump raw.
+func _travel_to_target(target: Dictionary) -> void:
+	var title := str(target.get("title", ""))
+	var index := RouteTravel.history_index(history, target)
+	if index < 0:
+		index = int(target.get("history_index", -1))
+	if index >= 0 and index < history.size():
+		rollback_to(index)
+		_toast(tr("Moved to %s") % title)
+		return
+	var jump_key := str(target.get("jump_key", ""))
+	var line_ids: Array = target.get("line_ids", [])
+	if (jump_key == "" or jump_key == "END" or jump_key == "end") and line_ids.is_empty():
 		_toast(tr("Nothing to show there"))
 		return
+	var snap := _capture_travel()
+	var game_state: Node = get_tree().root.get_node_or_null("GameState")
+	var spoilers_ok := bool(target.get("spoilers_ok", false))
+	var current_id := ""
+	if is_instance_valid(dialogue_line):
+		current_id = str(dialogue_line.id)
+	elif history_cursor >= 0 and history_cursor < history.size():
+		current_id = str(history[history_cursor].get("id", ""))
+	var stage := {
+		"bg": _current_bg,
+		"left": _current_left,
+		"right": _current_right,
+		"focus": _current_focus,
+	}
+	_silent_travel = true
+	if current_id != "":
+		var from_here: Dictionary = await RouteTravel.replay(dialogue_resource, current_id, target, history, history_cursor, game_state, temporary_game_states, true, false, stage)
+		if bool(from_here.get("ok", false)):
+			_silent_travel = false
+			_commit_replay(from_here, history_cursor)
+			_toast(tr("Moved to %s") % title)
+			return
+		_restore_travel(snap)
+	if game_state != null and game_state.has_method("reset"):
+		game_state.reset()
+	var from_start: Dictionary = await RouteTravel.replay(dialogue_resource, "", target, history, 0, game_state, temporary_game_states, spoilers_ok, true, {})
+	if bool(from_start.get("ok", false)):
+		_silent_travel = false
+		_commit_replay(from_start, -1)
+		_toast(tr("Moved to %s") % title)
+		return
+	_restore_travel(snap)
+	if bool(from_start.get("blocked", false)) and not spoilers_ok and not _travel_file_differs(target):
+		var reachable := await _rewrite_would_reach(target, game_state)
+		_restore_travel(snap)
+		_silent_travel = false
+		if reachable:
+			_toast(tr("That path rewrites earlier choices."))
+			return
+	var file_path := str(target.get("file_path", ""))
+	if file_path != "" and (not is_instance_valid(dialogue_resource) or str(dialogue_resource.resource_path) != file_path):
+		var other = load(file_path)
+		if other != null and game_state != null and game_state.has_method("reset"):
+			game_state.reset()
+			_silent_travel = true
+			var from_file: Dictionary = await RouteTravel.replay(other, "", target, history, 0, game_state, temporary_game_states, spoilers_ok, true, {})
+			if bool(from_file.get("ok", false)):
+				dialogue_resource = other
+				_silent_travel = false
+				_commit_replay(from_file, -1)
+				_toast(tr("Moved to %s") % title)
+				return
+			_restore_travel(snap)
+			if bool(from_file.get("blocked", false)) and not spoilers_ok:
+				var reachable := await _rewrite_would_reach_resource(other, target, game_state)
+				_restore_travel(snap)
+				_silent_travel = false
+				if reachable:
+					_toast(tr("That path rewrites earlier choices."))
+					return
+	_silent_travel = false
+	_jump_to_route_key(jump_key, file_path, title, line_ids)
+
+
+func _travel_file_differs(target: Dictionary) -> bool:
+	var file_path := str(target.get("file_path", ""))
+	return file_path != "" and (not is_instance_valid(dialogue_resource) or str(dialogue_resource.resource_path) != file_path)
+
+
+## True when some choice sequence reaches the target, so the failure was a rewrite rather than a dead scene.
+func _rewrite_would_reach(target: Dictionary, game_state: Node) -> bool:
+	return await _rewrite_would_reach_resource(dialogue_resource, target, game_state)
+
+
+func _rewrite_would_reach_resource(resource, target: Dictionary, game_state: Node) -> bool:
+	if resource == null:
+		return false
+	if game_state != null and game_state.has_method("reset"):
+		game_state.reset()
+	_silent_travel = true
+	var probe: Dictionary = await RouteTravel.replay(resource, "", target, [], 0, game_state, temporary_game_states, true, true, {})
+	_silent_travel = false
+	return bool(probe.get("ok", false))
+
+
+func _capture_travel() -> Dictionary:
+	var game_state: Node = get_tree().root.get_node_or_null("GameState")
+	var state: Dictionary = {}
+	if game_state != null and game_state.has_method("snapshot"):
+		state = game_state.snapshot()
+	return {
+		"history": history.duplicate(true),
+		"cursor": history_cursor,
+		"state": state,
+		"resource_path": str(dialogue_resource.resource_path) if is_instance_valid(dialogue_resource) else "",
+		"bg": _current_bg,
+		"left": _current_left,
+		"right": _current_right,
+		"focus": _current_focus,
+	}
+
+
+func _restore_travel(snap: Dictionary) -> void:
+	history = snap.get("history", []).duplicate(true)
+	history_cursor = int(snap.get("cursor", -1))
+	var game_state: Node = get_tree().root.get_node_or_null("GameState")
+	if game_state != null and game_state.has_method("restore"):
+		game_state.restore(snap.get("state", {}))
+	var path := str(snap.get("resource_path", ""))
+	if path != "" and (not is_instance_valid(dialogue_resource) or str(dialogue_resource.resource_path) != path):
+		var loaded = load(path)
+		if loaded != null:
+			dialogue_resource = loaded
+	_restore_stage({
+		"bg": str(snap.get("bg", "")),
+		"left": str(snap.get("left", "")),
+		"right": str(snap.get("right", "")),
+		"focus": str(snap.get("focus", "")),
+	})
+
+
+## [param keep_through] is the last history index that stays. -1 replaces the backlog.
+func _commit_replay(found: Dictionary, keep_through: int) -> void:
+	var walked: Array = found.get("lines", [])
+	if keep_through < 0:
+		history = []
+	elif keep_through < history.size() - 1:
+		history = history.slice(0, keep_through + 1)
+	for entry in walked:
+		if entry is not Dictionary:
+			continue
+		if not history.is_empty() and str(entry.get("id", "")) == str(history[history.size() - 1].get("id", "")):
+			continue
+		history.append(entry)
+	if history.is_empty():
+		return
+	history_cursor = history.size() - 1
+	_restoring = true
+	_restore_stage(history[history_cursor])
+	var landed = found.get("line")
+	if landed != null:
+		dialogue_line = landed
+	_restoring = false
+
+
+func _jump_to_route_key(jump_key: String, file_path: String, title: String, line_ids: Array = []) -> void:
 	if file_path != "" and (not is_instance_valid(dialogue_resource) or str(dialogue_resource.resource_path) != file_path):
 		var loaded = load(file_path)
 		if loaded != null:
@@ -2443,14 +2599,31 @@ func _jump_to_route_key(jump_key: String, file_path: String, title: String) -> v
 	if not is_instance_valid(dialogue_resource):
 		_toast(tr("Nothing to show there"))
 		return
+	var key := jump_key
+	if key == "" or key == "END" or key == "end":
+		key = str(line_ids[0]) if not line_ids.is_empty() else ""
+	if key == "" or key == "END" or key == "end" or not _resource_has_key(dialogue_resource, key):
+		_toast(tr("Nothing to show there"))
+		return
 	if history_cursor < history.size() - 1:
 		history = history.slice(0, history_cursor + 1)
-	var line: DialogueLine = await dialogue_resource.get_next_dialogue_line(jump_key, temporary_game_states)
+	var line: DialogueLine = await dialogue_resource.get_next_dialogue_line(key, temporary_game_states)
 	if line == null:
 		_toast(tr("Nothing to show there"))
 		return
 	dialogue_line = line
-	_toast(tr("Moved to %s") % title)
+	_toast(tr("Moved to %s, but the story state was not established.") % title)
+
+
+func _resource_has_key(resource, key: String) -> bool:
+	if resource == null or key == "":
+		return false
+	if resource.cues.has(key) or resource.lines.has(key):
+		return true
+	if "@" in key:
+		var bare := key.split("@")[-1]
+		return resource.lines.has(bare) or resource.cues.has(bare)
+	return false
 
 
 func _on_panic_pressed() -> void:
@@ -2508,6 +2681,8 @@ func _on_mutation_cooldown_timeout() -> void:
 
 
 func _on_mutated(mutation: Dictionary) -> void:
+	if _silent_travel:
+		return
 	if not mutation.is_inline:
 		is_waiting_for_input = false
 		will_hide_box = true

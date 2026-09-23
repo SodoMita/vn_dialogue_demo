@@ -88,7 +88,11 @@ func _on_close() -> void:
 
 
 func _on_view_travel(target: Dictionary) -> void:
-	travel_requested.emit(target)
+	var payload := target.duplicate()
+	# Visited only is the spoiler gate. A path that rewrites earlier choices
+	# waits for the same approval as showing unread routes.
+	payload["spoilers_ok"] = not visited_only
+	travel_requested.emit(payload)
 
 
 func _on_visited_toggled(on: bool) -> void:
