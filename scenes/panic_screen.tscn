@@ -1,0 +1,86 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scenes/panic_screen.gd" id="1_script"]
+[ext_resource type="FontFile" uid="uid://ex3s7gibjgfb" path="res://assets/fonts/DejaVuSerif-Bold.ttf" id="2_bold"]
+[ext_resource type="FontFile" uid="uid://ctxcxi25fm0pu" path="res://assets/fonts/DejaVuSerif.ttf" id="3_serif"]
+
+[node name="PanicScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+z_index = 20
+script = ExtResource("1_script")
+
+[node name="PanicPaper" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.98, 0.98, 0.96, 1)
+
+[node name="PanicMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 90
+theme_override_constants/margin_top = 60
+theme_override_constants/margin_right = 90
+theme_override_constants/margin_bottom = 60
+
+[node name="PanicScroll" type="ScrollContainer" parent="PanicMargin"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+mouse_filter = 2
+
+[node name="PanicVBox" type="VBoxContainer" parent="PanicMargin/PanicScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 18
+mouse_filter = 2
+
+[node name="PanicTitle" type="Label" parent="PanicMargin/PanicScroll/PanicVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.1, 0.1, 0.1, 1)
+theme_override_fonts/font = ExtResource("2_bold")
+theme_override_font_sizes/font_size = 30
+text = "PHYS 201 - Quantum Mechanics II"
+autowrap_mode = 2
+
+[node name="PanicBody" type="Label" parent="PanicMargin/PanicScroll/PanicVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.15, 0.15, 0.15, 1)
+theme_override_fonts/font = ExtResource("3_serif")
+theme_override_font_sizes/font_size = 18
+text = "Lecture 12: The time-independent Schroedinger equation. H psi = E psi, where H is the Hamiltonian operator. For a particle in a 1-D infinite well of width L the energy eigenvalues are E_n = n^2 h^2 / (8 m L^2). Reminder: problem set 4 is due Friday - problems 3.7, 3.9 and the derivation of the uncertainty principle for position and momentum."
+autowrap_mode = 2
+
+[node name="PanicCloseButton" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -64.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 52.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.45, 0.45, 0.5, 1)
+theme_override_colors/font_focus_color = Color(0.2, 0.2, 0.25, 1)
+theme_override_colors/font_hover_color = Color(0.2, 0.2, 0.25, 1)
+theme_override_font_sizes/font_size = 22
+text = "X"
+
+[connection signal="pressed" from="PanicCloseButton" to="." method="_request_close"]

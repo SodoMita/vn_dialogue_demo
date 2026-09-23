@@ -24,7 +24,7 @@ typewriter box, centered choices) built on the
 | Roll forward again | mouse wheel down |
 | Pause menu | `Esc` or right click (mutes all audio until you resume) |
 | Quick save / quick load (slot 0) | `F5` / `F9` |
-| Panic / boss screen | `F12` or the `Panic` button — instantly silences every sound; press again to return (on touch devices the X in the corner closes it) |
+| Panic / boss screen | `F12` or the `Panic` button — loads `scenes/panic_screen.tscn` and silences every sound; press again (or the corner X) to load the game back where it was |
 | Mobile | tap = advance, swipe up = backlog |
 
 The bottom system row mirrors Kirikiri/Ren'Py toolbars:

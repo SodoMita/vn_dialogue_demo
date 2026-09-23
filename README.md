@@ -179,8 +179,7 @@ the balloon plays it through an authored `VoicePlayer` node routed to the Voice 
 Voice volume slider governs it) and stops it whenever an unvoiced line shows. Clips live in
 `assets/voices/*.ogg`, one per character voice; a missing clip simply stays silent. **Pause** (`Esc` / right click) freezes the typewriter and offers Resume / History /
 Save / Load / Settings / Quit.
-**Panic** (`F12` / `Panic`) overlays an opaque, completely unrelated physics-lecture page and
-swallows every input except the boss key itself, so nothing underneath leaks through.
+**Panic** (`F12` / `Panic`) loads `scenes/panic_screen.tscn` — an opaque, completely unrelated physics-lecture page you can redesign on its own — and swallows every input except the boss key itself. Closing it loads the game back at the same line, backlog place, stage and story state.
 
 **Music & SFX**: the `AudioDirector` autoload owns everything audible that is not a
 voice clip. Music plays two interchangeable ways: `play_theme(&"calm"|"warm"|"tense"|"night")`

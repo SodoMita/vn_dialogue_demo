@@ -23,7 +23,7 @@ Balloon (Control, full rect, gui_input = advance/click/wheel)
    ├─ HistoryPanel (ScrollContainer backlog + hidden entry template)
    ├─ SaveMenuPanel (slot list + hidden slot template, + New slot)
    ├─ SettingsPanel (Margin > ScrollContainer > VBox of rows)
-   ├─ PausePanel, PanicScreen, ToastLabel
+   ├─ PausePanel, ToastLabel          # PanicScreen is loaded from scenes/panic_screen.tscn
    └─ BottomUI (NamePlate, DialogueBox > DialogueLabel, NextIndicator, SystemRow)
 ```
 

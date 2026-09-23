@@ -1746,80 +1746,6 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Quit"
 
-[node name="PanicScreen" type="Control" parent="Balloon/UIRoot" unique_id=289853429]
-unique_name_in_owner = true
-visible = false
-z_index = 20
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="PanicPaper" type="ColorRect" parent="Balloon/UIRoot/PanicScreen" unique_id=1663299739]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.98, 0.98, 0.96, 1)
-
-[node name="PanicMargin" type="MarginContainer" parent="Balloon/UIRoot/PanicScreen" unique_id=776933891]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_left = 90
-theme_override_constants/margin_top = 60
-theme_override_constants/margin_right = 90
-theme_override_constants/margin_bottom = 60
-
-[node name="PanicScroll" type="ScrollContainer" parent="Balloon/UIRoot/PanicScreen/PanicMargin" unique_id=1433317678]
-layout_mode = 2
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
-
-[node name="PanicVBox" type="VBoxContainer" parent="Balloon/UIRoot/PanicScreen/PanicMargin/PanicScroll" unique_id=950744333]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 18
-
-[node name="PanicTitle" type="Label" parent="Balloon/UIRoot/PanicScreen/PanicMargin/PanicScroll/PanicVBox" unique_id=1390964353]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.1, 0.1, 0.1, 1)
-theme_override_fonts/font = ExtResource("5_serifbold")
-theme_override_font_sizes/font_size = 30
-text = "PHYS 201 - Quantum Mechanics II"
-
-[node name="PanicBody" type="Label" parent="Balloon/UIRoot/PanicScreen/PanicMargin/PanicScroll/PanicVBox" unique_id=80379779]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.15, 0.15, 0.15, 1)
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 18
-text = "Lecture 12: The time-independent Schroedinger equation. H psi = E psi, where H is the Hamiltonian operator. For a particle in a 1-D infinite well of width L the energy eigenvalues are E_n = n^2 h^2 / (8 m L^2). Reminder: problem set 4 is due Friday - problems 3.7, 3.9 and the derivation of the uncertainty principle for position and momentum."
-autowrap_mode = 2
-
-[node name="PanicCloseButton" type="Button" parent="Balloon/UIRoot/PanicScreen" unique_id=1452608062]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -64.0
-offset_top = 8.0
-offset_right = -8.0
-offset_bottom = 52.0
-grow_horizontal = 0
-theme_override_colors/font_color = Color(0.45, 0.45, 0.5, 1)
-theme_override_colors/font_focus_color = Color(0.2, 0.2, 0.25, 1)
-theme_override_colors/font_hover_color = Color(0.2, 0.2, 0.25, 1)
-theme_override_font_sizes/font_size = 22
-text = "X"
-
 [node name="HistoryPanel" type="PanelContainer" parent="Balloon/UIRoot" unique_id=2022090504]
 unique_name_in_owner = true
 visible = false
@@ -2031,7 +1957,6 @@ unique_name_in_owner = true
 [connection signal="pressed" from="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox/PauseLoadButton" to="." method="_on_pause_load_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox/PauseSettingsButton" to="." method="_on_pause_settings_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/PausePanel/PauseMargin/PauseVBox/QuitButton" to="." method="_on_quit_pressed"]
-[connection signal="pressed" from="Balloon/UIRoot/PanicScreen/PanicCloseButton" to="." method="_on_panic_close_pressed"]
 [connection signal="gui_input" from="Balloon/UIRoot/HistoryPanel" to="." method="_on_menu_empty_press"]
 [connection signal="pressed" from="Balloon/UIRoot/SettingsCloseButton" to="." method="_on_settings_close_pressed"]
 [connection signal="timeout" from="ToastTimer" to="." method="_on_toast_timeout"]

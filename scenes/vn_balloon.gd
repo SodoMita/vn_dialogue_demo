@@ -1,12 +1,14 @@
 class_name VNBalloon extends CanvasLayer
 const RouteTravel = preload("res://scenes/route_graph/route_graph_travel.gd")
+const PanicScript = preload("res://scenes/panic_screen.gd")
 ## A classical visual-novel balloon for Dialogue Manager.
 ##
 ## The whole UI (background stage, sprite slots, name plate, dialogue box,
 ## next indicator, responses menu, history panel, save-slot menu, settings,
-## pause menu, panic screen and the bottom system row) is AUTHORED in
-## `vn_balloon.tscn` and freely editable in the Godot editor. This script only
-## adds behaviour: it never creates structural nodes - dynamic list entries
+## pause menu and the bottom system row) is AUTHORED in `vn_balloon.tscn`.
+## The panic screen is its own scene (`panic_screen.tscn`) so that page can be
+## edited on its own. This script only adds behaviour: it never creates
+## structural nodes - dynamic list entries
 ## (history, slots) duplicate authored template buttons, the standard DM pattern.
 ##
 ## Stage direction tags supported on any dialogue line:
@@ -171,8 +173,11 @@ const RouteTravel = preload("res://scenes/route_graph/route_graph_travel.gd")
 ## Pause + panic
 @onready var pause_panel: PanelContainer = %PausePanel
 @onready var resume_button: Button = %ResumeButton
-@onready var panic_screen: Control = %PanicScreen
-@onready var panic_close_button: Button = %PanicCloseButton
+## Loaded from `panic_scene_path` when panic opens. Not authored in this scene.
+var panic_screen: Control
+var panic_close_button: Button
+var _panic_place: Dictionary = {}
+@export_file("*.tscn") var panic_scene_path: String = "res://scenes/panic_screen.tscn"
 
 ## Bottom system row (wraps on narrow aspects / big UI scales)
 @onready var bottom_ui: Control = %BottomUI
@@ -358,7 +363,8 @@ func _ready() -> void:
 	slot_template.hide()
 	settings_panel.hide()
 	pause_panel.hide()
-	panic_screen.hide()
+	if is_instance_valid(panic_screen):
+		panic_screen.hide()
 	hold_indicator.hide()
 	if is_instance_valid(route_graph_panel):
 		route_graph_panel.hide()
@@ -481,6 +487,10 @@ func _repaint_current_line() -> void:
 func start(with_dialogue_resource: DialogueResource = null, cue: String = "", extra_game_states: Array = []) -> void:
 	temporary_game_states = [self] + extra_game_states
 	is_waiting_for_input = false
+	if PanicScript.has_ticket():
+		var place: Dictionary = PanicScript.take_ticket()
+		await _resume_from_panic(place)
+		return
 	if is_instance_valid(with_dialogue_resource):
 		dialogue_resource = with_dialogue_resource
 	if not cue.is_empty():
@@ -614,7 +624,7 @@ func next(next_id: String) -> void:
 
 func _any_overlay_open() -> bool:
 	return history_panel.visible or save_menu_panel.visible or settings_panel.visible \
-		or pause_panel.visible or panic_screen.visible or route_graph_panel.visible
+		or pause_panel.visible or _panic_open() or route_graph_panel.visible
 
 
 func _open_overlay(p: Control) -> void:
@@ -1126,7 +1136,7 @@ func _input(event: InputEvent) -> void:
 			(_binding_buttons[action] as Button).grab_focus()
 			get_viewport().set_input_as_handled()
 		return
-	if not is_instance_valid(balloon) or not balloon.is_visible_in_tree() or panic_screen.visible:
+	if not is_instance_valid(balloon) or not balloon.is_visible_in_tree() or _panic_open():
 		return
 	# Pause and Close must win before focused GUI controls consume Esc or
 	# Backspace (notably OptionButton and SpinBox/LineEdit).
@@ -1897,7 +1907,9 @@ func _connect_ui_sfx() -> void:
 	for btn: Button in [qs_button, ql_button, save_button, load_button, auto_button,
 			skip_button, log_button, settings_button, panic_button, pause_button,
 			prev_choice_button, next_choice_button, settings_close_button,
-			panic_close_button, resume_button, new_slot_button, save_close_button]:
+			resume_button, new_slot_button, save_close_button]:
+		if btn == null:
+			continue
 		btn.pressed.connect(_on_ui_button_sfx)
 	responses_menu.response_selected.connect(_on_response_selected_sfx)
 
@@ -2014,17 +2026,163 @@ func close_pause() -> void:
 
 
 func toggle_panic() -> void:
-	panic_screen.visible = not panic_screen.visible
-	if panic_screen.visible:
-		auto_timer.stop()
-		is_waiting_for_input = false
-		dialogue_label.set_process(false)
+	if _panic_open():
+		_close_panic()
+	else:
+		_open_panic()
+
+
+func _panic_open() -> bool:
+	return is_instance_valid(panic_screen) and panic_screen.visible
+
+
+func _panic_can_swap() -> bool:
+	var current := get_tree().current_scene
+	return current != null and current.scene_file_path == "res://scenes/vn_scene.tscn"
+
+
+func _capture_panic_place() -> Dictionary:
+	var place := {
+		"scene_path": "",
+		"resource": "",
+		"line_id": "",
+		"history": history.duplicate(true),
+		"cursor": history_cursor,
+		"bg": _current_bg,
+		"left": _current_left,
+		"right": _current_right,
+		"focus": _current_focus,
+		"paused": pause_panel.visible,
+	}
+	var current := get_tree().current_scene
+	if current != null:
+		place.scene_path = current.scene_file_path
+	if is_instance_valid(dialogue_resource):
+		place.resource = dialogue_resource.resource_path
+	if is_instance_valid(dialogue_line):
+		place.line_id = dialogue_line.id
+	var game_state := get_tree().root.get_node_or_null("GameState")
+	if is_instance_valid(game_state) and game_state.has_method("snapshot"):
+		place.state = game_state.snapshot()
+	return place
+
+
+func _ensure_panic_loaded() -> bool:
+	if is_instance_valid(panic_screen):
+		return true
+	if panic_scene_path == "" or not ResourceLoader.exists(panic_scene_path):
+		_toast(tr("Nothing to show there"))
+		return false
+	panic_screen = PanicScript.load_into(ui_root, panic_scene_path)
+	if not is_instance_valid(panic_screen):
+		_toast(tr("Nothing to show there"))
+		return false
+	panic_close_button = panic_screen.find_child("PanicCloseButton", true, false) as Button
+	# The scene's own button already emits `dismissed`. Connecting pressed too
+	# would close twice and skip a line when skip mode is on.
+	if panic_screen.has_signal("dismissed") and not panic_screen.dismissed.is_connected(_close_panic):
+		panic_screen.dismissed.connect(_close_panic)
+	elif panic_close_button != null and not panic_close_button.pressed.is_connected(_on_panic_close_pressed):
+		panic_close_button.pressed.connect(_on_panic_close_pressed)
+	if panic_close_button != null and not panic_close_button.pressed.is_connected(_on_ui_button_sfx):
+		panic_close_button.pressed.connect(_on_ui_button_sfx)
+	return true
+
+
+func _open_panic() -> void:
+	var place := _capture_panic_place()
+	# The game scene can be replaced by the panic scene, then loaded back.
+	# Any other host (the UI tests, a custom parent) keeps the game loaded
+	# and covers it, because changing scene would free that host.
+	if _panic_can_swap():
+		PanicScript.ticket = place
 		_silence_audio(true)
 		_sfx("open")
-	else:
+		get_tree().change_scene_to_file(panic_scene_path)
+		return
+	_panic_place = place
+	if not _ensure_panic_loaded():
+		return
+	panic_screen.show()
+	auto_timer.stop()
+	is_waiting_for_input = false
+	dialogue_label.set_process(false)
+	_silence_audio(true)
+	_sfx("open")
+
+
+func _close_panic() -> void:
+	if is_instance_valid(panic_screen):
+		panic_screen.hide()
+	_restore_panic_place(_panic_place)
+	if is_instance_valid(dialogue_label):
 		dialogue_label.set_process(true)
+	_silence_audio(false)
+	_sfx("close")
+	_restore_waiting()
+
+
+func _restore_panic_place(place: Dictionary) -> void:
+	if place.is_empty():
+		return
+	var game_state := get_tree().root.get_node_or_null("GameState")
+	if is_instance_valid(game_state) and game_state.has_method("restore") and place.get("state") is Dictionary:
+		game_state.restore(place.state)
+	if place.get("history") is Array:
+		history = place.history
+		history_cursor = int(place.get("cursor", history_cursor))
+	var saved_id := str(place.get("line_id", ""))
+	if saved_id != "" and (not is_instance_valid(dialogue_line) or str(dialogue_line.id) != saved_id):
+		var found := int(place.get("cursor", -1))
+		if found < 0 or found >= history.size() or str(history[found].get("id", "")) != saved_id:
+			found = -1
+			for i in history.size():
+				if str(history[i].get("id", "")) == saved_id:
+					found = i
+					break
+		if found >= 0:
+			rollback_to(found)
+	_restore_stage({
+		"bg": str(place.get("bg", "")),
+		"left": str(place.get("left", "")),
+		"right": str(place.get("right", "")),
+		"focus": str(place.get("focus", "")),
+	})
+
+
+func _resume_from_panic(place: Dictionary) -> void:
+	var resource_path := str(place.get("resource", ""))
+	if resource_path != "" and ResourceLoader.exists(resource_path):
+		dialogue_resource = load(resource_path)
+	show()
+	var game_state := get_tree().root.get_node_or_null("GameState")
+	if is_instance_valid(game_state) and game_state.has_method("restore") and place.get("state") is Dictionary:
+		game_state.restore(place.state)
+	if place.get("history") is Array:
+		history = place.history
+		history_cursor = int(place.get("cursor", -1))
+	var line_id := str(place.get("line_id", ""))
+	if line_id != "" and is_instance_valid(dialogue_resource):
+		var dm: Object = Engine.get_singleton("DialogueManager")
+		var states: Array = temporary_game_states.duplicate()
+		dm.game_states = states
+		_restoring = true
+		var line: DialogueLine = await dm.get_line(dialogue_resource, line_id, states)
+		if line != null:
+			dialogue_line = line
+		if place.get("history") is Array:
+			history = place.history
+			history_cursor = int(place.get("cursor", history_cursor))
+	_restore_stage({
+		"bg": str(place.get("bg", "")),
+		"left": str(place.get("left", "")),
+		"right": str(place.get("right", "")),
+		"focus": str(place.get("focus", "")),
+	})
+	if bool(place.get("paused", false)):
+		open_pause()
+	else:
 		_silence_audio(false)
-		_sfx("close")
 		_restore_waiting()
 
 
@@ -2034,7 +2192,7 @@ func toggle_panic() -> void:
 func _silence_audio(on: bool) -> void:
 	# Leaving one overlay while the other is still up must keep both the bus and
 	# the current voice paused.
-	var silent: bool = on or pause_panel.visible or panic_screen.visible
+	var silent: bool = on or pause_panel.visible or _panic_open()
 	voice_player.stream_paused = silent
 	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), silent)
 
@@ -2049,7 +2207,7 @@ func _on_pause_button_pressed() -> void:
 
 ## Touch exit for the panic page (the boss key alone is no help on phones).
 func _on_panic_close_pressed() -> void:
-	toggle_panic()
+	_close_panic()
 
 
 func _toggle_auto() -> void:
@@ -2144,7 +2302,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	# The panic screen overrides absolutely; only the boss key closes it.
-	if panic_screen.visible:
+	if _panic_open():
 		get_viewport().set_input_as_handled()
 		if event.is_action_pressed(panic_action):
 			toggle_panic()
@@ -2260,7 +2418,7 @@ func _on_balloon_gui_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		toggle_panic()
 		return
-	if panic_screen.visible:
+	if _panic_open():
 		get_viewport().set_input_as_handled()
 		return
 	if _try_system_actions(event):
