@@ -796,6 +796,33 @@ func run() -> void:
 	check(alive() and balloon.balloon.size == Vector2(1280.0, 720.0),
 		"logical resolution unflips at rotation 0")
 
+	# A CanvasLayer never receives NOTIFICATION_WM_SIZE_CHANGED. Resizing the
+	# viewport must still reflow the balloon to the new logical size.
+	var root := get_tree().root
+	var saved_aspect: int = root.content_scale_aspect
+	var saved_win: Vector2i = root.size
+	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+	root.size = Vector2i(700, 1200)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var vis: Vector2 = root.get_visible_rect().size
+	check(alive() and balloon.balloon.size == vis and vis.y > vis.x,
+		"a taller window reflows the UI to the new logical size")
+	check(alive() and balloon.portrait_mode, "a taller window switches settings to portrait")
+	var saved_base: Vector2i = root.content_scale_size
+	root.content_scale_size = Vector2i(720, 1280)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(alive() and balloon.balloon.size.x < 900.0 and balloon.system_row.columns < balloon.system_row.get_child_count(),
+		"a narrow logical size wraps the system row")
+	root.content_scale_size = saved_base
+	root.size = saved_win
+	root.content_scale_aspect = saved_aspect
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(alive() and balloon.balloon.size == Vector2(1280.0, 720.0) and not balloon.portrait_mode,
+		"restoring the window restores the landscape layout")
+
 	# Mobile ergonomics: the bottom row wraps, pause is one tap away, and the
 	# panic page has a touch exit.
 	balloon._set_rotation(90)

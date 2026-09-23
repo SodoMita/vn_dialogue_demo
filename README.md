@@ -42,7 +42,7 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
   taps drive the same click/advance path, an upward swipe opens the history backlog, and
   every control is an authored touch target; settings get an on-screen close button and a
   portrait layout that wraps each slider under its label, fullscreen-wide — entered
-  automatically when the window is taller than wide, or forced from the "Portrait layout"
+  automatically when the window is resized taller than wide, or forced from the "Portrait layout"
   setting when the engine can't rotate; the bottom system row wraps onto multiple lines
   on narrow aspects / big UI scales and gains a Pause button; the panic page scrolls and
   closes from a corner X (`docs/13_settings_portrait.webp`,

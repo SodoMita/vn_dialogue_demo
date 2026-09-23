@@ -62,6 +62,7 @@ Balloon (Control, full rect, gui_input = advance/click/wheel)
   a delta or the rect collapses to zero height (invisible sprites).
 - **Audio**: Godot 4.7 imports Ogg/MP3/WAV only — no Opus.
 - **Headless CI**: guard every `DisplayServer.window_*` call with a `headless` name check.
+- **Window resize**: `NOTIFICATION_WM_SIZE_CHANGED` never reaches a `CanvasLayer`. Connect the viewport `size_changed` signal and reflow; stretch aspect `expand` so the logical size follows the window instead of letterboxing a frozen 16:9.
 - **Scrolling lists**: `ScrollContainer.follow_focus` only scrolls when content actually
   overflows.
 - **Choices placement**: anchor the responses menu in a band *above* the dialogue box

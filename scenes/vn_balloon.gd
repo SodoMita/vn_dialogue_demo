@@ -259,6 +259,8 @@ var _hold_from: Vector2 = Vector2.ZERO
 ## Set while a map jump replays lines through Dialogue Manager. Mutations still
 ## run, but they must not hide the box or play the mutation beat.
 var _silent_travel: bool = false
+var _resize_queued: bool = false
+var _laid_out_size := Vector2(-1, -1)
 
 ## Whether the current press turned into a drag/swipe. Row handlers (slots,
 ## history entries, rebind/rot buttons) check this so a scroll gesture ending
@@ -381,6 +383,16 @@ func _ready() -> void:
 	_on_ui_scale_changed(ui_scale_slider.value)
 	_on_sprite_scale_changed(sprite_scale_slider.value)
 	_on_sprite_y_changed(sprite_y_slider.value)
+	# NOTIFICATION_WM_SIZE_CHANGED is delivered to the Window, not to this
+	# CanvasLayer, so a drag, fullscreen or resolution change never reached
+	# the reflow. The viewport signal does.
+	var view := get_viewport()
+	if not view.size_changed.is_connected(_on_viewport_size_changed):
+		view.size_changed.connect(_on_viewport_size_changed)
+	if DisplayServer.get_name() != "headless":
+		# Keep letterboxes a 16:9 design, so a taller or wider window never
+		# changes the layout. Expand lets the logical size follow the window.
+		view.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
 	_reflow_settings()
 	_update_slider_value_labels()
 	Engine.get_singleton("DialogueManager").mutated.connect(_on_mutated)
@@ -425,9 +437,7 @@ func _process(delta: float) -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_SIZE_CHANGED:
-		# Window rotation/resize may flip portrait<->landscape.
-		call_deferred("_reflow_settings")
-		call_deferred("_layout_responses")
+		_on_viewport_size_changed()
 	# Detect a change of locale and repaint the current dialogue line (text,
 	# name plate and choices) plus every authored UI string.
 	if what == NOTIFICATION_TRANSLATION_CHANGED and _locale != TranslationServer.get_locale() and is_instance_valid(dialogue_label):
@@ -1614,6 +1624,26 @@ func _set_rotation(d: int) -> void:
 	_save_settings()
 
 
+## Window, fullscreen and resolution changes. Deferred so Control layout has
+## the new visible rect before choices and sprite pivots are measured.
+func _on_viewport_size_changed() -> void:
+	if _resize_queued:
+		return
+	_resize_queued = true
+	call_deferred("_apply_viewport_resize")
+
+
+func _apply_viewport_resize() -> void:
+	_resize_queued = false
+	var vis := get_viewport().get_visible_rect().size
+	if vis == _laid_out_size:
+		return
+	_laid_out_size = vis
+	_reflow_settings()
+	_layout_responses()
+	_apply_sprite_transform()
+
+
 func _apply_rotation() -> void:
 	var win: Vector2 = get_viewport().get_visible_rect().size
 	var r: float = deg_to_rad(float(rotation_deg))
@@ -1781,7 +1811,14 @@ func _on_map_filter_selected(idx: int) -> void:
 func _apply_resolution(w: int, h: int) -> void:
 	if DisplayServer.get_name() == "headless":
 		return
+	if w < 1 or h < 1:
+		return
+	var view := get_viewport()
+	view.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+	# The chosen resolution is the layout size, not a scaled copy of 1280x720.
+	view.content_scale_size = Vector2i(w, h)
 	DisplayServer.window_set_size(Vector2i(w, h))
+	_on_viewport_size_changed()
 
 
 func _ensure_audio_buses() -> void:
