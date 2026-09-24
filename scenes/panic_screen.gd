@@ -1,9 +1,15 @@
 extends Control
 ## Boss screen. Edit this scene (layout, colors, text) without touching the
 ## balloon. Closing it loads the game scene back at the line that was showing.
+## When this scene replaces the game it is not inside the scaled UI, so it
+## reapplies the saved resolution and UI scale itself.
 
 
 signal dismissed
+
+const DisplayScale = preload("res://scenes/display_scale.gd")
+
+var _base_font_sizes: Dictionary = {}
 
 ## Place to resume after this scene replaces the game. Empty when the screen
 ## is only covering a game that is still loaded.
@@ -45,11 +51,47 @@ static func return_to_game(tree: SceneTree) -> void:
 func _ready() -> void:
 	_apply_text()
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	# Overlay panic sits in the balloon's scaled UI. The standalone page
+	# (this scene replaced the game) has to apply that scale itself.
+	if get_tree().current_scene == self:
+		_apply_standalone_scale()
 
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_TRANSLATION_CHANGED:
 		_apply_text()
+
+
+func _apply_standalone_scale() -> void:
+	var data := DisplayScale.read_settings()
+	var w := int(data.get("res_w", DisplayScale.DESIGN.x))
+	var h := int(data.get("res_h", DisplayScale.DESIGN.y))
+	DisplayScale.apply_window(get_tree(), w, h)
+	var ui := clampf(float(data.get("ui_scale", 1.0)), 0.75, 1.5)
+	var ratio := DisplayScale.keep_ratio(Vector2(w, h))
+	DisplayScale.sharpen(get_tree(), ratio * ui)
+	# Same trick as UIRoot: scale the page, then shrink the anchors so the
+	# scaled page still fills the window instead of spilling off it.
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	scale = Vector2(ui, ui)
+	anchor_right = 1.0 / ui
+	anchor_bottom = 1.0 / ui
+	offset_left = 0.0
+	offset_top = 0.0
+	offset_right = 0.0
+	offset_bottom = 0.0
+	var vis := get_viewport().get_visible_rect().size
+	if vis.x > 1.0 and vis.y > 1.0:
+		size = vis / ui
+	var text_mul := clampf(float(data.get("text_size", 20.0)) / 20.0, 0.5, 2.0)
+	for node in [get_node_or_null("PanicMargin/PanicScroll/PanicVBox/PanicTitle"),
+			get_node_or_null("PanicMargin/PanicScroll/PanicVBox/PanicBody"),
+			get_node_or_null("PanicCloseButton")]:
+		if not node is Control:
+			continue
+		if not _base_font_sizes.has(node.get_instance_id()):
+			_base_font_sizes[node.get_instance_id()] = node.get_theme_font_size("font_size")
+		node.add_theme_font_size_override("font_size", roundi(float(_base_font_sizes[node.get_instance_id()]) * text_mul))
 
 
 func _apply_text() -> void:

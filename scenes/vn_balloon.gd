@@ -1,6 +1,7 @@
 class_name VNBalloon extends CanvasLayer
 const RouteTravel = preload("res://scenes/route_graph/route_graph_travel.gd")
 const PanicScript = preload("res://scenes/panic_screen.gd")
+const DisplayScale = preload("res://scenes/display_scale.gd")
 ## A classical visual-novel balloon for Dialogue Manager.
 ##
 ## The whole UI (background stage, sprite slots, name plate, dialogue box,
@@ -736,7 +737,7 @@ func _set_background(key: String) -> void:
 	if key == "none":
 		background.texture = null
 	elif backgrounds.has(key):
-		background.texture = backgrounds[key]
+		background.texture = _display_texture(backgrounds[key], _stage_pixel_ratio())
 
 
 func _set_sprite(spec: String) -> void:
@@ -752,7 +753,7 @@ func _set_sprite(spec: String) -> void:
 		slot.texture = null
 		slot.modulate.a = 0.0
 	elif sprites.has(key):
-		slot.texture = sprites[key]
+		slot.texture = _display_texture(sprites[key], _stage_pixel_ratio() * sprite_scale)
 		slot.modulate.a = 1.0
 	# New texture => new size; keep the pivot at the bottom centre.
 	_apply_sprite_transform()
@@ -1416,6 +1417,7 @@ func _on_ui_scale_changed(v: float) -> void:
 ## sprites live outside it and keep their authored size at any scale.
 func _apply_ui_scale(s: float) -> void:
 	ui_scale = s
+	_sharpen_for_display()
 	ui_root.scale = Vector2(s, s)
 	# Fractional anchors keep UIRoot at window/s logical pixels (the anchors
 	# track window resizes on their own); the render scale then maps it back
@@ -1691,6 +1693,7 @@ func _layout_responses() -> void:
 func _on_sprite_scale_changed(v: float) -> void:
 	sprite_scale = v
 	_apply_sprite_transform()
+	_refresh_sharp_art()
 	_update_slider_value_labels()
 	_save_settings()
 
@@ -1829,15 +1832,64 @@ func _apply_resolution(w: int, h: int) -> void:
 	# dummy window into a square canvas and breaks orientation tests.
 	if DisplayServer.get_name() == "headless":
 		return
-	var view := get_viewport()
-	# Keep the design canvas. canvas_items draws it at the window's pixel
-	# size and oversamples fonts, so a higher resolution stays the same size
-	# on screen without stretching a low-res raster (blurry / pixelated).
-	view.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
-	view.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
-	view.content_scale_size = DESIGN_SIZE
-	DisplayServer.window_set_size(Vector2i(w, h))
+	# Layout stays DESIGN_SIZE. The window gets the pixels. Fonts are
+	# rasterized at that density, and stage art is upscaled to match, so
+	# neither is a low-resolution picture blown up (blurry / pixelated).
+	DisplayScale.apply_window(get_tree(), w, h)
+	_sharpen_for_display()
+	_refresh_sharp_art()
 	_on_viewport_size_changed()
+
+
+func _display_amount() -> float:
+	if DisplayServer.get_name() == "headless":
+		return 1.0
+	return DisplayScale.keep_ratio(Vector2(res_width_spin.value, res_height_spin.value)) * ui_scale
+
+
+func _sharpen_for_display() -> void:
+	DisplayScale.sharpen(get_tree(), _display_amount())
+
+
+## Canvas stretch samples whatever texture we hand it. Give it one already
+## enlarged to the on-screen pixel size so the GPU is not magnifying a
+## 1280-wide image (soft) or nearest-scaling it (blocky).
+var _sharp_cache: Dictionary = {}
+
+
+func _stage_pixel_ratio() -> float:
+	if DisplayServer.get_name() == "headless":
+		return 1.0
+	return DisplayScale.keep_ratio(Vector2(res_width_spin.value, res_height_spin.value))
+
+
+func _display_texture(source: Texture2D, ratio: float) -> Texture2D:
+	if source == null or ratio <= 1.01:
+		return source
+	var key := "%s@%.3f" % [source.resource_path, ratio]
+	if _sharp_cache.has(key):
+		return _sharp_cache[key]
+	var img := source.get_image()
+	if img == null or img.is_empty():
+		return source
+	img = img.duplicate()
+	var nw := maxi(1, roundi(float(img.get_width()) * ratio))
+	var nh := maxi(1, roundi(float(img.get_height()) * ratio))
+	if nw == img.get_width() and nh == img.get_height():
+		return source
+	img.resize(nw, nh, Image.INTERPOLATE_LANCZOS)
+	var tex := ImageTexture.create_from_image(img)
+	_sharp_cache[key] = tex
+	return tex
+
+
+func _refresh_sharp_art() -> void:
+	if _current_bg != "" and _current_bg != "none":
+		_set_background(_current_bg)
+	if _current_left != "":
+		_set_sprite(_current_left + ":left")
+	if _current_right != "":
+		_set_sprite(_current_right + ":right")
 
 
 func _ensure_audio_buses() -> void:
