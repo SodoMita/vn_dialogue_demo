@@ -296,9 +296,10 @@ var _current_was_seen: bool = false
 const RES_PRESETS: Array = [
 	[1280, 720], [1600, 900], [1920, 1080], [2560, 1440],
 ]
-## UI and sprites are authored for this canvas. A larger layout would make
-## those fixed pixel sizes a smaller fraction of the screen.
-const DESIGN_SIZE := Vector2(1280, 720)
+## Layout size. A higher window resolution renders this canvas with more
+## pixels; it must not become the layout size, or UI and sprites are either
+## tiny or stretched (blurry / pixelated).
+const DESIGN_SIZE := Vector2i(1280, 720)
 
 ## Every keyboard-driven VN action is remappable. Mouse/touch bindings remain
 ## alongside the chosen key (for example, right click continues to pause).
@@ -1411,39 +1412,22 @@ func _on_ui_scale_changed(v: float) -> void:
 	_save_settings()
 
 
-## How much to enlarge authored UI and sprites so a larger layout does not
-## make them a smaller fraction of the screen. Below the design size, leave
-## them alone — a narrow window should reflow, not shrink the chrome.
-func _resolution_keep_scale() -> float:
-	var logical := get_viewport().get_visible_rect().size
-	if logical.x < 1.0 or logical.y < 1.0:
-		return 1.0
-	var fit := minf(logical.x / DESIGN_SIZE.x, logical.y / DESIGN_SIZE.y)
-	return fit if fit > 1.0 else 1.0
-
-
-func _shown_scale(user_scale: float) -> float:
-	return user_scale * _resolution_keep_scale()
-
-
 ## UI scale touches only the UI subtree (UIRoot): the stage, background and
-## sprites live outside it and keep their authored size at any UI-scale setting.
-## A higher resolution enlarges this same subtree so the UI does not shrink.
+## sprites live outside it and keep their authored size at any scale.
 func _apply_ui_scale(s: float) -> void:
 	ui_scale = s
-	var shown := _shown_scale(s)
-	ui_root.scale = Vector2(shown, shown)
-	# Fractional anchors keep UIRoot at window/shown logical pixels (the anchors
+	ui_root.scale = Vector2(s, s)
+	# Fractional anchors keep UIRoot at window/s logical pixels (the anchors
 	# track window resizes on their own); the render scale then maps it back
 	# to exactly the window size, edge-anchored UI included.
-	ui_root.anchor_right = 1.0 / shown
-	ui_root.anchor_bottom = 1.0 / shown
+	ui_root.anchor_right = 1.0 / s
+	ui_root.anchor_bottom = 1.0 / s
 	# Shrink the logical margins so the rendered settings column stays a
 	# constant, usable width no matter how big the UI gets; in portrait the
 	# panel goes (nearly) fullscreen-wide instead.
 	var side: float = 16.0 if portrait_mode else SETTINGS_SIDE_MARGIN
-	var m: int = roundi(side / shown)
-	var mv: int = roundi(SETTINGS_V_MARGIN / shown)
+	var m: int = roundi(side / s)
+	var mv: int = roundi(SETTINGS_V_MARGIN / s)
 	settings_margin.add_theme_constant_override("margin_left", m)
 	settings_margin.add_theme_constant_override("margin_right", m)
 	settings_margin.add_theme_constant_override("margin_top", mv)
@@ -1728,8 +1712,7 @@ func _apply_sprite_transform() -> void:
 		spr.offset_top = base.x + sprite_y
 		spr.offset_bottom = base.y + sprite_y
 		spr.pivot_offset = Vector2(spr.size.x * 0.5, spr.size.y)
-		var shown := _shown_scale(sprite_scale)
-		spr.scale = Vector2(shown, shown)
+		spr.scale = Vector2(sprite_scale, sprite_scale)
 
 
 func _on_vsync_toggled(on: bool) -> void:
@@ -1840,15 +1823,19 @@ func _on_map_filter_selected(idx: int) -> void:
 
 
 func _apply_resolution(w: int, h: int) -> void:
-	if DisplayServer.get_name() == "headless":
-		return
 	if w < 1 or h < 1:
 		return
+	# Headless has no window. Mutating the layout here turns the square
+	# dummy window into a square canvas and breaks orientation tests.
+	if DisplayServer.get_name() == "headless":
+		return
 	var view := get_viewport()
+	# Keep the design canvas. canvas_items draws it at the window's pixel
+	# size and oversamples fonts, so a higher resolution stays the same size
+	# on screen without stretching a low-res raster (blurry / pixelated).
+	view.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	view.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
-	# The chosen resolution is the layout size, not a scaled copy of 1280x720.
-	# UI and sprites then scale by that same ratio so they do not shrink.
-	view.content_scale_size = Vector2i(w, h)
+	view.content_scale_size = DESIGN_SIZE
 	DisplayServer.window_set_size(Vector2i(w, h))
 	_on_viewport_size_changed()
 
