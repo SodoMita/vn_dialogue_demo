@@ -14,9 +14,19 @@ func _ready() -> void:
 	balloon.skip_mode = false
 	if balloon.auto_timer:
 		balloon.auto_timer.stop()
+	# The first line has no {{player_name}}. Walk to one that does, or the
+	# return path can look fine while GameState was never injected.
+	var player_name := "Alex"
+	var game_state := get_tree().root.get_node_or_null("GameState")
+	if game_state != null:
+		player_name = str(game_state.player_name)
+	if not await _advance_until_text(balloon, player_name):
+		_fail("could not reach a line that uses player_name")
+		return
 	var line_id := ""
 	if balloon.dialogue_line != null:
 		line_id = str(balloon.dialogue_line.id)
+	var shown_text := str(balloon.dialogue_line.text)
 	var cursor: int = balloon.history_cursor
 	var resource_path := ""
 	if balloon.dialogue_resource != null:
@@ -50,6 +60,12 @@ func _ready() -> void:
 	if AudioServer.is_bus_mute(AudioServer.get_bus_index("Master")):
 		_fail("audio stayed muted after returning")
 		return
+	if not str(balloon.dialogue_line.text).contains(player_name) or "{{" in str(balloon.dialogue_line.text):
+		_fail("returned line did not resolve player_name: %s" % balloon.dialogue_line.text)
+		return
+	if str(balloon.dialogue_line.text) != shown_text:
+		_fail("returned text changed from %s to %s" % [shown_text, balloon.dialogue_line.text])
+		return
 	print("PANIC RETURN OK line=%s cursor=%s" % [line_id, cursor])
 	get_tree().quit(0)
 
@@ -61,6 +77,33 @@ func _wait_scene(suffix: String) -> Node:
 			return scene
 		await get_tree().process_frame
 	return null
+
+
+func _advance_until_text(balloon: Node, needle: String) -> bool:
+	for _step in 8:
+		if balloon.dialogue_line != null and str(balloon.dialogue_line.text).contains(needle):
+			return true
+		if balloon.dialogue_line == null or balloon.dialogue_line.responses.size() > 0:
+			print("PANIC ADVANCE STOP text=%s responses=%s" % [balloon.dialogue_line.text if balloon.dialogue_line else "", balloon.dialogue_line.responses.size() if balloon.dialogue_line else -1])
+			return false
+		var previous := str(balloon.dialogue_line.id)
+		var next_id := str(balloon.dialogue_line.next_id)
+		if balloon.dialogue_label.is_typing:
+			balloon.dialogue_label.skip_typing()
+		balloon.next(next_id)
+		var moved := false
+		for _frame in 180:
+			await get_tree().process_frame
+			if balloon.dialogue_line != null and str(balloon.dialogue_line.id) != previous:
+				if balloon.dialogue_label.is_typing:
+					balloon.dialogue_label.skip_typing()
+				moved = true
+				break
+		if not moved:
+			print("PANIC ADVANCE STUCK from=%s next=%s still=%s" % [previous, next_id, balloon.dialogue_line.id if balloon.dialogue_line else ""])
+			return false
+	print("PANIC ADVANCE MISS text=%s" % balloon.dialogue_line.text)
+	return balloon.dialogue_line != null and str(balloon.dialogue_line.text).contains(needle)
 
 
 func _wait_balloon() -> Node:

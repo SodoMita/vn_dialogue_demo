@@ -2163,11 +2163,11 @@ func _resume_from_panic(place: Dictionary) -> void:
 		history_cursor = int(place.get("cursor", -1))
 	var line_id := str(place.get("line_id", ""))
 	if line_id != "" and is_instance_valid(dialogue_resource):
-		var dm: Object = Engine.get_singleton("DialogueManager")
-		var states: Array = temporary_game_states.duplicate()
-		dm.game_states = states
+		# get_next injects the file's `using` autoloads. get_line does not, so
+		# {{player_name}} would fail here and a direct game_states write would
+		# wipe Dialogue Manager's autoload map.
 		_restoring = true
-		var line: DialogueLine = await dm.get_line(dialogue_resource, line_id, states)
+		var line: DialogueLine = await dialogue_resource.get_next_dialogue_line(line_id, temporary_game_states)
 		if line != null:
 			dialogue_line = line
 		if place.get("history") is Array:
