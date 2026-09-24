@@ -1547,6 +1547,9 @@ func _on_skip_mode_selected(index: int) -> void:
 
 func _on_ui_scale_changed(v: float) -> void:
 	_apply_ui_scale(v)
+	# Scale changes the logical width the bottom row wraps against. Resize and
+	# rotation already reflow it; the slider and the number input must too.
+	_layout_system_row()
 	_update_slider_value_labels()
 	_save_settings()
 

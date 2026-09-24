@@ -766,6 +766,24 @@ func run() -> void:
 	await get_tree().process_frame
 	check(alive() and balloon.settings_margin.get_theme_constant("margin_left") == 180,
 		"settings margins restore at scale 1")
+	# 1.25 still fits one row on a 1280-wide window. A larger scale must wrap
+	# immediately, and dropping back to 1 must unwrap — not only on resize.
+	balloon.ui_scale_slider.value = 2.0
+	await get_tree().process_frame
+	check(alive() and balloon.system_row.columns < balloon.system_row.get_child_count()
+		and (balloon.system_row.offset_bottom - balloon.system_row.offset_top) > 44.0,
+		"a bigger UI scale wraps the system row")
+	balloon.ui_scale_value.value = 2.5
+	balloon.ui_scale_value.value_changed.emit(2.5)
+	await get_tree().process_frame
+	check(alive() and balloon.system_row.columns < balloon.system_row.get_child_count()
+		and balloon.system_row.columns <= 6,
+		"the UI scale number input wraps the system row tighter")
+	balloon.ui_scale_slider.value = 1.0
+	await get_tree().process_frame
+	check(alive() and balloon.system_row.columns == balloon.system_row.get_child_count()
+		and is_equal_approx(balloon.system_row.offset_bottom - balloon.system_row.offset_top, 44.0),
+		"the system row unwraps when UI scale returns to 1")
 
 	# Number fields, wider ranges, taller sliders. Volume stays 0-100.
 	check(alive() and balloon.ui_scale_value is SpinBox and balloon.skip_speed_value is SpinBox,
