@@ -166,11 +166,11 @@ fullscreen, V-Sync, a resolution dropdown of presets (1280×720 … 2560×1440) 
 width/height accepting any positive numbers (custom sizes flip the dropdown to "Custom",
 matching sizes re-select their preset; a higher resolution keeps the same layout size and
 draws it at the window's pixel density, so the UI and sprites stay the same size without being stretched.
-The panic page uses that same scale), **Glyph scale** for the story map (1×–4×, how many texels each symbol is baked with; the atlas grows to fit, capped at 4096), and texture filtering for the game art and for the map (nearest, linear, or with mipmaps); *Audio*: the **Generated music** toggle
+The panic page uses that same scale, and when it replaces the game it also uses the saved rotation), **Glyph scale** for the story map (1×–4×, how many texels each symbol is baked with; the atlas grows to fit, capped at 4096), and texture filtering for the game art and for the map (nearest, linear, or with mipmaps); *Audio*: the **Generated music** toggle
 (procedural engine vs. bundled OGG loops), **Typewriter sound** and **Button sound**
 toggles, plus master, music, voice and SFX volumes driving runtime-created buses
 (0 mutes, 100 = 0 dB); *Sprites*: character-sprite scale
-(pivoted at the bottom centre) and a Y offset, independent of the UI scale. Every control
+(pivoted at the bottom centre) and a Y offset, independent of the UI scale. UI scale and skip speed each have a number field beside the slider; the skip number is the delay in seconds (the slider still reads as speed, right is faster). Every slider except volume has a wider range, and every slider is taller so it is easier to press. In a portrait view the character sprites are larger and set apart, and the speaker stands in front. Every control
 applies live and is
 persisted to `user://settings.json`, and lines the player has read are recorded in
 `user://seen.json` so seen-only skip knows where to halt. The panel notes that `Esc` closes
@@ -209,7 +209,7 @@ silently, so touch scrolling through long histories and slot lists is completely
 unaffected. Menus themselves scroll by swiping: rows and key/rotation buttons pass drags
 to their ScrollContainer (with a 24 px deadzone) so swipes pan the list, while a tap on a
 row still activates it — a press that moves never triggers the button under your finger.
-`Backspace`/`Esc` and the save menu's own `X` still work. The
+`Esc` and the save menu's own `X` still work. Close is its own binding, separate from Pause; both start on Esc, and an open menu backs out instead of also pausing. Backspace stays free for number fields. The
 panic screen deliberately keeps its strict swallow-all behavior — only the boss key or its
 corner X leave it.
 
@@ -228,7 +228,7 @@ Godot_v4.7.2-stable_linux.x86_64 res://scenes/vn_scene.tscn
 ```
 
 Default controls: `Enter` / click / tap = finish the typewriter, then advance, or pick a focused choice, `↓/↑` = move between
-choices, `Ctrl` = toggle skip mode, `Backspace` = close the top overlay, `H` or swipe up =
+choices, `Ctrl` = hold to skip, `Esc` = close the top overlay (its own binding, not the Pause action), `H` or swipe up =
 open history, wheel / arrow keys = scroll the history, click a history line = roll back to it,
 wheel up / down in-game = roll back / forward one line, `F5` / `QS` =
 quick save, `F9` / `QL` = quick load, `Save`/`Load` = slot menus, `Auto`/`Skip` = modes,

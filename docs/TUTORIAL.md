@@ -16,13 +16,13 @@ typewriter box, centered choices) built on the
 | --- | --- |
 | Advance / finish typing | click or `Enter` (first press finishes the typewriter, next advances) |
 | Hold to skip | Hold `Ctrl` (release to stop) |
-| Close the top overlay | `Backspace`, or press-and-hold the empty space around any menu |
+| Close the top overlay | `Esc` (its own binding, separate from Pause — an open menu backs out instead of also pausing), or press-and-hold the empty space around any menu |
 | Story map | `Map` on the system row. Drag to pan, pinch or wheel to zoom. A gold ring marks where you are. A port click jumps to the other side of that line; an edge click (including the arrow) jumps to the further of that edge's two nodes; a header click goes to that place in the game, replaying missed story state when it can. **Visited only** is on by default — turning it off asks before revealing unread routes. `Esc` or Close leaves the map |
 | Open history | `H` |
 | Choose an option | `Up`/`Down` then `Enter` (or click) |
 | Roll back one line | mouse wheel up (Ren'Py-style, non-destructive) |
 | Roll forward again | mouse wheel down |
-| Pause menu | `Esc` or right click (mutes all audio until you resume) |
+| Pause menu | `Esc` or right click (mutes all audio until you resume). Pause and Close can be rebound apart; until you do, they share Esc |
 | Quick save / quick load (slot 0) | `F5` / `F9` |
 | Panic / boss screen | `F12` or the `Panic` button — loads `scenes/panic_screen.tscn` and silences every sound; press again (or the corner X) to load the game back where it was |
 | Mobile | tap = advance, swipe up = backlog |
@@ -46,7 +46,7 @@ scrolling backlog; `Set` opens settings.
 `Save`/`Load` open a slot menu with as many slots as you like (`+ New slot`). Slots store the
 dialogue resource, the full history, the history cursor and a small stage snapshot; the slot
 rows show a runtime-rendered thumbnail. Loading restores story state, stage dressing and the
-exact line. `QS`/`QL` and `F5`/`F9` always use slot 0. The menu closes with `Backspace`,
+exact line. `QS`/`QL` and `F5`/`F9` always use slot 0. The menu closes with `Esc`,
 its `X` button, or a long press on the empty space around it — hold and a ring fills at
 your finger while a soft tone falls from high to low pitch and swells toward the end until the menu closes
 on release; quick taps do nothing on purpose and moving your finger cancels the gesture,
@@ -61,10 +61,10 @@ Everything applies live and persists to `user://settings.json`:
   remappable. Click a binding button; when it says **Press any key...**, press the new key.
   Mouse, touch and right-click controls remain available alongside keyboard bindings.
 - *Text*: speed, size, **Sync text to voice** (typewriter finishes when the clip ends),
-  skip speed, skip *Everything* vs *Seen only*, auto delay.
-- *Display*: UI scale (scales only the UI, never the scene; the settings column keeps a
+  skip speed (the number field edits the delay in seconds; the slider still speeds up to the right), skip *Everything* vs *Seen only*, auto delay. The sliders, except volume, cover a wider range and are taller.
+- *Display*: UI scale (a number field as well as the slider; scales only the UI, never the scene; the settings column keeps a
   usable width at any scale), fullscreen, V-Sync, resolution presets or any custom positive
-  width/height (a higher resolution stays the same size — it is drawn at the window's pixel density, not stretched, and the panic page uses that same scale), **Glyph scale** (1× Low … 4× Ultra — sharper map symbols cost more memory), **Game filter** and **Map filter** (nearest, linear, or mipmapped), "Portrait layout" to force the wrapped portrait settings. Dragging the window or going fullscreen reflows the layout to the new size. Rotation
+  width/height (a higher resolution stays the same size — it is drawn at the window's pixel density, not stretched, and the panic page uses that same scale and, when it replaces the game, the saved rotation), **Glyph scale** (1× Low … 4× Ultra — sharper map symbols cost more memory), **Game filter** and **Map filter** (nearest, linear, or mipmapped), "Portrait layout" to force the wrapped portrait settings. Dragging the window or going fullscreen reflows the layout to the new size. Rotation
   (0/90/180/270): the whole view turns and its logical resolution flips X/Y so it fills
   the window with no gaps — a portrait preview on platforms whose window never rotates,
   and Language (English / Русский — dialogue, interface and character voices all switch,
@@ -73,7 +73,7 @@ Everything applies live and persists to `user://settings.json`:
   **Generated music** (procedural score vs. bundled loops), and **Typewriter sound** /
   **Button sound** toggles for the typing ticks and UI feedback (each choice still plays
   its own pitch, and `#sfx=` story tags ignore the button toggle).
-- *Sprites*: portrait scale and Y offset.
+- *Sprites*: portrait scale and Y offset. In a portrait view the characters are larger and set apart, and the one who is speaking stands in front.
 
 ## Styled text
 

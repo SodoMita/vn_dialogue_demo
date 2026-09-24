@@ -760,11 +760,12 @@ text = "Text speed"
 [node name="TextSpeedSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow" unique_id=238017293]
 unique_name_in_owner = true
 layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
 size_flags_horizontal = 3
-min_value = 0.002
-max_value = 0.06
-step = 0.002
-value = 0.018000000000000002
+min_value = 0.001
+max_value = 0.2
+step = 0.001
+value = 0.018
 
 [node name="TextSpeedValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow" unique_id=286123580]
 unique_name_in_owner = true
@@ -790,9 +791,11 @@ text = "Text size"
 [node name="TextSizeSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSizeRow" unique_id=2013936143]
 unique_name_in_owner = true
 layout_mode = 2
+step = 1.0
+custom_minimum_size = Vector2(0, 44)
 size_flags_horizontal = 3
-min_value = 14.0
-max_value = 32.0
+min_value = 8.0
+max_value = 72.0
 value = 20.0
 
 [node name="TextSizeValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSizeRow" unique_id=785259177]
@@ -838,20 +841,27 @@ text = "Skip speed"
 [node name="SkipSpeedSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow" unique_id=330528194]
 unique_name_in_owner = true
 layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
 size_flags_horizontal = 3
-min_value = 0.05
-max_value = 0.6
-step = 0.05
-value = 0.1
+min_value = 0.01
+max_value = 2.0
+step = 0.01
+value = 1.46
 
-[node name="SkipSpeedValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow" unique_id=1314945363]
+[node name="SkipSpeedValue" type="SpinBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow" unique_id=1314945363]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(68, 0)
+custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
+min_value = 0.01
+max_value = 2.0
+step = 0.01
+value = 0.55
+alignment = 1
+suffix = " s"
+update_on_text_changed = true
+select_all_on_focus = true
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
-text = "—"
 
 [node name="SkipModeRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=2020657532]
 layout_mode = 2
@@ -949,7 +959,7 @@ size_flags_horizontal = 3
 mouse_filter = 1
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
-text = "Backspace"
+text = "Escape"
 
 [node name="HistoryKeyRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1571586155]
 layout_mode = 2
@@ -1076,10 +1086,11 @@ text = "Auto delay"
 [node name="AutoDelaySlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AutoDelayRow" unique_id=916089765]
 unique_name_in_owner = true
 layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
 size_flags_horizontal = 3
-min_value = 0.5
-max_value = 4.0
-step = 0.25
+min_value = 0.0
+max_value = 12.0
+step = 0.1
 value = 1.5
 
 [node name="AutoDelayValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AutoDelayRow" unique_id=1866465141]
@@ -1106,20 +1117,27 @@ text = "UI scale"
 [node name="UIScaleSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow" unique_id=26467694]
 unique_name_in_owner = true
 layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
 size_flags_horizontal = 3
-min_value = 0.75
-max_value = 1.5
+min_value = 0.5
+max_value = 2.5
 step = 0.05
 value = 1.0
 
-[node name="UIScaleValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow" unique_id=2141158312]
+[node name="UIScaleValue" type="SpinBox" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow" unique_id=2141158312]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(68, 0)
+custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
+min_value = 0.5
+max_value = 2.5
+step = 0.05
+value = 1.0
+alignment = 1
+suffix = "x"
+update_on_text_changed = true
+select_all_on_focus = true
 theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 15
-text = "—"
 
 [node name="DisplayHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=240786325]
 layout_mode = 2
@@ -1419,6 +1437,7 @@ text = "Master volume"
 [node name="MasterVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MasterVolRow" unique_id=54557889]
 unique_name_in_owner = true
 layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
 size_flags_horizontal = 3
 value = 80.0
 
@@ -1446,6 +1465,7 @@ text = "Music volume"
 [node name="MusicVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MusicVolRow" unique_id=2120409494]
 unique_name_in_owner = true
 layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
 size_flags_horizontal = 3
 value = 80.0
 
@@ -1473,6 +1493,7 @@ text = "Voice volume"
 [node name="VoiceVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VoiceVolRow" unique_id=1685228183]
 unique_name_in_owner = true
 layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
 size_flags_horizontal = 3
 value = 100.0
 
@@ -1500,6 +1521,7 @@ text = "SFX volume"
 [node name="SfxVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SfxVolRow" unique_id=796911999]
 unique_name_in_owner = true
 layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
 size_flags_horizontal = 3
 value = 80.0
 
@@ -1574,9 +1596,10 @@ text = "Sprite scale"
 [node name="SpriteScaleSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteScaleRow" unique_id=457217068]
 unique_name_in_owner = true
 layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
 size_flags_horizontal = 3
-min_value = 0.5
-max_value = 1.5
+min_value = 0.25
+max_value = 2.5
 step = 0.05
 value = 1.0
 
@@ -1604,9 +1627,10 @@ text = "Sprite Y offset"
 [node name="SpriteYSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteYRow" unique_id=1448262975]
 unique_name_in_owner = true
 layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
 size_flags_horizontal = 3
-min_value = -240.0
-max_value = 240.0
+min_value = -720.0
+max_value = 720.0
 step = 4.0
 
 [node name="SpriteYValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteYRow" unique_id=122504783]
@@ -1925,9 +1949,11 @@ unique_name_in_owner = true
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSizeRow/TextSizeSlider" to="." method="_on_text_size_changed"]
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SyncVoiceRow/SyncVoiceCheck" to="." method="_on_sync_voice_toggled"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow/SkipSpeedSlider" to="." method="_on_skip_speed_changed"]
+[connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow/SkipSpeedValue" to="." method="_on_skip_speed_spin_changed"]
 [connection signal="item_selected" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipModeRow/SkipModeOption" to="." method="_on_skip_mode_selected"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AutoDelayRow/AutoDelaySlider" to="." method="_on_auto_delay_changed"]
 [connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow/UIScaleSlider" to="." method="_on_ui_scale_changed"]
+[connection signal="value_changed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow/UIScaleValue" to="." method="_on_ui_scale_spin_changed"]
 [connection signal="toggled" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/PortraitRow/PortraitCheck" to="." method="_on_portrait_toggled"]
 [connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot0Button" to="." method="_on_rot_0_pressed"]
 [connection signal="pressed" from="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/RotationRow/Rot90Button" to="." method="_on_rot_90_pressed"]

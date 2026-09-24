@@ -135,7 +135,7 @@ The former static `Skip key: Ctrl` display has been replaced by real runtime reb
 
 - Settings has separate authored binding buttons for Advance, Skip mode, Close, History,
   Quick save, Quick load, Pause and Panic.
-- Defaults are `Ctrl` for Skip mode, `Backspace` for Close, and `Esc` for Pause.
+- Defaults are `Ctrl` for Skip mode, and `Esc` for both Close and Pause. They stay separate actions so each can be rebound; an open menu backs out instead of also pausing. Backspace is not the Close default.
 - Clicking a binding button captures the next keyboard key, updates `InputMap` immediately,
   and persists the choice in `user://settings.json`.
 - Saved bindings are restored at startup; mouse/touch bindings are preserved.

@@ -41,7 +41,7 @@ func press(action: StringName) -> void:
 	match action:
 		&"ui_accept": ev.keycode = KEY_ENTER
 		&"ui_cancel": ev.keycode = KEY_ESCAPE
-		&"dialogue_close": ev.keycode = KEY_BACKSPACE
+		&"dialogue_close": ev.keycode = KEY_ESCAPE
 		&"dialogue_skip": ev.keycode = KEY_CTRL
 		&"ui_down": ev.keycode = KEY_DOWN
 		&"ui_right": ev.keycode = KEY_RIGHT
@@ -766,6 +766,80 @@ func run() -> void:
 	await get_tree().process_frame
 	check(alive() and balloon.settings_margin.get_theme_constant("margin_left") == 180,
 		"settings margins restore at scale 1")
+
+	# Number fields, wider ranges, taller sliders. Volume stays 0-100.
+	check(alive() and balloon.ui_scale_value is SpinBox and balloon.skip_speed_value is SpinBox,
+		"UI scale and skip speed have number inputs")
+	balloon.ui_scale_value.value = 1.4
+	balloon.ui_scale_value.value_changed.emit(1.4)
+	await get_tree().process_frame
+	check(alive() and is_equal_approx(balloon.ui_scale_slider.value, 1.4) and is_equal_approx(balloon.ui_scale, 1.4),
+		"UI scale number input drives the slider")
+	balloon.ui_scale_slider.value = 1.0
+	await get_tree().process_frame
+	check(alive() and is_equal_approx(balloon.ui_scale_value.value, 1.0),
+		"UI scale slider updates the number input")
+	balloon.skip_speed_value.value = 0.2
+	balloon.skip_speed_value.value_changed.emit(0.2)
+	await get_tree().process_frame
+	check(alive() and is_equal_approx(balloon.skip_delay, 0.2),
+		"skip speed number input edits the delay in seconds")
+	balloon.skip_speed_slider.value = balloon.skip_speed_slider.min_value + balloon.skip_speed_slider.max_value - 0.55
+	check(alive() and balloon.text_speed_slider.min_value <= 0.002 and balloon.text_speed_slider.max_value >= 0.15,
+		"text speed slider range is wider")
+	check(alive() and balloon.text_size_slider.min_value <= 12.0 and balloon.text_size_slider.max_value >= 48.0,
+		"text size slider range is wider")
+	check(alive() and balloon.skip_speed_slider.min_value <= 0.05 and balloon.skip_speed_slider.max_value >= 1.5,
+		"skip speed slider range is wider")
+	check(alive() and balloon.auto_delay_slider.min_value <= 0.5 and balloon.auto_delay_slider.max_value >= 8.0,
+		"auto delay slider range is wider")
+	check(alive() and balloon.ui_scale_slider.min_value <= 0.75 and balloon.ui_scale_slider.max_value >= 2.0,
+		"UI scale slider range is wider")
+	check(alive() and balloon.sprite_scale_slider.min_value <= 0.5 and balloon.sprite_scale_slider.max_value >= 2.0,
+		"sprite scale slider range is wider")
+	check(alive() and balloon.sprite_y_slider.min_value <= -480.0 and balloon.sprite_y_slider.max_value >= 480.0,
+		"sprite Y slider range is wider")
+	check(alive() and balloon.master_vol_slider.min_value == 0.0 and balloon.master_vol_slider.max_value == 100.0
+		and balloon.voice_vol_slider.max_value == 100.0,
+		"volume sliders keep the 0-100 range")
+	check(alive() and balloon.text_speed_slider.custom_minimum_size.y >= 40.0
+		and balloon.master_vol_slider.custom_minimum_size.y >= 40.0
+		and balloon.sprite_y_slider.custom_minimum_size.y >= 40.0,
+		"sliders are tall enough to press, including volume")
+
+	# Close and Pause are separate actions. Both default to Esc. An open
+	# menu backs out and does not also pause. Backspace edits number fields.
+	var close_ev := InputMap.action_get_events(&"dialogue_close")[0] as InputEventKey
+	var pause_ev := InputMap.action_get_events(&"dialogue_pause")[0] as InputEventKey
+	check(close_ev.keycode == KEY_ESCAPE and pause_ev.keycode == KEY_ESCAPE,
+		"close and pause both default to Escape")
+	var other := InputEventKey.new()
+	other.keycode = KEY_B
+	balloon._replace_action_key(&"dialogue_close", other)
+	check((InputMap.action_get_events(&"dialogue_pause")[0] as InputEventKey).keycode == KEY_ESCAPE,
+		"rebinding Close does not change Pause")
+	balloon._replace_action_key(&"dialogue_close", close_ev)
+	balloon._refresh_binding_labels()
+	var old_close := {"dialogue_close": {"keycode": KEY_BACKSPACE, "physical_keycode": 0, "alt": false, "shift": false, "ctrl": false, "meta": false}}
+	check(balloon._load_key_bindings(old_close, true), "unmodified Backspace close binding is migrated")
+	check((InputMap.action_get_events(&"dialogue_close")[0] as InputEventKey).keycode == KEY_ESCAPE,
+		"saved Backspace close binding becomes Escape")
+	balloon._replace_action_key(&"dialogue_close", close_ev)
+	balloon._on_settings_pressed()
+	await get_tree().process_frame
+	balloon.ui_scale_value.grab_focus()
+	var back := InputEventKey.new()
+	back.pressed = true
+	back.keycode = KEY_BACKSPACE
+	Input.parse_input_event(back)
+	await get_tree().process_frame
+	check(alive() and balloon.settings_panel.visible and not balloon.pause_panel.visible,
+		"Backspace edits a number field instead of closing settings")
+	press(&"dialogue_close")
+	await get_tree().process_frame
+	check(alive() and not balloon.settings_panel.visible and not balloon.pause_panel.visible,
+		"shared Esc closes the overlay and does not also pause")
+
 	# Portrait: sliders wrap below their labels and the panel goes wide.
 	balloon.set_portrait_mode(true)
 	await get_tree().process_frame
@@ -793,12 +867,29 @@ func run() -> void:
 	check(alive() and balloon.balloon.size == Vector2(720.0, 1280.0)
 		and is_equal_approx(balloon.transform.x.length(), 1.0),
 		"rotation flips the logical resolution X/Y so the view fills the window (no gaps)")
+	var left_center := balloon.sprite_left.offset_left + balloon.sprite_left.size.x * 0.5
+	var right_center := balloon.balloon.size.x + balloon.sprite_right.offset_left + balloon.sprite_right.size.x * 0.5
+	check(alive() and balloon.sprite_left.size.y > 1000.0 and balloon.sprite_right.size.y > 1000.0,
+		"portrait sprites grow to fill the tall view")
+	check(alive() and right_center - left_center > balloon.balloon.size.x * 0.4,
+		"portrait sprites sit apart instead of stacking in the middle")
+	balloon._set_focus("left")
+	check(alive() and balloon.sprite_left.z_index > balloon.sprite_right.z_index,
+		"the speaking sprite stands in front")
+	balloon._set_focus("right")
+	check(alive() and balloon.sprite_right.z_index > balloon.sprite_left.z_index,
+		"the other speaker stands in front")
+	balloon._set_focus("")
 	balloon._set_rotation(0)
 	await get_tree().process_frame
 	check(alive() and balloon.rotation == 0.0 and not balloon.portrait_mode,
 		"rotation back to 0 restores landscape")
 	check(alive() and balloon.balloon.size == Vector2(1280.0, 720.0),
 		"logical resolution unflips at rotation 0")
+	check(alive() and is_equal_approx(balloon.sprite_left.offset_left, 90.0)
+		and is_equal_approx(balloon.sprite_right.offset_right, -90.0)
+		and balloon.sprite_left.size.y < 800.0,
+		"landscape sprites keep their authored place")
 
 	# A CanvasLayer never receives NOTIFICATION_WM_SIZE_CHANGED. Resizing the
 	# viewport must still reflow the balloon to the new logical size.
@@ -954,8 +1045,27 @@ func run() -> void:
 		"resolution keeps the design canvas instead of scaling nodes")
 	check(gd_text.contains("DisplayScale.apply_window") and not gd_text.contains("use_font_oversampling"),
 		"resolution apply does not assign a missing window property")
-	check(panic_text.contains("DisplayScale.apply_window") and panic_text.contains("_apply_standalone_scale"),
-		"panic screen applies the same resolution and UI scale")
+	check(panic_text.contains("DisplayScale.apply_window") and panic_text.contains("_apply_standalone_scale")
+		and panic_text.contains("_apply_saved_rotation"),
+		"panic screen applies the same resolution, UI scale, and rotation")
+	var panic_page: Control = load("res://scenes/panic_screen.tscn").instantiate()
+	add_child(panic_page)
+	await get_tree().process_frame
+	check(is_equal_approx(panic_page.rotation, 0.0), "overlay panic is not rotated on its own")
+	panic_page.scale = Vector2.ONE
+	panic_page.call("_apply_saved_rotation", 90)
+	await get_tree().process_frame
+	var panic_win: Vector2 = get_viewport().get_visible_rect().size
+	var panic_xform: Transform2D = panic_page.get_global_transform_with_canvas()
+	check(is_equal_approx(panic_page.rotation, PI / 2.0) and panic_page.size.y > panic_page.size.x,
+		"standalone panic swaps X/Y and rotates 90 degrees")
+	check(panic_xform.origin.distance_to(Vector2(panic_win.x, 0.0)) < 2.0
+		and (panic_xform * Vector2(0.0, panic_page.size.y)).distance_to(Vector2.ZERO) < 2.0,
+		"rotated panic fills the window")
+	panic_page.call("_apply_saved_rotation", 0)
+	check(is_equal_approx(panic_page.rotation, 0.0), "panic rotation 0 stays upright")
+	remove_child(panic_page)
+	panic_page.free()
 	check(is_equal_approx(preload("res://scenes/display_scale.gd").keep_ratio(Vector2(1920, 1080)), 1.5),
 		"1920x1080 is a 1.5x design window")
 
@@ -983,9 +1093,10 @@ func run() -> void:
 	# a genuine read/unread boundary right after the current line.
 	DirAccess.remove_absolute(balloon._seen_path)
 	balloon._seen_ids = {}
-	press(&"dialogue_close")
-	await get_tree().process_frame
-	check(alive() and not balloon.settings_panel.visible, "settings closed again")
+	if alive() and balloon.settings_panel.visible:
+		press(&"dialogue_close")
+		await get_tree().process_frame
+	check(alive() and not balloon.settings_panel.visible and not balloon.pause_panel.visible, "settings closed again")
 	await wait_ready()
 	# Roll back to a line followed by a plain (non-choice) line, so the halt we
 	# observe is the seen-only halt and not the stop-at-choices halt.
@@ -1001,6 +1112,10 @@ func run() -> void:
 	# This line was read when first shown; the re-apply after clearing reset the flag.
 	balloon._current_was_seen = true
 	balloon.skip_seen_only = true
+	# The earlier skip-key check holds Ctrl without a release, which leaves skip
+	# latched on. Clear that so this button press is the one that starts skip.
+	balloon._skip_key_held = false
+	balloon._set_skip_active(false)
 	balloon.skip_button.grab_focus()
 	press(&"ui_accept")
 	line = await await_line_change()

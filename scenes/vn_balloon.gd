@@ -125,7 +125,7 @@ const DisplayScale = preload("res://scenes/display_scale.gd")
 @onready var text_size_slider: HSlider = %TextSizeSlider
 @onready var text_size_value: Label = %TextSizeValue
 @onready var skip_speed_slider: HSlider = %SkipSpeedSlider
-@onready var skip_speed_value: Label = %SkipSpeedValue
+@onready var skip_speed_value: SpinBox = %SkipSpeedValue
 @onready var skip_mode_option: OptionButton = %SkipModeOption
 @onready var advance_key_button: Button = %AdvanceKeyButton
 @onready var skip_key_button: Button = %SkipKeyButton
@@ -138,7 +138,7 @@ const DisplayScale = preload("res://scenes/display_scale.gd")
 @onready var auto_delay_slider: HSlider = %AutoDelaySlider
 @onready var auto_delay_value: Label = %AutoDelayValue
 @onready var ui_scale_slider: HSlider = %UIScaleSlider
-@onready var ui_scale_value: Label = %UIScaleValue
+@onready var ui_scale_value: SpinBox = %UIScaleValue
 @onready var settings_margin: MarginContainer = %SettingsMargin
 @onready var ui_root: Control = %UIRoot
 @onready var sprite_scale_slider: HSlider = %SpriteScaleSlider
@@ -234,7 +234,11 @@ var auto_mode: bool = false
 var skip_mode: bool = false
 var _seeking_choice: bool = false
 var auto_delay: float = 1.5
-var skip_delay: float = 0.1
+var skip_delay: float = 0.55
+## Previous skip slider range. Saved files stored that inverted slider value,
+## not the delay, so an expanded range must not reinterpret those numbers.
+const OLD_SKIP_MIN := 0.05
+const OLD_SKIP_MAX := 0.6
 var skip_seen_only: bool = false
 var ui_scale: float = 1.0
 var sprite_scale: float = 1.0
@@ -285,6 +289,8 @@ const FILTER_LABELS: Array[String] = ["Nearest", "Linear", "Nearest mipmaps", "L
 ## Authored offset_top/bottom per sprite, captured once so the Y-offset
 ## setting is applied as a delta instead of flattening the rect.
 var _sprite_base_offsets: Dictionary = {}
+## Authored offset_left/right, so portrait layout can restore landscape.
+var _sprite_base_sides: Dictionary = {}
 var save_menu_mode: String = "save"
 var _settings_path: String = "user://settings.json"
 
@@ -382,6 +388,7 @@ func _ready() -> void:
 		dialogue_label.spoke.connect(_on_label_spoke)
 		_connect_ui_sfx()
 	_setup_key_bindings()
+	_prepare_sliders()
 	_load_seen()
 	_load_settings()
 	_sync_quality_controls()
@@ -768,6 +775,14 @@ func _set_focus(slot_name: String) -> void:
 		sprite_right.modulate.a = dim
 	elif slot_name == "right" and sprite_left.texture != null:
 		sprite_left.modulate.a = dim
+	_apply_speaker_order()
+
+
+## The speaking portrait stands in front. Both sprites are Stage siblings, so
+## dimming alone left them stacked in the same draw order.
+func _apply_speaker_order() -> void:
+	sprite_left.z_index = 2 if _current_focus == "left" else 1
+	sprite_right.z_index = 2 if _current_focus == "right" else 1
 
 
 ## Remove BBCode markup for places that show plain text (the backlog rows).
@@ -1103,6 +1118,66 @@ func _action_released(event: InputEvent, action: StringName) -> bool:
 
 ## Capture before GUI/unhandled input so even Escape, Enter and the boss key can
 ## become a binding without also closing the panel or triggering their action.
+
+## Close wins over Pause when they share a key and a menu is open. Otherwise
+## Pause toggles. The two actions are never merged.
+func _handle_pause_or_close(event: InputEvent) -> bool:
+	if _any_overlay_open() and _action_pressed(event, close_action):
+		_close_top_overlay()
+		get_viewport().set_input_as_handled()
+		return true
+	if event.is_action_pressed(pause_action):
+		get_viewport().set_input_as_handled()
+		if pause_panel.visible:
+			close_pause()
+		elif is_instance_valid(route_graph_panel) and route_graph_panel.visible:
+			_close_route_graph()
+		else:
+			open_pause()
+		return true
+	return false
+
+
+## Sliders are short by default and easy to miss. Volume keeps its 0-100 range.
+func _prepare_sliders() -> void:
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(0.12, 0.14, 0.22, 1)
+	track.corner_radius_top_left = 6
+	track.corner_radius_top_right = 6
+	track.corner_radius_bottom_right = 6
+	track.corner_radius_bottom_left = 6
+	track.content_margin_top = 14
+	track.content_margin_bottom = 14
+	var fill := track.duplicate() as StyleBoxFlat
+	fill.bg_color = Color(0.83, 0.68, 0.36, 1)
+	_style_sliders(settings_vbox, track, fill)
+	ui_scale_value.min_value = ui_scale_slider.min_value
+	ui_scale_value.max_value = ui_scale_slider.max_value
+	ui_scale_value.step = ui_scale_slider.step
+	ui_scale_value.suffix = "x"
+	skip_speed_value.min_value = skip_speed_slider.min_value
+	skip_speed_value.max_value = skip_speed_slider.max_value
+	skip_speed_value.step = skip_speed_slider.step
+	skip_speed_value.suffix = " s"
+	for spin: SpinBox in [ui_scale_value, skip_speed_value]:
+		spin.custom_minimum_size = Vector2(120, 44)
+		spin.update_on_text_changed = true
+		spin.select_all_on_focus = true
+		spin.alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+
+func _style_sliders(node: Node, track: StyleBox, fill: StyleBox) -> void:
+	for child: Node in node.get_children():
+		if child is HSlider:
+			var slider := child as HSlider
+			slider.custom_minimum_size.y = 44
+			slider.add_theme_stylebox_override("slider", track)
+			slider.add_theme_stylebox_override("grabber_area", fill)
+			slider.add_theme_stylebox_override("grabber_area_highlight", fill)
+			slider.add_theme_constant_override("center_grabber", 1)
+		_style_sliders(child, track, fill)
+
+
 func _input(event: InputEvent) -> void:
 	# Track press -> drag so list-row handlers can tell a swipe from a tap.
 	if event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
@@ -1143,20 +1218,10 @@ func _input(event: InputEvent) -> void:
 		return
 	if not is_instance_valid(balloon) or not balloon.is_visible_in_tree() or _panic_open():
 		return
-	# Pause and Close must win before focused GUI controls consume Esc or
-	# Backspace (notably OptionButton and SpinBox/LineEdit).
-	if event.is_action_pressed(pause_action):
-		if pause_panel.visible:
-			close_pause()
-		elif is_instance_valid(route_graph_panel) and route_graph_panel.visible:
-			_close_route_graph()
-		else:
-			open_pause()
-		get_viewport().set_input_as_handled()
-		return
-	if _any_overlay_open() and _action_pressed(event, close_action):
-		_close_top_overlay()
-		get_viewport().set_input_as_handled()
+	# Close and Pause are separate actions, so each can be rebound. They may
+	# both default to Esc. An open overlay closes and does not also pause.
+	# Backspace stays with SpinBox/LineEdit unless Close is rebound to it.
+	if _handle_pause_or_close(event):
 		return
 	# Keyboard skip is a hold gesture, not a latch. The toolbar button remains
 	# a conventional toggle for mouse/touch users.
@@ -1217,7 +1282,8 @@ func _serialize_key_bindings() -> Dictionary:
 	return result
 
 
-func _load_key_bindings(saved: Variant) -> void:
+func _load_key_bindings(saved: Variant, migrate_backspace: bool = true) -> bool:
+	var migrated := false
 	if saved is Dictionary:
 		for action: StringName in BINDABLE_ACTIONS:
 			var item: Variant = saved.get(String(action))
@@ -1229,8 +1295,24 @@ func _load_key_bindings(saved: Variant) -> void:
 				key.shift_pressed = bool(item.get("shift", false))
 				key.ctrl_pressed = bool(item.get("ctrl", false))
 				key.meta_pressed = bool(item.get("meta", false))
+				# The old Close default was unmodified Backspace, which eats
+				# characters in the number fields. Move that saved default to Esc
+				# once. A later intentional Backspace binding is kept.
+				if migrate_backspace and action == &"dialogue_close" and _is_unmodified_backspace(key):
+					key.keycode = KEY_ESCAPE
+					key.physical_keycode = KEY_NONE
+					migrated = true
 				_replace_action_key(action, key)
 	_refresh_binding_labels()
+	return migrated
+
+
+func _is_unmodified_backspace(key: InputEventKey) -> bool:
+	if key.alt_pressed or key.shift_pressed or key.ctrl_pressed or key.meta_pressed:
+		return false
+	if key.keycode == KEY_BACKSPACE and key.physical_keycode == KEY_NONE:
+		return true
+	return key.keycode == KEY_NONE and key.physical_keycode == KEY_BACKSPACE
 
 
 func _load_settings() -> void:
@@ -1247,7 +1329,7 @@ func _load_settings() -> void:
 		language = "ru" if TranslationServer.get_locale().left(2) == "ru" else "en"
 	language_option.selected = 1 if language == "ru" else 0
 	TranslationServer.set_locale(language)
-	_load_key_bindings(data.get("key_bindings", {}))
+	var close_migrated := _load_key_bindings(data.get("key_bindings", {}), not bool(data.get("close_key_migrated", false)))
 	if data.is_empty():
 		return
 	if data.has("text_speed"):
@@ -1256,9 +1338,10 @@ func _load_settings() -> void:
 	if data.has("text_size"):
 		text_size_slider.value = float(data.text_size)
 		_on_text_size_changed(float(data.text_size))
-	if data.has("skip_speed"):
-		skip_speed_slider.value = float(data.skip_speed)
-		_on_skip_speed_changed(float(data.skip_speed))
+	if data.has("skip_delay") or data.has("skip_speed"):
+		var skip_v := _saved_skip_slider_value(data)
+		skip_speed_slider.value = skip_v
+		_on_skip_speed_changed(skip_speed_slider.value)
 	if data.has("skip_seen_only"):
 		skip_seen_only = bool(data.skip_seen_only)
 		skip_mode_option.selected = 1 if skip_seen_only else 0
@@ -1324,6 +1407,8 @@ func _load_settings() -> void:
 	if data.has("sfx_buttons"):
 		button_sfx = bool(data.sfx_buttons)
 		button_sfx_check.button_pressed = button_sfx
+	if close_migrated:
+		_save_settings()
 
 
 func _save_settings() -> void:
@@ -1335,6 +1420,8 @@ func _save_settings() -> void:
 		"text_speed": text_speed_slider.value,
 		"text_size": text_size_slider.value,
 		"skip_speed": skip_speed_slider.value,
+		"skip_delay": skip_delay,
+		"close_key_migrated": true,
 		"skip_seen_only": skip_seen_only,
 		"auto_delay": auto_delay_slider.value,
 		"ui_scale": ui_scale_slider.value,
@@ -1394,12 +1481,46 @@ func _on_text_size_changed(v: float) -> void:
 
 
 func _on_skip_speed_changed(v: float) -> void:
-	# The control reads as speed: moving right is faster. Internally the timer
-	# needs the inverse quantity, seconds between lines.
+	# The slider reads as speed: moving right is faster. The number field edits
+	# the delay itself, in seconds. Internally the timer needs that delay.
 	skip_delay = skip_speed_slider.min_value + skip_speed_slider.max_value - v
 	skip_timer.wait_time = skip_delay
 	_update_slider_value_labels()
 	_save_settings()
+
+
+func _on_skip_speed_spin_changed(v: float) -> void:
+	var slider_v := skip_speed_slider.min_value + skip_speed_slider.max_value - v
+	slider_v = clampf(slider_v, skip_speed_slider.min_value, skip_speed_slider.max_value)
+	if is_equal_approx(skip_speed_slider.value, slider_v):
+		return
+	skip_speed_slider.value = slider_v
+
+
+func _on_ui_scale_spin_changed(v: float) -> void:
+	if is_equal_approx(ui_scale_slider.value, v):
+		return
+	ui_scale_slider.value = v
+
+
+## Saved skip_speed used to be the inverted slider position on 0.05..0.6.
+## Prefer an explicit delay when we have one, so widening the range does not
+## change a player's existing pace.
+func _saved_skip_slider_value(data: Dictionary) -> float:
+	if not data.has("skip_delay") and data.has("skip_speed"):
+		var raw := float(data.skip_speed)
+		if raw < OLD_SKIP_MIN or raw > OLD_SKIP_MAX:
+			return clampf(raw, skip_speed_slider.min_value, skip_speed_slider.max_value)
+	var delay := 0.55
+	if data.has("skip_delay"):
+		delay = float(data.skip_delay)
+	elif data.has("skip_speed"):
+		delay = OLD_SKIP_MIN + OLD_SKIP_MAX - float(data.skip_speed)
+	var slider_v := skip_speed_slider.min_value + skip_speed_slider.max_value - delay
+	slider_v = clampf(slider_v, skip_speed_slider.min_value, skip_speed_slider.max_value)
+	if skip_speed_slider.step > 0.0:
+		slider_v = snapped(slider_v, skip_speed_slider.step)
+	return slider_v
 
 
 func _on_skip_mode_selected(index: int) -> void:
@@ -1444,6 +1565,7 @@ func _reflow_settings() -> void:
 	# window's) decides portrait vs landscape rows.
 	portrait_mode = force_portrait or (balloon.size.y > balloon.size.x)
 	_apply_settings_layout()
+	_apply_sprite_transform()
 
 
 ## Test/override entry point for the portrait layout.
@@ -1502,9 +1624,13 @@ func _update_slider_value_labels() -> void:
 		return
 	text_speed_value.text = "%.3f s" % text_speed_slider.value
 	text_size_value.text = "%d px" % roundi(text_size_slider.value)
-	skip_speed_value.text = "%.2f s" % skip_delay
+	skip_speed_value.set_block_signals(true)
+	skip_speed_value.value = skip_delay
+	skip_speed_value.set_block_signals(false)
 	auto_delay_value.text = "%.2f s" % auto_delay_slider.value
-	ui_scale_value.text = "%.2fx" % ui_scale_slider.value
+	ui_scale_value.set_block_signals(true)
+	ui_scale_value.value = ui_scale_slider.value
+	ui_scale_value.set_block_signals(false)
 	sprite_scale_value.text = "%.2fx" % sprite_scale_slider.value
 	sprite_y_value.text = "%d px" % roundi(sprite_y_slider.value)
 	master_vol_value.text = "%d%%" % roundi(master_vol_slider.value)
@@ -1706,14 +1832,48 @@ func _on_sprite_y_changed(v: float) -> void:
 ## Sprite scale pivots at each sprite's bottom centre; the Y offset is a delta
 ## on top of the authored offsets so the anchored rect keeps its height.
 func _apply_sprite_transform() -> void:
+	var stage := balloon.size
+	# Portrait only. A 720-wide view used the landscape rects, so the two
+	# portraits overlapped almost completely and sat short against the height.
+	var tall := stage.y > stage.x + 1.0
 	for spr: TextureRect in [sprite_left, sprite_right]:
-		if not _sprite_base_offsets.has(spr.get_instance_id()):
-			_sprite_base_offsets[spr.get_instance_id()] = Vector2(spr.offset_top, spr.offset_bottom)
-		var base: Vector2 = _sprite_base_offsets[spr.get_instance_id()]
-		spr.offset_top = base.x + sprite_y
-		spr.offset_bottom = base.y + sprite_y
+		var id := spr.get_instance_id()
+		if not _sprite_base_offsets.has(id):
+			_sprite_base_offsets[id] = Vector2(spr.offset_top, spr.offset_bottom)
+		if not _sprite_base_sides.has(id):
+			_sprite_base_sides[id] = Vector2(spr.offset_left, spr.offset_right)
+		var base: Vector2 = _sprite_base_offsets[id]
+		var sides: Vector2 = _sprite_base_sides[id]
+		var left := sides.x
+		var right := sides.y
+		var bottom := base.y + sprite_y
+		var top := base.x + sprite_y
+		if tall:
+			var laid := _portrait_side_offsets(spr == sprite_left, stage)
+			left = laid.x
+			right = laid.y
+			var authored_h := base.y - base.x
+			top = bottom - maxf(authored_h, stage.y * 0.95)
+		spr.offset_left = left
+		spr.offset_right = right
+		spr.offset_top = top
+		spr.offset_bottom = bottom
 		spr.pivot_offset = Vector2(spr.size.x * 0.5, spr.size.y)
 		spr.scale = Vector2(sprite_scale, sprite_scale)
+	_apply_speaker_order()
+
+
+## Left offsets are from the bottom-left anchor; right offsets from the
+## bottom-right. Centers sit toward opposite edges so the pair can be large
+## without occupying the same place.
+func _portrait_side_offsets(is_left: bool, stage: Vector2) -> Vector2:
+	var width := stage.x * 0.86
+	var center := stage.x * (0.22 if is_left else 0.78)
+	var left_edge := center - width * 0.5
+	var right_edge := center + width * 0.5
+	if is_left:
+		return Vector2(left_edge, right_edge)
+	return Vector2(left_edge - stage.x, right_edge - stage.x)
 
 
 func _on_vsync_toggled(on: bool) -> void:
@@ -2337,14 +2497,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _try_system_actions(event):
 		return
 
-	if event.is_action_pressed(pause_action):
-		get_viewport().set_input_as_handled()
-		if pause_panel.visible:
-			close_pause()
-		elif is_instance_valid(route_graph_panel) and route_graph_panel.visible:
-			_close_route_graph()
-		else:
-			open_pause()
+	if _handle_pause_or_close(event):
 		return
 
 	if event.is_action_pressed(history_action):
