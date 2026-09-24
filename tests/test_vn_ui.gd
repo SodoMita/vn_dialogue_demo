@@ -234,6 +234,24 @@ func run() -> void:
 	check(line != null and line.character == "Maya", "line 3 is Maya")
 	check(alive() and balloon.sprite_left.texture != null and balloon.sprite_left.modulate.a == 1.0, "#sprite=maya:left shows left sprite")
 	check(alive() and balloon.sprite_right.modulate.a < 1.0, "#focus=left dims the right slot")
+	# Emotion change without a new #focus=: the speaker's portrait comes forward.
+	balloon._set_focus("right")
+	var emo := DialogueLine.new()
+	emo.character = "Maya"
+	emo.tags = PackedStringArray(["sprite=maya_smile:left"])
+	balloon._apply_stage_tags(emo)
+	check(alive() and balloon.sprite_left.get_index() > balloon.sprite_right.get_index()
+		and balloon.sprite_left.z_index == 0 and balloon.sprite_right.z_index == 0
+		and balloon._current_focus == "left" and balloon.sprite_right.modulate.a < 1.0,
+		"a speaker emotion change brings that portrait in front of the other")
+	check(alive() and balloon.ui_root.get_index() > balloon.sprite_left.get_parent().get_index(),
+		"an emotion change still leaves the dialogue UI in front")
+	emo.tags = PackedStringArray(["sprite=maya_smile:left", "focus=right"])
+	balloon._apply_stage_tags(emo)
+	check(alive() and balloon.sprite_right.get_index() > balloon.sprite_left.get_index()
+		and balloon._current_focus == "right",
+		"an explicit focus tag still wins over an emotion change")
+	balloon._set_focus("left")
 
 	# Rook bell, Maya "..." then the question with responses
 	await step()

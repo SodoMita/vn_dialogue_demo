@@ -18,6 +18,8 @@ const DisplayScale = preload("res://scenes/display_scale.gd")
 ##   #sprite=name:slot     show a portrait in slot "left" or "right" (key of `sprites`)
 ##   #sprite=none:slot     clear a slot
 ##   #focus=slot           spotlight one slot, dim the other
+##                         a speaker's expression change (#sprite=maya_smile:left with no
+##                         #focus=) still brings that portrait in front of the other
 ##   #box=hide / #box=show hide or show the dialogue box (pure stage directions)
 
 
@@ -697,12 +699,22 @@ func _restore_waiting() -> void:
 
 
 func _apply_stage_tags(line: DialogueLine) -> void:
+	# A line can change the speaker's expression without repeating #focus=.
+	# Remember that slot and bring it forward after the tags, unless the line
+	# named a focus of its own.
+	var speaker_slot := ""
+	var had_focus := false
 	for tag: String in line.tags:
 		if tag.begins_with("bg="):
 			_set_background(tag.substr(3))
 		elif tag.begins_with("sprite="):
-			_set_sprite(tag.substr(7))
+			var spec := tag.substr(7)
+			_set_sprite(spec)
+			var slot := _speaker_slot_for_sprite(spec, line.character)
+			if slot != "":
+				speaker_slot = slot
 		elif tag.begins_with("focus="):
+			had_focus = true
 			_set_focus(tag.substr(6))
 		elif tag == "box=hide":
 			dialogue_box.hide()
@@ -716,6 +728,24 @@ func _apply_stage_tags(line: DialogueLine) -> void:
 			audio.request_music(tag.substr(6))
 		elif tag.begins_with("sfx=") and audio != null:
 			audio.play_sfx(tag.substr(4))
+	if not had_focus and speaker_slot != "":
+		_set_focus(speaker_slot)
+
+
+## Slot of a portrait tag that belongs to the speaking character, or "" when
+## the tag clears a slot, names someone else, or the line has no speaker.
+## "maya_smile" matches Maya; an explicit #focus= on the same line still wins.
+func _speaker_slot_for_sprite(spec: String, speaker: String) -> String:
+	var parts: PackedStringArray = spec.split(":")
+	var key := parts[0].strip_edges().to_lower()
+	var who := speaker.strip_edges().to_lower()
+	if who == "" or key == "" or key == "none":
+		return ""
+	if key != who and not key.begins_with(who + "_"):
+		return ""
+	if parts.size() == 1 or parts[1] == "left":
+		return "left"
+	return "right"
 
 
 ## Play the voiced clip for a line on the Voice bus; lines without a clip

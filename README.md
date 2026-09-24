@@ -170,7 +170,7 @@ The panic page uses that same scale, and when it replaces the game it also uses 
 (procedural engine vs. bundled OGG loops), **Typewriter sound** and **Button sound**
 toggles, plus master, music, voice and SFX volumes driving runtime-created buses
 (0 mutes, 100 = 0 dB); *Sprites*: character-sprite scale
-(pivoted at the bottom centre) and a Y offset, independent of the UI scale. UI scale and skip speed each have a number field beside the slider; the skip number is the delay in seconds (the slider still reads as speed, right is faster). Every slider except volume has a wider range, and every slider is taller so it is easier to press. In a portrait view the character sprites are larger and set apart, and the speaker stands in front of the other portrait, still behind the dialogue UI. Every control
+(pivoted at the bottom centre) and a Y offset, independent of the UI scale. UI scale and skip speed each have a number field beside the slider; the skip number is the delay in seconds (the slider still reads as speed, right is faster). Every slider except volume has a wider range, and every slider is taller so it is easier to press. In a portrait view the character sprites are larger and set apart, and the speaker stands in front of the other portrait, still behind the dialogue UI. Changing that speaker's expression brings their portrait forward even when the line does not repeat the focus tag. Every control
 applies live and is
 persisted to `user://settings.json`, and lines the player has read are recorded in
 `user://seen.json` so seen-only skip knows where to halt. The panel notes that `Esc` closes
