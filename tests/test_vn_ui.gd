@@ -1385,6 +1385,47 @@ func run() -> void:
 		"non-left presses do not start the hold")
 	balloon._close_overlay(balloon.save_menu_panel)
 
+	# The ring is drawn in the indicator's own space. UI scale and rotation move
+	# the menu out of that space; the ring must still sit on the finger, above
+	# the menu, and a small viewport jitter must not cancel the gesture.
+	var finger := Vector2(30, 30)
+	var cases: Array = [[1.5, 0], [1.25, 90]]
+	for spec: Array in cases:
+		balloon._apply_ui_scale(float(spec[0]))
+		balloon._set_rotation(int(spec[1]))
+		await get_tree().process_frame
+		await get_tree().process_frame
+		balloon.open_save_menu("load")
+		var held := InputEventMouseButton.new()
+		held.pressed = true
+		held.button_index = MOUSE_BUTTON_LEFT
+		held.position = finger
+		balloon.save_menu_panel.gui_input.emit(held)
+		await wait_until(func() -> bool: return not balloon._hold_active or balloon.hold_indicator.visible, 200)
+		var expected: Vector2 = balloon.save_menu_panel.get_global_transform_with_canvas() * finger
+		var drawn: Vector2 = balloon.hold_indicator.get_global_transform_with_canvas() * balloon.hold_indicator._point
+		var label := "scale %.2f rot %d" % [float(spec[0]), int(spec[1])]
+		check(alive() and balloon.hold_indicator.visible and drawn.distance_to(expected) < 1.5,
+			"the hold ring sits on the press under %s" % label)
+		check(balloon.hold_indicator.z_index > balloon.save_menu_panel.z_index and balloon.hold_indicator.top_level,
+			"the hold ring stays above the menu under %s" % label)
+		var jitter := InputEventMouseMotion.new()
+		jitter.position = expected + Vector2(4, 0)
+		jitter.relative = Vector2(4, 0)
+		balloon._input(jitter)
+		check(balloon._hold_active and balloon.hold_indicator.visible,
+			"a small move does not cancel the hold under %s" % label)
+		var swipe_far := InputEventMouseMotion.new()
+		swipe_far.position = expected + Vector2(40, 0)
+		swipe_far.relative = Vector2(40, 0)
+		balloon._input(swipe_far)
+		check(not balloon._hold_active and not balloon.hold_indicator.visible,
+			"a swipe still cancels the hold under %s" % label)
+		balloon._close_overlay(balloon.save_menu_panel)
+	balloon._apply_ui_scale(1.0)
+	balloon._set_rotation(0)
+	await get_tree().process_frame
+
 	# --- Touch scrolling: rows pass drags to their ScrollContainer ---
 	check(alive() and balloon.slot_template.mouse_filter == Control.MOUSE_FILTER_PASS
 		and balloon.history_entry_template.mouse_filter == Control.MOUSE_FILTER_PASS,

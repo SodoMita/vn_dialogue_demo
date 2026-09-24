@@ -265,7 +265,13 @@ const HOLD_CANCEL_DIST: float = 10.0
 
 var _hold_active: bool = false
 var _hold_elapsed: float = 0.0
+## Press in the menu panel's local space. The ring is drawn in the indicator,
+## which does not inherit UI scale, so this is converted before show_at.
+var _hold_local: Vector2 = Vector2.ZERO
+## Same press in viewport space, so a swipe compared against _input (also
+## viewport space) still cancels under UI scale and rotation.
 var _hold_from: Vector2 = Vector2.ZERO
+var _hold_panel: Control = null
 ## Set while a map jump replays lines through Dialogue Manager. Mutations still
 ## run, but they must not hide the box or play the mutation beat.
 var _silent_travel: bool = false
@@ -377,6 +383,7 @@ func _ready() -> void:
 	if is_instance_valid(panic_screen):
 		panic_screen.hide()
 	hold_indicator.hide()
+	_bind_hold_panels()
 	if is_instance_valid(route_graph_panel):
 		route_graph_panel.hide()
 		if route_graph_panel.has_signal("travel_requested") and not route_graph_panel.travel_requested.is_connected(_on_route_travel_requested):
@@ -438,7 +445,7 @@ func _process(delta: float) -> void:
 			_hold_elapsed += delta
 			if _hold_elapsed >= HOLD_APPEAR:
 				if not hold_indicator.visible:
-					hold_indicator.show_at(_hold_from)
+					hold_indicator.show_at(_hold_ring_point())
 					if button_sfx and audio != null:
 						audio.hold_start()
 					# inside _process, in the _hold_active branch:
@@ -2112,18 +2119,34 @@ func _on_response_selected_sfx(response: DialogueResponse) -> void:
 ## Press-and-hold on empty menu space runs the hold-to-close gesture
 ## (containers and labels pass the press up to the full-rect panel). The panic
 ## screen deliberately has no hold-to-close: it must swallow everything.
-func _on_menu_empty_press(event: InputEvent) -> void:
+func _on_menu_empty_press(event: InputEvent, panel: Control = null) -> void:
 	if event is InputEventMouseButton:
 		var mb: InputEventMouseButton = event
-		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT and not _press_on_interactive(mb.position):
-			_begin_hold(mb.position)
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT and not _press_on_interactive(mb.position, panel):
+			_begin_hold(mb.position, panel)
+
+
+## The scene connects gui_input without the source. Rebind so the press position
+## can be converted out of that panel's local space.
+func _bind_hold_panels() -> void:
+	for panel: Control in [save_menu_panel, settings_panel, pause_panel, history_panel]:
+		if panel.gui_input.is_connected(_on_menu_empty_press):
+			panel.gui_input.disconnect(_on_menu_empty_press)
+		var bound := _on_menu_empty_press.bind(panel)
+		if not panel.gui_input.is_connected(bound):
+			panel.gui_input.connect(bound)
 
 
 ## True when the press landed on an interactive control (buttons pass drags up
 ## to their ScrollContainer, so their presses also reach the panel).
-func _press_on_interactive(pos: Vector2) -> bool:
+## pos is local to panel; hit rects are global, and those diverge once UIRoot
+## is scaled or the panel origin leaves the canvas origin.
+func _press_on_interactive(pos: Vector2, panel: Control = null) -> bool:
+	var global_pos := pos
+	if panel != null and is_instance_valid(panel):
+		global_pos = panel.get_global_transform() * pos
 	for menu: Control in [save_menu_panel, settings_panel, pause_panel, history_panel]:
-		if menu.visible and _hits_interactive(menu, pos):
+		if menu.visible and _hits_interactive(menu, global_pos):
 			return true
 	return false
 
@@ -2143,14 +2166,33 @@ func _hits_interactive(c: Control, pos: Vector2) -> bool:
 	return false
 
 
-func _begin_hold(pos: Vector2) -> void:
+func _begin_hold(pos: Vector2, panel: Control = null) -> void:
 	_hold_active = true
 	_hold_elapsed = 0.0
-	_hold_from = pos
+	_hold_local = pos
+	_hold_panel = panel
+	# _input reports viewport coordinates. At scale 1 / rotation 0 that matches
+	# the panel-local press, which is what the gesture tests feed in directly.
+	if panel != null and is_instance_valid(panel):
+		_hold_from = panel.get_global_transform_with_canvas() * pos
+	else:
+		_hold_from = pos
+
+
+## Indicator-local point of the press. Both nodes share the canvas, so the
+## canvas rotation applies equally and get_global_transform() is the right
+## space: it still includes UIRoot scale and the panel origin, which the
+## top_level indicator does not inherit.
+func _hold_ring_point() -> Vector2:
+	if _hold_panel == null or not is_instance_valid(_hold_panel):
+		return _hold_local
+	var on_canvas: Vector2 = _hold_panel.get_global_transform() * _hold_local
+	return hold_indicator.get_global_transform().affine_inverse() * on_canvas
 
 
 func _cancel_hold() -> void:
 	_hold_active = false
+	_hold_panel = null
 	hold_indicator.hide_ring()
 	if audio != null:
 		audio.hold_stop()
@@ -2160,6 +2202,7 @@ func _finish_hold() -> void:
 	if not _hold_active:
 		return
 	_hold_active = false
+	_hold_panel = null
 	hold_indicator.hide_ring()
 	if audio != null:
 		audio.hold_stop()

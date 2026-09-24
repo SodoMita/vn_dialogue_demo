@@ -200,8 +200,8 @@ the UI feedback (story `#sfx=` tags ignore the button toggle), and Pause / Panic
 ducking the Master bus exactly as before.
 
 **Dismissing menus**: every menu (history, save/load, settings, pause) closes after a
-**press-and-hold on the empty space** around its content — a big golden ring fills at the
-tap position and a continuous tone falls from high to low pitch while growing louder to
+**press-and-hold on the empty space** around its content — a big golden ring fills on the finger (including when the UI is scaled
+or the view is rotated) and a continuous tone falls from high to low pitch while growing louder to
 its end, so the sound itself indicates hold progress; release once the ring completes
 and the menu closes. Quick taps
 do nothing (accidental-tap protection) and any swipe/drag beyond 10 px cancels the hold

@@ -47,8 +47,7 @@ scrolling backlog; `Set` opens settings.
 dialogue resource, the full history, the history cursor and a small stage snapshot; the slot
 rows show a runtime-rendered thumbnail. Loading restores story state, stage dressing and the
 exact line. `QS`/`QL` and `F5`/`F9` always use slot 0. The menu closes with `Esc`,
-its `X` button, or a long press on the empty space around it — hold and a ring fills at
-your finger while a soft tone falls from high to low pitch and swells toward the end until the menu closes
+its `X` button, or a long press on the empty space around it — hold and a ring fills on your finger, including when the UI is scaled or the view is rotated, while a soft tone falls from high to low pitch and swells toward the end until the menu closes
 on release; quick taps do nothing on purpose and moving your finger cancels the gesture,
 so touch scrolling still works. Lists scroll by swiping over their rows without
 activating them. Every menu dismisses that way.
