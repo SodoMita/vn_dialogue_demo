@@ -934,6 +934,29 @@ func run() -> void:
 	balloon.res_height_spin.value_changed.emit(720.0)
 	check(alive() and balloon.resolution_option.selected == 0, "a size matching a preset re-selects it")
 
+	# Higher resolution grows the layout. UI and sprites must grow with it,
+	# or their authored pixel sizes become a smaller fraction of the screen.
+	var saved_layout: Vector2i = root.content_scale_size
+	root.content_scale_size = Vector2i(1920, 1080)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var keep: float = 1920.0 / 1280.0
+	check(alive() and balloon.ui_root.scale == Vector2(keep, keep),
+		"higher resolution enlarges the UI instead of shrinking it")
+	check(alive() and balloon.sprite_left.scale == Vector2(keep, keep)
+		and balloon.sprite_right.scale == Vector2(keep, keep),
+		"higher resolution enlarges character sprites instead of shrinking them")
+	check(alive() and is_equal_approx(balloon.ui_root.size.x, 1280.0),
+		"scaled UI still covers the same fraction of a higher resolution")
+	var sprite_frac: float = balloon.sprite_left.size.y * balloon.sprite_left.scale.y / 1080.0
+	check(alive() and is_equal_approx(sprite_frac, 684.0 / 720.0),
+		"sprites keep their authored share of the screen at a higher resolution")
+	root.content_scale_size = saved_layout
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(alive() and balloon.ui_root.scale == Vector2.ONE and balloon.sprite_left.scale == Vector2.ONE,
+		"restoring the design resolution restores UI and sprite scale")
+
 	# Vsync persists (headless has no real display to flip)
 	balloon.vsync_check.toggled.emit(false)
 	var vsync_data: Variant = JSON.parse_string(FileAccess.get_file_as_string("user://settings.json"))
