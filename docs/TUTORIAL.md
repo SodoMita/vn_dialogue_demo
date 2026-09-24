@@ -73,7 +73,7 @@ Everything applies live and persists to `user://settings.json`:
   **Generated music** (procedural score vs. bundled loops), and **Typewriter sound** /
   **Button sound** toggles for the typing ticks and UI feedback (each choice still plays
   its own pitch, and `#sfx=` story tags ignore the button toggle).
-- *Sprites*: portrait scale and Y offset. In a portrait view the characters are larger and set apart, and the one who is speaking stands in front.
+- *Sprites*: portrait scale and Y offset. In a portrait view the characters are larger and set apart, and the one who is speaking stands in front of the other portrait, still behind the dialogue UI.
 
 ## Styled text
 

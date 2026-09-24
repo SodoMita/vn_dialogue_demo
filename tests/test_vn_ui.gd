@@ -874,11 +874,15 @@ func run() -> void:
 	check(alive() and right_center - left_center > balloon.balloon.size.x * 0.4,
 		"portrait sprites sit apart instead of stacking in the middle")
 	balloon._set_focus("left")
-	check(alive() and balloon.sprite_left.z_index > balloon.sprite_right.z_index,
-		"the speaking sprite stands in front")
+	check(alive() and balloon.sprite_left.get_index() > balloon.sprite_right.get_index()
+		and balloon.sprite_left.z_index == 0 and balloon.sprite_right.z_index == 0,
+		"the speaking sprite stands in front of the other portrait, not the UI")
+	check(alive() and balloon.ui_root.get_index() > balloon.sprite_left.get_parent().get_index(),
+		"the dialogue UI stays in front of both portraits")
 	balloon._set_focus("right")
-	check(alive() and balloon.sprite_right.z_index > balloon.sprite_left.z_index,
-		"the other speaker stands in front")
+	check(alive() and balloon.sprite_right.get_index() > balloon.sprite_left.get_index()
+		and balloon.sprite_right.z_index == 0,
+		"the other speaker stands in front of the other portrait, not the UI")
 	balloon._set_focus("")
 	balloon._set_rotation(0)
 	await get_tree().process_frame

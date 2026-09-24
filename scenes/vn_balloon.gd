@@ -778,11 +778,21 @@ func _set_focus(slot_name: String) -> void:
 	_apply_speaker_order()
 
 
-## The speaking portrait stands in front. Both sprites are Stage siblings, so
-## dimming alone left them stacked in the same draw order.
+## The speaking portrait stands in front of the other portrait only. Both stay
+## in the stage, behind the dialogue UI. Raising z_index would sort them against
+## the whole canvas and paint the speaker over the text box.
 func _apply_speaker_order() -> void:
-	sprite_left.z_index = 2 if _current_focus == "left" else 1
-	sprite_right.z_index = 2 if _current_focus == "right" else 1
+	sprite_left.z_index = 0
+	sprite_right.z_index = 0
+	sprite_left.z_as_relative = true
+	sprite_right.z_as_relative = true
+	var stage := sprite_left.get_parent()
+	if stage == null:
+		return
+	if _current_focus == "left":
+		stage.move_child(sprite_left, stage.get_child_count() - 1)
+	elif _current_focus == "right":
+		stage.move_child(sprite_right, stage.get_child_count() - 1)
 
 
 ## Remove BBCode markup for places that show plain text (the backlog rows).
