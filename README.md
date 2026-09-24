@@ -164,9 +164,9 @@ the UI subtree — the background and character sprites stay untouched — while
 margins shrink with the scale so the panel keeps a constant, usable width at any size),
 fullscreen, V-Sync, a resolution dropdown of presets (1280×720 … 2560×1440) plus a custom
 width/height accepting any positive numbers (custom sizes flip the dropdown to "Custom",
-matching sizes re-select their preset; a higher resolution keeps the same layout size, draws
-fonts at the window's pixel density, and upscales the art to that density so it is not a stretched
-low-resolution picture. The panic page uses that same scale), **Glyph scale** for the story map (1×–4×, how many texels each symbol is baked with; the atlas grows to fit, capped at 4096), and texture filtering for the game art and for the map (nearest, linear, or with mipmaps); *Audio*: the **Generated music** toggle
+matching sizes re-select their preset; a higher resolution keeps the same layout size and
+draws it at the window's pixel density, so the UI and sprites stay the same size without being stretched.
+The panic page uses that same scale), **Glyph scale** for the story map (1×–4×, how many texels each symbol is baked with; the atlas grows to fit, capped at 4096), and texture filtering for the game art and for the map (nearest, linear, or with mipmaps); *Audio*: the **Generated music** toggle
 (procedural engine vs. bundled OGG loops), **Typewriter sound** and **Button sound**
 toggles, plus master, music, voice and SFX volumes driving runtime-created buses
 (0 mutes, 100 = 0 dB); *Sprites*: character-sprite scale

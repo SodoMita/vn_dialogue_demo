@@ -63,7 +63,7 @@ Balloon (Control, full rect, gui_input = advance/click/wheel)
 - **Audio**: Godot 4.7 imports Ogg/MP3/WAV only — no Opus.
 - **Headless CI**: guard every `DisplayServer.window_*` call with a `headless` name check.
 - **Window resize**: `NOTIFICATION_WM_SIZE_CHANGED` never reaches a `CanvasLayer`. Connect the viewport `size_changed` signal and reflow; stretch aspect `expand` so the logical size follows the window instead of letterboxing a frozen 16:9.
-- **Resolution vs sharpness**: do not grow `content_scale_size` to the window, and do not `Control.scale` the UI or sprites to compensate. That stretches a low-resolution raster (blurry, pixelated). Keep the layout at 1280×720. Set the font files' `oversampling` to the window ratio (RichTextLabel ignores viewport oversampling when the font override is 0) and Lanczos-upscale stage art to the on-screen pixel size so the canvas samples it 1:1. The panic scene is not inside the scaled UI — it must reapply the saved resolution, UI scale, and text size when it replaces the game.
+- **Resolution vs sharpness**: do not grow `content_scale_size` to the window, and do not `Control.scale` the UI or sprites to compensate. That stretches a low-resolution raster (blurry, pixelated). Keep the layout at 1280×720 and let `canvas_items` draw it at the window's pixel size. The panic scene is not inside the scaled UI — when it replaces the game it must reapply that same window layout, plus the saved UI scale and text size.
 - **Scrolling lists**: `ScrollContainer.follow_focus` only scrolls when content actually
   overflows.
 - **Choices placement**: anchor the responses menu in a band *above* the dialogue box

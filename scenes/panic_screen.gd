@@ -68,8 +68,6 @@ func _apply_standalone_scale() -> void:
 	var h := int(data.get("res_h", DisplayScale.DESIGN.y))
 	DisplayScale.apply_window(get_tree(), w, h)
 	var ui := clampf(float(data.get("ui_scale", 1.0)), 0.75, 1.5)
-	var ratio := DisplayScale.keep_ratio(Vector2(w, h))
-	DisplayScale.sharpen(get_tree(), ratio * ui)
 	# Same trick as UIRoot: scale the page, then shrink the anchors so the
 	# scaled page still fills the window instead of spilling off it.
 	set_anchors_preset(Control.PRESET_FULL_RECT)

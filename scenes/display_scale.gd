@@ -1,14 +1,10 @@
 extends RefCounted
-## Shared window scale for the game and the panic page.
+## Shared window layout for the game and the panic page.
 ## The layout stays 1280x720. A larger window draws that layout with more
-## pixels (canvas_items) instead of stretching a low-resolution picture.
+## pixels instead of stretching a low-resolution picture.
 
 
 const DESIGN := Vector2i(1280, 720)
-const FONTS: Array[String] = [
-	"res://assets/fonts/DejaVuSerif.ttf",
-	"res://assets/fonts/DejaVuSerif-Bold.ttf",
-]
 
 
 ## How much a window enlarges the design canvas. Below the design size, leave
@@ -38,23 +34,4 @@ static func apply_window(tree: SceneTree, w: int, h: int) -> void:
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
 	root.content_scale_size = DESIGN
-	root.use_font_oversampling = true
 	DisplayServer.window_set_size(Vector2i(w, h))
-	sharpen(tree, keep_ratio(Vector2(w, h)))
-
-
-## Rasterize fonts at the display density. A FontFile oversampling of 0 follows
-## the viewport, which RichTextLabel often ignores, so stretched text stays a
-## blurry, pixelated bitmap. Ceil so a 1.5x window downsamples a 2x glyph.
-static func sharpen(tree: SceneTree, amount: float) -> void:
-	if DisplayServer.get_name() == "headless":
-		return
-	var over := 0.0
-	if amount > 1.01:
-		over = ceilf(amount)
-	if tree != null:
-		tree.root.oversampling_override = over
-	for path: String in FONTS:
-		var font := load(path) as FontFile
-		if font != null and not is_equal_approx(font.oversampling, over):
-			font.oversampling = over

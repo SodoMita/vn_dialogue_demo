@@ -952,8 +952,8 @@ func run() -> void:
 	check(scale_text.contains("content_scale_size = DESIGN")
 		and not gd_text.contains("_resolution_keep_scale"),
 		"resolution keeps the design canvas instead of scaling nodes")
-	check(gd_text.contains("DisplayScale.apply_window") and gd_text.contains("_display_texture"),
-		"a higher resolution rasterizes fonts and upscales art instead of stretching a low-res picture")
+	check(gd_text.contains("DisplayScale.apply_window") and not gd_text.contains("use_font_oversampling"),
+		"resolution apply does not assign a missing window property")
 	check(panic_text.contains("DisplayScale.apply_window") and panic_text.contains("_apply_standalone_scale"),
 		"panic screen applies the same resolution and UI scale")
 	check(is_equal_approx(preload("res://scenes/display_scale.gd").keep_ratio(Vector2(1920, 1080)), 1.5),
