@@ -29,7 +29,7 @@ else:
 ~ rooftop
 Wind over the chain-link fence. The city glitters below like scattered coins. [#bg=rooftop, #sprite=none:left, #sprite=none:right, #music=warm]
 Maya: See? Told you the view was worth the stairs. [#sprite=maya_smile:left, #focus=left, #voice=m6]
-Rook: You brought a witness to my hiding spot. Unforgivable. [#sprite=rook:right, #focus=right, #voice=r4]
+Rook: You brought a witness to my hiding spot. Unforgivable. [#sprite=rook_surprised:right, #focus=right, #voice=r4]
 - Ask what Rook hides up here.
 	Rook: Quiet. It's the only currency this school respects. [#voice=r5, #music=tense]
 	do knows_secret = true
@@ -38,6 +38,6 @@ Rook: You brought a witness to my hiding spot. Unforgivable. [#sprite=rook:right
 - (Say nothing. Watch the sunset.)
 	[speed=0.5]The sun goes down slow, and for once, nobody says a word.[/speed]
 Maya: Same time tomorrow? [#sprite=maya:left, #voice=m8]
-Rook: ...Hmph. Don't be late. [#sprite=rook:right, #voice=r6]
+Rook: ...Hmph. Don't be late. [#sprite=rook_smile:right, #voice=r6]
 The three of you watch until the sky burns out. [#box=hide, #music=loop:night]
 => END

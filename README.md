@@ -105,7 +105,7 @@ test-suite asserts this). All node references use `%UniqueName` lookups.
 
 ### Short staging tags (movable actors, 3D stage, animation, video)
 
-Full cheat sheet: **`docs/STAGING.md`**; demo: `dialogue/staging_demo.dialogue`.
+Full cheat sheet: **`docs/STAGING.md`**; demo: `examples/staging_demo.dialogue`.
 
 | tag | effect |
 | --- | --- |

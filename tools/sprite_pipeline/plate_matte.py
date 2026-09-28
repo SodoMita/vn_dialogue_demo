@@ -44,8 +44,16 @@ def _clamp_bg(a: np.ndarray, target: float, threshold: float) -> np.ndarray:
     return out
 
 
-def matte(white: Image.Image, black: Image.Image, *, threshold: float = 24.0,
+def matte(white: Image.Image, black: Image.Image | None, *, threshold: float = 24.0,
           edge: int = 2, core_threshold: float = 20.0) -> Image.Image:
+    if black is None:
+        # Single-plate fallback (no usable black plate): the figure mask
+        # comes from vtrace_sprite.py's background analysis instead.
+        from vtrace_sprite import background_mask
+        rgb = np.asarray(white.convert("RGB")).astype(np.int16)
+        core = ~background_mask(rgb)
+        w = _clamp_bg(np.asarray(white.convert("RGB"), dtype=np.float64), 255.0, threshold) / 255.0
+        return _finish(w, core, edge)
     if white.size != black.size:
         black = black.resize(white.size, Image.Resampling.LANCZOS)
     w = _clamp_bg(np.asarray(white.convert("RGB"), dtype=np.float64), 255.0, threshold) / 255.0
@@ -75,9 +83,10 @@ def matte(white: Image.Image, black: Image.Image, *, threshold: float = 24.0,
         sizes = ndimage.sum(core, labels, range(1, n + 1))
         core = np.isin(labels, 1 + np.flatnonzero(sizes >= max(64, sizes.max() * 0.001)))
 
-    # Rim: a thin band just outside the core keeps the difference alpha
-    # (anti-aliasing / hair tips), capped so a shifted black plate cannot
-    # create a halo, and takes the colour of the nearest core pixel.
+    return _finish(w, core, edge)
+
+
+def _finish(w: np.ndarray, core: np.ndarray, edge: int) -> Image.Image:
     # Rim alpha comes from the white plate alone: an anti-aliased pixel is
     # w = a*c + (1-a)*white, with c the nearest solid interior colour, so
     # a = sum(1-w) / sum(1-c). No black-plate shift can create a halo.
@@ -114,14 +123,14 @@ def crop(im: Image.Image, pad: int) -> Image.Image:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("white")
-    ap.add_argument("black")
+    ap.add_argument("black", help="black plate, or - for the single-plate fallback")
     ap.add_argument("output")
     ap.add_argument("--height", type=int, default=0, help="resize to this height (keeps aspect)")
     ap.add_argument("--pad", type=int, default=16)
     ap.add_argument("--edge", type=int, default=2, help="soft rim width in px")
     ap.add_argument("--quality", type=int, default=88, help="WebP quality (lossy RGB, exact alpha)")
     args = ap.parse_args()
-    out = crop(matte(Image.open(args.white), Image.open(args.black), edge=args.edge), args.pad)
+    out = crop(matte(Image.open(args.white), None if args.black == "-" else Image.open(args.black), edge=args.edge), args.pad)
     if args.height and out.height != args.height:
         out = out.resize((round(out.width * args.height / out.height), args.height), Image.Resampling.LANCZOS)
     path = Path(args.output)

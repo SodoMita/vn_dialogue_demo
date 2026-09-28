@@ -75,3 +75,10 @@ Colour precision 7 merged one jacket panel of `ken_surprised` into a grey
 cluster; 8 fixed it. Look at every trace. Each SVG is ~2 MB (about 4000
 paths); Godot imports it as a normal Texture2D (raise `svg/scale` in the
 `.import` file for a sharper texture on big screens).
+
+## No usable black plate: single-plate raster mode
+
+`plate_matte.py white.png - out.webp` builds the figure mask from the white
+render alone (background analysis of `vtrace_sprite.py`) and keeps the same
+white-plate rim alpha. Handy when the image generator refuses to produce a
+clean black plate (it failed several times for Rook).

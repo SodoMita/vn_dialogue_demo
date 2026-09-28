@@ -1,4 +1,4 @@
-## Dev tool: plays dialogue/staging_demo.dialogue and saves screenshots.
+## Dev tool: plays examples/staging_demo.dialogue and saves screenshots.
 ##   xvfb-run -a -s "-screen 0 1280x720x24" godot --rendering-driver opengl3 \
 ##     --rendering-method gl_compatibility res://tools/capture_staging.tscn
 extends Node
@@ -12,7 +12,7 @@ func _ready() -> void:
 	balloon = packed.instantiate()
 	add_child(balloon)
 	await get_tree().process_frame
-	var res: Resource = load("res://dialogue/staging_demo.dialogue")
+	var res: Resource = load("res://examples/staging_demo.dialogue")
 	balloon.start(res, "start")
 	var shots := [[0, "s1_3d_door"], [1, "s2_3d_desk"], [4, "s3_3d_focus"], [9, "s4_2d_anchors"], [11, "s5_2d_moves"]]
 	var step := 0

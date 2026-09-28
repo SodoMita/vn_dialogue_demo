@@ -212,3 +212,5 @@ yoyo/infinite `#tween=` restores to its rest value, not a running loop.
 - Ken (new, `characters/ken.tres`): vtracer SVGs, `tools/sprite_pipeline/vtrace_sprite.py` (user request). ~2 MB each.
 - Source plates in `art_src/sprite_plates/` (`.gdignore`d). See `tools/sprite_pipeline/README.md`.
 - Staging demo uses all three; docs/18, docs/19 recaptured. Older README screenshots (intro) still show the old waist-up art.
+- `staging_demo.dialogue` lives in `examples/`: inside `res://dialogue/` the route map compiled it too, prefixing every node id and failing route-graph "locale switch rebakes localized node titles" (regression since a9d9c33; 189/0 again after the move).
+- Two parallel Remi-q7x sessions pushed sprite work; bbd7d8d (Rook triangulated, Ken vtrace SVG) is kept; the other session's alternative (vector_sprite.py clipPath variant, ~600 KB SVGs) is on local branch only, not pushed.
