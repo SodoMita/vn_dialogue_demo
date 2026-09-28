@@ -31,10 +31,10 @@ class_name StageDirector extends Node
 ##                                     only around the vertical axis (vertex
 ##                                     shader); key "none" removes it
 ##   #place3d=alias:x y z[?height=1.8] place the quad by transform
-##   #place3d=alias:copy=NodePath      copy an existing 3D object's global
-##                                     position (its yaw becomes the billboard
-##                                     facing offset; scale is NOT copied -
-##                                     height sets the size)
+##   #place3d=alias:copy=NodePath      copy an existing 3D object's full
+##                                     global transform (position, rotation,
+##                                     scale; its yaw also becomes the
+##                                     billboard facing offset)
 ##
 ## #tween properties: position, x, y, z (3D), rotation (degrees), scale,
 ## modulate, alpha, self_modulate, self_alpha, global_position - or any real
@@ -927,7 +927,7 @@ func _apply_sprite3d(tag: String) -> bool:
 
 ## #place3d=alias:x y z[?height=1.8]          - place by transform
 ## #place3d=alias:copy=NodePath[?height=1.8]  - copy an existing object's
-## global transform (position + scale; its yaw becomes the facing offset).
+## global transform (position, rotation, scale; its yaw is also the facing offset).
 func _apply_place3d(tag: String) -> bool:
 	var parsed: Array = _split_options(tag.substr(tag.find("=") + 1))
 	var fields: PackedStringArray = str(parsed[0]).split(":", true, 1)
@@ -944,11 +944,10 @@ func _apply_place3d(tag: String) -> bool:
 			return _reject(tag, "no Node3D at the copy path")
 		_kill_tweens_for(node)
 		if node is Sprite3DQuad:
-			(node as Sprite3DQuad).copy_placement_from(source)
+			(node as Sprite3DQuad).copy_transform_from(source)
 		else:
-			# Position and facing only: a scaled marker must not resize.
-			var gt: Transform3D = (source as Node3D).global_transform
-			(node as Node3D).global_transform = Transform3D(Basis(gt.basis.get_rotation_quaternion()), gt.origin)
+			# Full transform: position, rotation and scale.
+			(node as Node3D).global_transform = (source as Node3D).global_transform
 	else:
 		var to: Variant = _parse_value(rest, Vector3.ZERO)
 		if not (to is Vector3):

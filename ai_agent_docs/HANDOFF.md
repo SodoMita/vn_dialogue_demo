@@ -196,6 +196,12 @@ Implements `ai_agent_docs/EDIT_PLAN.md`. Baseline in `ai_agent_docs/BASELINE.md`
 - `scenes/stages/classroom.tscn` sample; `assets/video/intro.ogv` (11 KB test pattern).
 - Tests: motion PASS, staging 265/0; UI suite unchanged vs baseline (391/8).
 
+Decision change (user, 2026-09-29): placing a character at a marker copies the
+marker's FULL transform (position, rotation, scale) - this overrides the edit plan's
+"placement ignores marker scale" (PR2, appendix C). Records store `rot` (quaternion) and
+`scale` next to `pos`/`yaw`; `#move=` to a marker tweens `quaternion` and `scale` too;
+`#place3d=copy=` / `Sprite3DQuad.copy_transform_from()` copy the full global transform.
+
 Open / not done: route-travel records have no resolved endpoints (markers looked up on
 restore); legacy `left`/`right` cannot be moved with `#move` (use `#sprite=`/`#tween=`);
 yoyo/infinite `#tween=` restores to its rest value, not a running loop.

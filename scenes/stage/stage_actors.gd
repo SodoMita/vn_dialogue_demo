@@ -195,10 +195,19 @@ func _target(p: Dictionary, a: Variant, restoring: bool, stored: Variant) -> Dic
 		var mark: Node3D = _find_marker(name)
 		if mark == null:
 			return {"ok": false, "error": "no single marker '%s' under Marks" % name}
+		# Markers place with their FULL transform: position, rotation and
+		# scale, expressed in the actor parent's space (so a transformed
+		# parent is honoured too).
 		var parent := _actor_parent_3d()
-		var local: Vector3 = parent.to_local(mark.global_position) if parent != null else mark.global_position
+		var local: Transform3D = mark.global_transform
+		if parent != null:
+			local = parent.global_transform.affine_inverse() * mark.global_transform
+		var q: Quaternion = local.basis.get_rotation_quaternion()
+		var sc: Vector3 = local.basis.get_scale()
 		var yaw := rad_to_deg(mark.global_transform.basis.get_euler().y)
-		return _from_record({"kind": "marker", "name": name, "pos": [local.x, local.y, local.z], "yaw": yaw})
+		return _from_record({"kind": "marker", "name": name,
+				"pos": [local.origin.x, local.origin.y, local.origin.z],
+				"rot": [q.x, q.y, q.z, q.w], "scale": [sc.x, sc.y, sc.z], "yaw": yaw})
 	if _anchor(name) == null:
 		return {"ok": false, "error": "no 2D anchor '%s'" % name}
 	return _from_record({"kind": "anchor", "name": name})
@@ -221,7 +230,15 @@ func _from_record(r: Dictionary) -> Dictionary:
 		return {"ok": false, "error": "bad stored position"}
 	if (pos is Vector3) != is_3d():
 		return {"ok": false, "error": "stored position does not match the stage"}
-	return {"ok": true, "resolved": r.duplicate(), "pos": pos, "yaw": r.get("yaw")}
+	var rot: Variant = null
+	var rarr: Array = r.get("rot", [])
+	if rarr.size() == 4:
+		rot = Quaternion(float(rarr[0]), float(rarr[1]), float(rarr[2]), float(rarr[3])).normalized()
+	var scl: Variant = null
+	var sarr: Array = r.get("scale", [])
+	if sarr.size() == 3:
+		scl = Vector3(float(sarr[0]), float(sarr[1]), float(sarr[2]))
+	return {"ok": true, "resolved": r.duplicate(), "pos": pos, "yaw": r.get("yaw"), "rot": rot, "scale": scl}
 
 
 func _anchor(name: String) -> Control:
@@ -392,6 +409,13 @@ func _set_look(a: Dictionary, key: String) -> void:
 func _place(a: Dictionary, t: Dictionary, duration: float, trans: String, ease_name: String, instant: bool) -> void:
 	a.place = t.resolved
 	director.tween_to(a.root, "position", t.pos, duration, trans, ease_name, instant)
+	# Marker placement also carries rotation and scale (root transform).
+	if t.get("rot") != null and a.root is Node3D:
+		director.tween_to(a.root, "quaternion", t.rot, duration, trans, ease_name, instant)
+	if t.get("scale") != null and a.root is Node3D:
+		director.tween_to(a.root, "scale", t.scale, duration, trans, ease_name, instant)
+	# The billboard shader ignores node rotation, so the marker's yaw also
+	# travels to the quad as its facing offset.
 	if t.get("yaw") != null and a.body is Sprite3DQuad:
 		director.tween_to(a.body, "yaw_offset_deg", float(t.yaw), duration, trans, ease_name, instant)
 

@@ -66,8 +66,11 @@ anchored characters follow their anchor; characters at coordinates stay.
 A stage scene is a `Node3D` with a `Camera3D`, a `Marks` node and optionally
 an `Actors` node (where characters are added; defaults to the scene root).
 Every `Marker3D` under `Marks` is a place, by name. Placement copies the
-marker's position and facing, never its scale — the character's height sets
-its size. Missing or duplicate names warn and the tag is ignored (and not
+marker's **full transform** — position, rotation and scale (relative to the
+`Actors` node, so transformed parents count too). A scaled marker makes the
+character bigger or smaller on top of its `height_3d`; the marker's yaw also
+becomes the billboard's facing offset. `#move=` to a marker tweens all three.
+Moves by `?by=` or coordinates keep the current rotation and scale. Missing or duplicate names warn and the tag is ignored (and not
 recorded).
 
 Register stages in the balloon's `stage_scenes`, or drop them at
@@ -140,7 +143,8 @@ Notes:
   easing are balloon settings (`move_time`, `move_trans`, `move_ease`).
 - Short-tag actors are registered as director aliases under their ID, so
   `#tween=maya:...` reaches a character created by `#show=maya`.
-- `#place3d=copy=` no longer copies the marker's scale.
+- `#place3d=copy=` copies the source's full global transform (position,
+  rotation, scale); its yaw is also the billboard facing offset.
 - `#sprite3d=newkey:alias` on an existing quad now swaps the texture and keeps
   the node, placement and running tweens.
 - Relative `#tween=`/`#set=` start from the logical destination of a running

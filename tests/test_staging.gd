@@ -387,6 +387,7 @@ func _three_d_tests() -> void:
 	check(actors.actors.maya.body is Sprite3DQuad, "3D body is a billboard quad")
 	var rec: Dictionary = balloon.history[0].motion[1].resolved
 	check(rec.place.kind == "marker" and (rec.place.pos as Array).size() == 3, "marker endpoint recorded")
+	check((rec.place.get("rot", []) as Array).size() == 4 and (rec.place.get("scale", []) as Array).size() == 3, "marker rotation and scale recorded")
 	await _advance()  # move to desk + wave
 	await wait(0.35)
 	check(near(actors.resolve("maya").global_position, marks.get_node("desk").global_position, 0.01), "Maya walked to the desk marker")
@@ -415,7 +416,7 @@ func _three_d_tests() -> void:
 	dup_b.name = "twin"
 	holder.add_child(dup_b)
 	check(not actors.apply(StageTagParser.parse("move=ken@twin")).ok, "duplicate marker rejected")
-	# Marker scale under a transformed parent is ignored.
+	# Marker placement copies the full transform, also under a transformed parent.
 	var scaled := Node3D.new()
 	scaled.name = "Scaled"
 	scaled.scale = Vector3(3, 3, 3)
@@ -425,11 +426,25 @@ func _three_d_tests() -> void:
 	sm.name = "big_spot"
 	sm.scale = Vector3(2, 2, 2)
 	sm.position = Vector3(0.5, 0, 0)
+	sm.rotation_degrees = Vector3(0, 90, 0)
 	scaled.add_child(sm)
 	check(actors.apply(StageTagParser.parse("show=ken@big_spot")).ok, "show at a marker under a scaled parent")
 	var ken_root: Node3D = actors.resolve("ken")
 	check(near(ken_root.global_position, sm.global_position, 0.01), "placed at the marker's global position")
-	check(near(ken_root.global_transform.basis.get_scale().y, 1.0, 0.001) and near(actors.actors.ken.body.global_transform.basis.get_scale().y, 1.0, 0.001), "marker/parent scale ignored")
+	check(ken_root.global_transform.is_equal_approx(sm.global_transform), "full marker transform copied (position, rotation, scale)")
+	check(near(ken_root.global_transform.basis.get_scale().y, 6.0, 0.001), "marker x parent scale applied (2 x 3)")
+	check(near(actors.actors.ken.body.yaw_offset_deg, 90.0, 0.01), "marker yaw is the billboard facing offset")
+	# Restore uses the recorded transform, not the live marker.
+	var shown: Dictionary = actors.apply(StageTagParser.parse("show=ken@big_spot"))
+	var stored: Dictionary = shown.resolved
+	sm.rotation_degrees = Vector3(0, 0, 0)
+	sm.scale = Vector3.ONE
+	sm.position = Vector3(2, 0, 0)
+	actors.apply(StageTagParser.parse("show=ken@big_spot"), true, stored)
+	check(near(ken_root.global_transform.basis.get_scale().y, 6.0, 0.001) and near(actors.actors.ken.body.yaw_offset_deg, 90.0, 0.01), "restore re-applies the recorded rotation/scale")
+	actors.apply(StageTagParser.parse("move=ken@big_spot?t=0.2"))
+	await wait(0.35)
+	check(ken_root.global_transform.is_equal_approx(sm.global_transform), "#move to a marker tweens to its full transform")
 	check(actors.apply(StageTagParser.parse("move=ken?by=0.5 0 0&t=0")).ok, "3D ?by= move")
 	check(not actors.apply(StageTagParser.parse("move=ken@1 2")).ok, "2D coordinates rejected on a 3D stage")
 	# Rollback inside the 3D scene: endpoints from records, loop video

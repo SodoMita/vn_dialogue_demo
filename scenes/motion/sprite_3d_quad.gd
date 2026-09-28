@@ -83,21 +83,11 @@ func _push_uniform(param: String, value: Variant) -> void:
 		_material.set_shader_parameter(param, value)
 
 
-## Adopt a marker's placement: position and facing only. Scale is ignored
-## (a scaled marker or a transformed parent must not resize the portrait -
-## [member world_height] sets the size). Used by `#place3d=copy=` and
-## StageActors marker placement.
-func copy_placement_from(source: Node3D) -> void:
-	var gt := source.global_transform
-	global_position = gt.origin
-	yaw_offset_deg = rad_to_deg(gt.basis.get_euler().y)
-
-
-## Legacy: position AND scale are copied
+## Adopt an existing 3D object's placement: the FULL global transform is
+## copied
 ## onto this node, and the source's yaw becomes the billboard facing offset
 ## (the shader owns the aim, so yaw travels through the uniform).
 func copy_transform_from(source: Node3D) -> void:
 	var gt := source.global_transform
-	global_position = gt.origin
-	scale = gt.basis.get_scale()
+	global_transform = gt
 	yaw_offset_deg = rad_to_deg(gt.basis.get_euler().y)

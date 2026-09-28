@@ -105,7 +105,7 @@ Not ported: Klima's `ShowDirector`, trials, Aurora code and art, and its whole b
 |---|---|---|
 | 0 | Freeze syntax (Part 1), stage switching, and appendix contracts: coordinate parsing, history membership, explicit placement, conflicting targets, and default appearance | Authoring direction approved; parsing/contract test cases specified before implementation |
 | 1 | Baseline: run the current tests; pin current behaviour | Known failures listed |
-| 2 | Port the director, quad, and tests. Look changes no longer rebuild a character. Marker placement ignores marker scale. | Klima tags work in the demo |
+| 2 | Port the director, quad, and tests. Look changes no longer rebuild a character. ~~Marker placement ignores marker scale.~~ (changed: full transform) | Klima tags work in the demo |
 | 3 | Make save, rollback, and route map reliable with motion (Appendix A) | Restore tests pass |
 | 4 | 2D: `#show`/`#move`/`#hide`/`#focus`, anchors, character definitions | Old dialogue unchanged; many characters movable |
 | 5 | 3D: `#stage`, markers, sample scene | Example staging works without the `#anim` tag |
@@ -144,7 +144,9 @@ Not ported: Klima's `ShowDirector`, trials, Aurora code and art, and its whole b
 
 - The 3D stage is a `SubViewport` under the balloon's stage. `#stage=` switches it and never replaces the game's current scene.
 - Markers come from `Marks/` by name. Duplicate or missing names produce a warning, and the command is ignored and not recorded.
-- Placement copies position and facing, not scale; height sets size. The quad's yaw is a billboard offset. `copy_transform_from()` currently copies scale, so add a variant that doesn't.
+- ~~Placement copies position and facing, not scale; height sets size.~~ **Changed by the
+  user (2026-09-29): placement copies the marker's full transform (position, rotation,
+  scale).** The quad's yaw is a billboard offset. `copy_transform_from()` currently copies scale, so add a variant that doesn't.
 
 ### D. Video (first version)
 
@@ -165,7 +167,7 @@ Not ported: Klima's `ShowDirector`, trials, Aurora code and art, and its whole b
 - Mixed legacy and new commands keep their order after restore.
 - Old save → continue → save → load works.
 - Direction-only entries persist, don't show blank backlog rows, and don't add rollback stops.
-- Missing and duplicate markers; marker scale ignored under transformed parents.
+- Missing and duplicate markers; full marker transform (position, rotation, scale) copied under transformed parents (changed by user).
 - Video restore rules; missing file.
 - **Authoring check:** first-party examples that use the short tags contain no node paths. The check inspects parsed tags. Low-level compatibility fixtures and advanced examples may use paths; the runtime does not forbid them.
 
