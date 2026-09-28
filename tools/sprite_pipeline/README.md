@@ -47,3 +47,6 @@ too.
 Install as `assets/characters/<id>.webp` (neutral) and `<id>_<expr>.webp`,
 then add the keys to the `sprites` dictionary in `scenes/vn_balloon.tscn`.
 `#show=maya:sad` resolves to the `maya_sad` key.
+
+Source plates (lossless WebP) live in `art_src/sprite_plates/` (ignored by
+Godot via `art_src/.gdignore`) so sprites can be re-cut without regenerating.
