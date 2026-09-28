@@ -18,6 +18,14 @@
 [ext_resource type="Resource" path="res://characters/rook.tres" id="16_def_rook"]
 [ext_resource type="Texture2D" path="res://assets/characters/maya_sad.webp" id="17_maya_sad"]
 [ext_resource type="Texture2D" path="res://assets/characters/maya_surprised.webp" id="18_maya_surprised"]
+[ext_resource type="Texture2D" path="res://assets/characters/rook_smile.webp" id="19_rook_smile"]
+[ext_resource type="Texture2D" path="res://assets/characters/rook_sad.webp" id="20_rook_sad"]
+[ext_resource type="Texture2D" path="res://assets/characters/rook_surprised.webp" id="21_rook_surprised"]
+[ext_resource type="Texture2D" path="res://assets/characters/ken.svg" id="22_ken"]
+[ext_resource type="Texture2D" path="res://assets/characters/ken_smile.svg" id="23_ken_smile"]
+[ext_resource type="Texture2D" path="res://assets/characters/ken_sad.svg" id="24_ken_sad"]
+[ext_resource type="Texture2D" path="res://assets/characters/ken_surprised.svg" id="25_ken_surprised"]
+[ext_resource type="Resource" path="res://characters/ken.tres" id="26_def_ken"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
 bg_color = Color(0.045, 0.06, 0.12, 0.94)
@@ -196,9 +204,16 @@ sprites = Dictionary[String, Texture2D]({
 "maya_smile": ExtResource("9_maya_smile"),
 "maya_sad": ExtResource("17_maya_sad"),
 "maya_surprised": ExtResource("18_maya_surprised"),
-"rook": ExtResource("10_rook")
+"rook": ExtResource("10_rook"),
+"rook_smile": ExtResource("19_rook_smile"),
+"rook_sad": ExtResource("20_rook_sad"),
+"rook_surprised": ExtResource("21_rook_surprised"),
+"ken": ExtResource("22_ken"),
+"ken_smile": ExtResource("23_ken_smile"),
+"ken_sad": ExtResource("24_ken_sad"),
+"ken_surprised": ExtResource("25_ken_surprised")
 })
-actor_definitions = [ExtResource("15_def_maya"), ExtResource("16_def_rook")]
+actor_definitions = [ExtResource("15_def_maya"), ExtResource("16_def_rook"), ExtResource("26_def_ken")]
 
 [node name="Balloon" type="Control" parent="." unique_id=1419289364]
 unique_name_in_owner = true

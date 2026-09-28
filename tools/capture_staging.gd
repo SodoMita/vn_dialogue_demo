@@ -14,7 +14,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var res: Resource = load("res://dialogue/staging_demo.dialogue")
 	balloon.start(res, "start")
-	var shots := [[0, "s1_3d_door"], [1, "s2_3d_desk"], [2, "s3_3d_focus"], [6, "s4_2d_anchors"], [8, "s5_2d_moves"]]
+	var shots := [[0, "s1_3d_door"], [1, "s2_3d_desk"], [4, "s3_3d_focus"], [9, "s4_2d_anchors"], [11, "s5_2d_moves"]]
 	var step := 0
 	for shot: Array in shots:
 		while step < int(shot[0]):

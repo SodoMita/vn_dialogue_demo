@@ -50,3 +50,28 @@ then add the keys to the `sprites` dictionary in `scenes/vn_balloon.tscn`.
 
 Source plates (lossless WebP) live in `art_src/sprite_plates/` (ignored by
 Godot via `art_src/.gdignore`) so sprites can be re-cut without regenerating.
+
+## Vector route: `vtrace_sprite.py` (used for Ken)
+
+Needs only the white render. Traces it with
+[vtracer](https://github.com/visioncortex/vtracer) (`pip install vtracer`)
+into an SVG that has **no background paths**:
+
+1. background = near-white connected to the border, plus enclosed regions
+   that are flat pure white (gap between Ken's raised arm and head); the shirt
+   is shaded (~243) and survives;
+2. light anti-aliased rim pixels next to the background are dropped
+   (`--fringe-level`, default 160) so no white outline is traced;
+3. background becomes transparent, which vtracer keys out;
+4. the image is traced at 2x (`--upscale`) for smoother curves, viewBox cropped
+   to the figure.
+
+```sh
+python3 tools/sprite_pipeline/vtrace_sprite.py ken_smile_white.png assets/characters/ken_smile.svg --png /tmp/preview.png
+```
+
+Defaults: `--color-precision 8 --layer-difference 12 --filter-speckle 6`.
+Colour precision 7 merged one jacket panel of `ken_surprised` into a grey
+cluster; 8 fixed it. Look at every trace. Each SVG is ~2 MB (about 4000
+paths); Godot imports it as a normal Texture2D (raise `svg/scale` in the
+`.import` file for a sharper texture on big screens).

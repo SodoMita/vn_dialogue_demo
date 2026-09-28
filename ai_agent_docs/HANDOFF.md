@@ -206,7 +206,9 @@ Open / not done: route-travel records have no resolved endpoints (markers looked
 restore); legacy `left`/`right` cannot be moved with `#move` (use `#sprite=`/`#tween=`);
 yoyo/infinite `#tween=` restores to its rest value, not a running loop.
 
-## Sprites (Remi-q7x, in progress)
-- Full-body sprites cut with `tools/sprite_pipeline/plate_matte.py` (see its README; klima tools credited).
-- Done: Maya neutral/smile/sad/surprised (`maya`, `maya_smile`, `maya_sad`, `maya_surprised`).
-- TODO: Rook + new Ken full body. Plates in `art_src/sprite_plates/` (rook/ken black plates still needed; first attempts failed).
+## Sprites (Remi-q7x)
+- Full-body, 4 expressions each (neutral = bare id, `_smile`, `_sad`, `_surprised`).
+- Maya, Rook: plate triangulation, `tools/sprite_pipeline/plate_matte.py` (klima tools credited). WebP.
+- Ken (new, `characters/ken.tres`): vtracer SVGs, `tools/sprite_pipeline/vtrace_sprite.py` (user request). ~2 MB each.
+- Source plates in `art_src/sprite_plates/` (`.gdignore`d). See `tools/sprite_pipeline/README.md`.
+- Staging demo uses all three; docs/18, docs/19 recaptured. Older README screenshots (intro) still show the old waist-up art.
