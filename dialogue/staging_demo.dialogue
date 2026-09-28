@@ -3,7 +3,7 @@
 The classroom, this time as a 3D stage. [#stage=classroom, #show=maya@door, #music=calm]
 Maya: Morning! [#move=maya@desk?t=0.9, #anim=maya:wave]
 Rook: Late again. [#show=rook@guest_desk, #focus=rook]
-Maya: Am not! [#show=maya:smile, #focus=maya]
+Maya: Am not! [#show=maya:surprised, #focus=maya]
 [#hide=maya@hall]
 Rook: ...Back to the flat stage, then. [#stage=2d, #bg=rooftop]
 Maya: Two slots were never enough. [#show=maya@far_left, #show=rook@far_right, #focus=maya]

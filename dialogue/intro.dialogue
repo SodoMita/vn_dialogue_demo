@@ -5,7 +5,7 @@ using GameState
 ~ start
 The afternoon light pools between the desks. Somewhere, a chalk tap-taps against the board. [#bg=classroom, #sprite=none:left, #sprite=none:right, #music=calm]
 Rook: Another transfer student. Just what this school needed. [#sprite=rook:right, #focus=right, #voice=r1]
-Maya: H-hey! The bell hasn't even rung yet, I'm not late! [#sprite=maya:left, #focus=left, #voice=m1]
+Maya: H-hey! The bell hasn't even rung yet, I'm not late! [#sprite=maya_surprised:left, #focus=left, #voice=m1]
 Rook: The bell rang four minutes ago. [#focus=right, #voice=r2]
 Maya: ... [#sprite=maya_smile:left]
 Maya: Fine, you win, clock-watch person. I'm {{player_name}}. And you are? [#voice=m2]

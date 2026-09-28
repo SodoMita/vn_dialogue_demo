@@ -16,6 +16,8 @@
 [ext_resource type="Script" path="res://scenes/stage/stage_actors.gd" id="14_actors"]
 [ext_resource type="Resource" path="res://characters/maya.tres" id="15_def_maya"]
 [ext_resource type="Resource" path="res://characters/rook.tres" id="16_def_rook"]
+[ext_resource type="Texture2D" path="res://assets/characters/maya_sad.webp" id="17_maya_sad"]
+[ext_resource type="Texture2D" path="res://assets/characters/maya_surprised.webp" id="18_maya_surprised"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
 bg_color = Color(0.045, 0.06, 0.12, 0.94)
@@ -192,6 +194,8 @@ backgrounds = Dictionary[String, Texture2D]({
 sprites = Dictionary[String, Texture2D]({
 "maya": ExtResource("8_maya"),
 "maya_smile": ExtResource("9_maya_smile"),
+"maya_sad": ExtResource("17_maya_sad"),
+"maya_surprised": ExtResource("18_maya_surprised"),
 "rook": ExtResource("10_rook")
 })
 actor_definitions = [ExtResource("15_def_maya"), ExtResource("16_def_rook")]
