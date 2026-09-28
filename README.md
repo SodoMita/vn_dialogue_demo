@@ -103,6 +103,30 @@ test-suite asserts this). All node references use `%UniqueName` lookups.
 | `[#focus=left\|right]` | spotlight one slot, dim the other |
 | `[#box=hide]` / `[#box=show]` | hide / show the dialogue box for pure stage moments |
 
+### Short staging tags (movable actors, 3D stage, animation, video)
+
+Full cheat sheet: **`docs/STAGING.md`**; demo: `dialogue/staging_demo.dialogue`.
+
+| tag | effect |
+| --- | --- |
+| `#show=maya[:look][@place]` | show a character / change look / snap to a place |
+| `#move=maya@place` · `@x y` · `?by=dx dy` (`?t=0.8`) | walk/slide (tweened) |
+| `#hide=maya[@off_left]` | remove, optionally walking off first |
+| `#focus=maya` | spotlight any actor (legacy `left`/`right` still work) |
+| `#anim=maya:wave` | play an animation authored on the character |
+| `#video=intro[:stop]` (`?loop`, `?on=maya`) | Ogg Theora video on the stage or on a character |
+| `#stage=classroom` / `#stage=2d` | switch to a 3D stage scene (`scenes/stages/`) and back |
+
+2D places are the anchors under `Balloon/Stage/Anchors`; 3D places are the `Marker3D`
+nodes under a stage scene's `Marks`. Characters are `ActorDefinition` resources
+(`characters/*.tres`). Klima's advanced motion tags (`#tween=` `#set=` `#shake=` `#nla=`
+`#sprite3d=` `#place3d=` `#target=`) run on the same `StageDirector`
+(`scenes/motion/`). Every accepted presentation command is recorded in story order per
+history entry and replayed on rollback / load / route travel (end poses).
+
+![3D stage](docs/18_staging_3d.webp)
+![2D actors](docs/19_staging_2d.webp)
+
 Dialogue also uses v4 features: `{{var}}` interpolation, `do x = true` mutations, `if/else`,
 cues (`~ start`, `~ rooftop`), choices, and `[speed=0.5]...[/speed]` bbcode. See
 `dialogue/intro.dialogue`.
@@ -242,6 +266,10 @@ binding button, then press the desired key.
 ./run_tests.sh            # import + per-script checks + headless UI and route-graph suites
 ```
 
+`tests/motion_director_test.tscn` (StageDirector) and `tests/test_staging.tscn` (short tags,
+parser contract, many actors, 3D markers, stage switching, video restore rules, ordered
+history restore, old saves, route travel, docs examples) run as part of it.
+
 The suite (`tests/test_vn_ui.gd`) drives the *real* balloon with synthetic keyboard input and
 checks: authored-scene structure, no code-built UI, balloon routing via project setting,
 tags → stage, typewriter + skip, next indicator, choices via keyboard, mutations, conditions,
@@ -304,6 +332,8 @@ menu (and non-left clicks don't), and that the save/load menu `X` closes it.
 - `docs/CUSTOMIZING.md` — swapping art/voices/story content, theming, settings ranges.
 - `docs/RECREATION.md` — rebuilding this balloon from scratch with Dialogue Manager,
   layout blueprint and the pitfalls list.
+- `docs/STAGING.md` — short staging tags, places, characters, 3D stages, video, restore rules, Klima migration.
+- `ai_agent_docs/` — agent handoff notes, the edit plan and the test baseline.
 - `docs/ROUTE_GRAPH_DESIGN.md` — the optional story-map renderer (single-pass, one atlas fetch). The map marks where you are; a header click travels there; an edge click pans to the further of that edge's two nodes; **Visited only** hides unread routes until you approve spoilers.
 
 Rendered screenshots (under Xvfb + software GL):

@@ -173,3 +173,29 @@ Audio details:
 ### Release note
 
 The user intends to release the project now. Do not claim the audio-resume issue is fixed. If creating a tag for the latest commit, use the next project version according to the user's release convention; the latest existing release is `v1.16.0`.
+
+---
+
+## 2026-09-29 — branch `remi-q7x` (Remi-q7x): edit plan PR1–PR8
+
+Implements `ai_agent_docs/EDIT_PLAN.md`. Baseline in `ai_agent_docs/BASELINE.md`.
+
+- `scenes/motion/` — Klima `StageDirector` + `Sprite3DQuad` + shader, ported with fixes:
+  logical destinations for relative tweens, overlapping-property cancel (snap first),
+  `copy_placement_from` (no scale), look change keeps quads, `reset_all` stops playback and
+  drops story aliases, `generation` counter, public API (`tween_to`, `set_now`,
+  `logical_value`, `play_clip`, `register_alias`).
+- `scenes/stage/` — `StageTagParser` (pure, appendix F), `ActorDefinition`, `StageActors`.
+- `vn_balloon.gd` — `_apply_presentation()` single dispatcher; entries get `pfmt`,
+  `motion` [{tag, resolved}], `display_in_backlog`; `_restore_presentation()` replays from the
+  last legacy checkpoint; `stage_restored` signal; saves carry `presentation_format`.
+- `route_graph_travel.gd` — `_dress` / `_record` add branch-local records (resolved `{}`:
+  restore resolves those live).
+- `vn_balloon.tscn` — `Stage3D` SubViewport, `VideoLayer`, `Actors`, `Anchors` (11), nodes
+  `MotionDirector`, `StageActors`; `characters/maya.tres`, `rook.tres` (wave anim).
+- `scenes/stages/classroom.tscn` sample; `assets/video/intro.ogv` (11 KB test pattern).
+- Tests: motion PASS, staging 265/0; UI suite unchanged vs baseline (391/8).
+
+Open / not done: route-travel records have no resolved endpoints (markers looked up on
+restore); legacy `left`/`right` cannot be moved with `#move` (use `#sprite=`/`#tween=`);
+yoyo/infinite `#tween=` restores to its rest value, not a running loop.
