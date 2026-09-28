@@ -505,6 +505,13 @@ func is_tweening(node: Node, prop: String) -> bool:
 	return false
 
 
+## Register a story alias (dropped again by [method reset_all]). StageActors
+## registers each actor's root under its ID so advanced tags reach it.
+func register_alias(alias: String, node: Node) -> void:
+	if alias != "" and node != null and not _authored.has(alias):
+		_targets[alias] = node
+
+
 ## Kill every tween on [param node] (it is about to be freed or re-placed).
 func kill_node(node: Node) -> void:
 	if node != null:
@@ -885,6 +892,8 @@ func _apply_sprite3d(tag: String) -> bool:
 	var parent: Node3D = null
 	if opts.has("path"):
 		parent = _find_by_path(str(opts.path)) as Node3D
+	elif is_instance_valid(_spawned.get(alias)):
+		parent = (_spawned[alias] as Node).get_parent() as Node3D
 	if parent == null:
 		var scene: Node = get_tree().current_scene if get_tree() != null else null
 		parent = scene as Node3D

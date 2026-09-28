@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="ActorDefinition" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scenes/stage/actor_definition.gd" id="1_def"]
+
+[sub_resource type="Animation" id="Animation_wave2d"]
+resource_name = "wave"
+length = 0.8
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:position:y")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4, 0.6, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.0, -28.0, 0.0, -28.0, 0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_2d"]
+_data = {
+&"wave": SubResource("Animation_wave2d")
+}
+
+[sub_resource type="Animation" id="Animation_wave3d"]
+resource_name = "wave"
+length = 0.8
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:position:y")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4, 0.6, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [0.0, 0.12, 0.0, 0.12, 0.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_3d"]
+_data = {
+&"wave": SubResource("Animation_wave3d")
+}
+
+[resource]
+script = ExtResource("1_def")
+id = "rook"
+default_appearance = "rook"
+default_place = "center"
+animations_2d = SubResource("AnimationLibrary_2d")
+animations_3d = SubResource("AnimationLibrary_3d")

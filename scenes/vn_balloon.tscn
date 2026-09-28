@@ -12,6 +12,10 @@
 [ext_resource type="Texture2D" uid="uid://y2c8c23cqlm6" path="res://assets/characters/rook.webp" id="10_rook"]
 [ext_resource type="Script" uid="uid://dvxki2gr62k4a" path="res://scenes/hold_indicator.gd" id="11_hold"]
 [ext_resource type="PackedScene" uid="uid://ba4pj5dj4gjtc" path="res://scenes/route_graph/route_graph_panel.tscn" id="12_route"]
+[ext_resource type="Script" path="res://scenes/motion/stage_director.gd" id="13_director"]
+[ext_resource type="Script" path="res://scenes/stage/stage_actors.gd" id="14_actors"]
+[ext_resource type="Resource" path="res://characters/maya.tres" id="15_def_maya"]
+[ext_resource type="Resource" path="res://characters/rook.tres" id="16_def_rook"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
 bg_color = Color(0.045, 0.06, 0.12, 0.94)
@@ -190,6 +194,7 @@ sprites = Dictionary[String, Texture2D]({
 "maya_smile": ExtResource("9_maya_smile"),
 "rook": ExtResource("10_rook")
 })
+actor_definitions = [ExtResource("15_def_maya"), ExtResource("16_def_rook")]
 
 [node name="Balloon" type="Control" parent="." unique_id=1419289364]
 unique_name_in_owner = true
@@ -220,6 +225,35 @@ grow_vertical = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6
+
+[node name="Stage3D" type="SubViewportContainer" parent="Balloon/Stage"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+stretch = true
+
+[node name="Stage3DViewport" type="SubViewport" parent="Balloon/Stage/Stage3D"]
+unique_name_in_owner = true
+own_world_3d = true
+handle_input_locally = false
+size = Vector2i(1280, 720)
+render_target_update_mode = 4
+
+[node name="VideoLayer" type="Control" parent="Balloon/Stage"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="SpriteLeft" type="TextureRect" parent="Balloon/Stage" unique_id=446653131]
 unique_name_in_owner = true
@@ -253,6 +287,114 @@ grow_vertical = 0
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
+
+[node name="Actors" type="Control" parent="Balloon/Stage"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Anchors" type="Control" parent="Balloon/Stage"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="far_left" type="Control" parent="Balloon/Stage/Anchors"]
+layout_mode = 1
+anchor_left = 0.1
+anchor_top = 1.0
+anchor_right = 0.1
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="left" type="Control" parent="Balloon/Stage/Anchors"]
+layout_mode = 1
+anchor_left = 0.25
+anchor_top = 1.0
+anchor_right = 0.25
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="center" type="Control" parent="Balloon/Stage/Anchors"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="right" type="Control" parent="Balloon/Stage/Anchors"]
+layout_mode = 1
+anchor_left = 0.75
+anchor_top = 1.0
+anchor_right = 0.75
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="far_right" type="Control" parent="Balloon/Stage/Anchors"]
+layout_mode = 1
+anchor_left = 0.9
+anchor_top = 1.0
+anchor_right = 0.9
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="off_left" type="Control" parent="Balloon/Stage/Anchors"]
+layout_mode = 1
+anchor_left = -0.25
+anchor_top = 1.0
+anchor_right = -0.25
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="off_right" type="Control" parent="Balloon/Stage/Anchors"]
+layout_mode = 1
+anchor_left = 1.25
+anchor_top = 1.0
+anchor_right = 1.25
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="top_left" type="Control" parent="Balloon/Stage/Anchors"]
+layout_mode = 1
+anchor_left = 0.25
+anchor_top = 0.55
+anchor_right = 0.25
+anchor_bottom = 0.55
+mouse_filter = 2
+
+[node name="top" type="Control" parent="Balloon/Stage/Anchors"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.55
+anchor_right = 0.5
+anchor_bottom = 0.55
+mouse_filter = 2
+
+[node name="top_right" type="Control" parent="Balloon/Stage/Anchors"]
+layout_mode = 1
+anchor_left = 0.75
+anchor_top = 0.55
+anchor_right = 0.75
+anchor_bottom = 0.55
+mouse_filter = 2
+
+[node name="true_center" type="Control" parent="Balloon/Stage/Anchors"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.75
+anchor_right = 0.5
+anchor_bottom = 0.75
+mouse_filter = 2
 
 [node name="UIRoot" type="Control" parent="Balloon" unique_id=1456907977]
 unique_name_in_owner = true
@@ -1901,6 +2043,14 @@ grow_horizontal = 0
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 22
 text = "X"
+
+[node name="MotionDirector" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("13_director")
+
+[node name="StageActors" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("14_actors")
 
 [node name="MutationCooldown" type="Timer" parent="." unique_id=897377179]
 unique_name_in_owner = true

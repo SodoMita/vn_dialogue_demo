@@ -1,0 +1,773 @@
+class_name StageActors extends Node
+## Short-tag layer: turns #show / #move / #hide / #focus / #anim / #video /
+## #stage into StageDirector calls. Knows the actors, the 2D anchors and the
+## 3D scene markers; owns no tween code of its own (the director is the only
+## motion engine).
+##
+## Every accepted command returns a JSON-safe "resolved" record (the
+## computed endpoint), which the balloon stores in history. Restore passes
+## it back with restoring = true: endpoints come from the record (markers are
+## not looked up again), nothing animates, and looping videos wait for
+## [method finish_restore].
+##
+## Node layout per actor (responsibilities kept separate):
+##   root   - position and movement (tweened by the director)
+##   visual - feet pivot, size, user sprite scale / Y offset, focus dim
+##   body   - expression (texture) and local animation
+
+## Emitted after a stage switch cleared the previous stage.
+signal stage_cleared(new_stage: String)
+
+const RESERVED := ["left", "right"]
+const DIM_2D := 0.45
+const DIM_3D := Color(0.55, 0.55, 0.6, 1.0)
+
+var director: StageDirector
+## Sprite key -> Texture2D (the balloon's `sprites`).
+var sprites: Dictionary = {}
+## Actor ID -> ActorDefinition.
+var definitions: Dictionary = {}
+## Stage name -> PackedScene; unknown names try res://scenes/stages/<name>.tscn.
+var stage_scenes: Dictionary = {}
+## Video name -> VideoStream; unknown names try res://assets/video/<name>.ogv.
+var videos: Dictionary = {}
+## Legacy portrait slots, reserved IDs "left"/"right".
+var legacy: Dictionary = {}
+
+var stage_2d: Control
+var actors_2d: Control
+var anchors_2d: Control
+var video_layer: Control
+var viewport_container: SubViewportContainer
+var viewport: SubViewport
+
+## Stage defaults (the balloon may override them).
+var move_time: float = 0.45
+var move_trans: String = "sine"
+var move_ease: String = "in_out"
+var sprite_scale: float = 1.0
+var sprite_y: float = 0.0
+
+var current_stage: String = "2d"
+var focus_id: String = ""
+## Actor ID -> actor record (see [method _new_actor]).
+var actors: Dictionary = {}
+## Actors walking off after #hide=id@place; freed when the walk ends.
+var _ghosts: Array = []
+## Video name -> {player, loop, on}
+var _videos: Dictionary = {}
+## Looping videos requested during reconstruction; started by finish_restore.
+var _pending_videos: Array = []
+var _stage_root: Node3D = null
+var _stage_cache: Dictionary = {}
+
+
+func setup(p_director: StageDirector, p_stage: Control, p_actors: Control, p_anchors: Control, p_video: Control, p_container: SubViewportContainer, p_viewport: SubViewport) -> void:
+	director = p_director
+	stage_2d = p_stage
+	actors_2d = p_actors
+	anchors_2d = p_anchors
+	video_layer = p_video
+	viewport_container = p_container
+	viewport = p_viewport
+	if stage_2d != null and not stage_2d.resized.is_connected(_on_stage_resized):
+		stage_2d.resized.connect(_on_stage_resized)
+
+
+func add_definition(def: ActorDefinition) -> void:
+	if def == null or def.id == "":
+		return
+	if RESERVED.has(def.id):
+		push_warning("StageActors: '%s' is reserved for the legacy slot" % def.id)
+		return
+	definitions[def.id] = def
+
+
+func is_3d() -> bool:
+	return current_stage != "2d"
+
+
+## The node an ID names: a legacy slot or a live actor's root.
+func resolve(id: String) -> Node:
+	if legacy.has(id):
+		return legacy[id]
+	if actors.has(id):
+		return actors[id].root
+	return null
+
+
+func has_actor(id: String) -> bool:
+	return actors.has(id)
+
+
+func _reject(tag: String, reason: String) -> Dictionary:
+	push_warning("StageActors: %s (%s)" % [reason, tag])
+	return {"ok": false, "error": reason}
+
+
+func _accept(resolved: Dictionary = {}) -> Dictionary:
+	return {"ok": true, "resolved": resolved}
+
+
+## Apply one parsed short tag (see StageTagParser.parse). [param resolved]
+## is the stored record when restoring. Returns {ok, resolved|error}.
+## `focus` for legacy slots is left to the caller (balloon).
+func apply(p: Dictionary, restoring: bool = false, resolved: Dictionary = {}) -> Dictionary:
+	if not bool(p.get("ok", false)):
+		return _reject(str(p.get("tag", "")), str(p.get("error", "bad tag")))
+	var tag: String = p.tag
+	match str(p.cmd):
+		"show":
+			return _apply_show(p, restoring, resolved)
+		"move":
+			return _apply_move(p, restoring, resolved)
+		"hide":
+			return _apply_hide(p, restoring, resolved)
+		"focus":
+			return apply_focus(str(p.actor)) if actors.has(p.actor) else _reject(tag, "no actor '%s' on stage" % p.actor)
+		"anim":
+			return _apply_anim(p, restoring)
+		"video":
+			return _apply_video(p, restoring)
+		"stage":
+			return _apply_stage(p)
+	return _reject(tag, "unknown command")
+
+
+#region Looks
+
+
+func _look_key(id: String, look: String) -> String:
+	if look == "":
+		return ""
+	if sprites.has(look):
+		return look
+	var def: ActorDefinition = definitions.get(id)
+	var prefix: String = def.prefix() if def != null else id
+	var key := "%s_%s" % [prefix, look]
+	if sprites.has(key):
+		return key
+	return ""
+
+
+func _default_key(id: String) -> String:
+	var def: ActorDefinition = definitions.get(id)
+	if def == null or def.default_appearance == "":
+		return ""
+	return _look_key(id, def.default_appearance)
+
+
+#endregion
+
+
+#region Places
+
+
+## Resolve a show/move/hide target into {ok, resolved, pos, yaw}. Restoring
+## with a stored record uses the record (no marker lookup).
+func _target(p: Dictionary, a: Variant, restoring: bool, stored: Variant) -> Dictionary:
+	if restoring and stored is Dictionary and not (stored as Dictionary).is_empty():
+		return _from_record(stored)
+	var three := is_3d()
+	if p.coords != null:
+		var c: Array = p.coords
+		if c.size() != (3 if three else 2):
+			return {"ok": false, "error": "coordinates need %d numbers on a %s stage" % [3 if three else 2, "3D" if three else "2D"]}
+		return _from_record({"kind": "pos", "pos": c})
+	if p.by != null:
+		var b: Array = p.by
+		if a == null:
+			return {"ok": false, "error": "?by= needs an actor on stage"}
+		if b.size() != (3 if three else 2):
+			return {"ok": false, "error": "?by= needs %d numbers on a %s stage" % [3 if three else 2, "3D" if three else "2D"]}
+		# Start from the LOGICAL destination, not the mid-tween position.
+		var from: Variant = director.logical_value(a.root, "position")
+		var dest: Array = []
+		if three:
+			var v: Vector3 = from + Vector3(b[0], b[1], b[2])
+			dest = [v.x, v.y, v.z]
+		else:
+			var v2: Vector2 = from + Vector2(b[0], b[1])
+			dest = [v2.x, v2.y]
+		return _from_record({"kind": "pos", "pos": dest})
+	var name: String = p.place
+	if three:
+		var mark: Node3D = _find_marker(name)
+		if mark == null:
+			return {"ok": false, "error": "no single marker '%s' under Marks" % name}
+		var parent := _actor_parent_3d()
+		var local: Vector3 = parent.to_local(mark.global_position) if parent != null else mark.global_position
+		var yaw := rad_to_deg(mark.global_transform.basis.get_euler().y)
+		return _from_record({"kind": "marker", "name": name, "pos": [local.x, local.y, local.z], "yaw": yaw})
+	if _anchor(name) == null:
+		return {"ok": false, "error": "no 2D anchor '%s'" % name}
+	return _from_record({"kind": "anchor", "name": name})
+
+
+func _from_record(r: Dictionary) -> Dictionary:
+	var kind := str(r.get("kind", "pos"))
+	if kind == "anchor":
+		var anchor := _anchor(str(r.get("name", "")))
+		if anchor == null:
+			return {"ok": false, "error": "no 2D anchor '%s'" % r.get("name", "")}
+		return {"ok": true, "resolved": r.duplicate(), "pos": _anchor_pos(anchor), "yaw": null}
+	var arr: Array = r.get("pos", [])
+	var pos: Variant = null
+	if arr.size() == 2:
+		pos = Vector2(float(arr[0]), float(arr[1]))
+	elif arr.size() == 3:
+		pos = Vector3(float(arr[0]), float(arr[1]), float(arr[2]))
+	else:
+		return {"ok": false, "error": "bad stored position"}
+	if (pos is Vector3) != is_3d():
+		return {"ok": false, "error": "stored position does not match the stage"}
+	return {"ok": true, "resolved": r.duplicate(), "pos": pos, "yaw": r.get("yaw")}
+
+
+func _anchor(name: String) -> Control:
+	if anchors_2d == null or name == "":
+		return null
+	return anchors_2d.get_node_or_null(NodePath(name)) as Control
+
+
+func _anchor_pos(anchor: Control) -> Vector2:
+	var rel := actors_2d.get_global_transform().affine_inverse() * anchor.get_global_transform()
+	return rel.origin
+
+
+func anchor_names() -> PackedStringArray:
+	var out: PackedStringArray = []
+	if anchors_2d != null:
+		for c: Node in anchors_2d.get_children():
+			out.append(c.name)
+	return out
+
+
+func _find_marker(name: String) -> Node3D:
+	if _stage_root == null:
+		return null
+	var marks := _stage_root.get_node_or_null("Marks")
+	if marks == null:
+		return null
+	var found: Array = marks.find_children(name, "Node3D", true, false)
+	if found.size() != 1:
+		if found.size() > 1:
+			push_warning("StageActors: duplicate marker '%s'" % name)
+		return null
+	return found[0] as Node3D
+
+
+func _actor_parent_3d() -> Node3D:
+	if _stage_root == null:
+		return null
+	var n := _stage_root.get_node_or_null("Actors") as Node3D
+	return n if n != null else _stage_root
+
+
+#endregion
+
+
+#region Actors
+
+
+func _new_actor(id: String, key: String) -> Dictionary:
+	var def: ActorDefinition = definitions.get(id)
+	var a := {"id": id, "def": def, "look": key, "place": {}, "mode": current_stage, "player": null}
+	if is_3d():
+		var root := Node3D.new()
+		root.name = "Actor_%s" % id
+		_actor_parent_3d().add_child(root)
+		var visual := Node3D.new()
+		visual.name = "Visual"
+		root.add_child(visual)
+		var body: Node3D
+		if def != null and def.scene != null:
+			body = def.scene.instantiate() as Node3D
+		if body == null:
+			var quad := Sprite3DQuad.new()
+			quad.world_height = def.height_3d if def != null else 1.7
+			quad.bottom_anchored = true
+			quad.texture = sprites.get(key)
+			body = quad
+			var feet: float = def.feet_anchor if def != null else 1.0
+			visual.position.y = -quad.world_height * (1.0 - feet)
+		body.name = "Body"
+		visual.add_child(body)
+		a.root = root
+		a.visual = visual
+		a.body = body
+	else:
+		var root := Control.new()
+		root.name = "Actor_%s" % id
+		root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		actors_2d.add_child(root)
+		var visual := Control.new()
+		visual.name = "Visual"
+		visual.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(visual)
+		var body: Control
+		if def != null and def.scene != null:
+			body = def.scene.instantiate() as Control
+		if body == null:
+			var rect := TextureRect.new()
+			rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			rect.texture = sprites.get(key)
+			body = rect
+		body.name = "Body"
+		body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		visual.add_child(body)
+		a.root = root
+		a.visual = visual
+		a.body = body
+	a.player = _make_player(a)
+	actors[id] = a
+	director.register_alias(id, a.root)
+	if not is_3d():
+		_layout_2d(a)
+	_apply_dim(a)
+	return a
+
+
+func _make_player(a: Dictionary) -> Node:
+	var def: ActorDefinition = a.def
+	if def == null:
+		return null
+	if def.scene != null and not def.animation_player.is_empty():
+		return a.body.get_node_or_null(def.animation_player)
+	var lib: AnimationLibrary = def.animations_3d if is_3d() else def.animations_2d
+	if lib == null:
+		return null
+	var player := AnimationPlayer.new()
+	player.name = "Anim"
+	a.root.add_child(player)
+	player.root_node = player.get_path_to(a.body)
+	player.add_animation_library("", lib)
+	return player
+
+
+## Size and feet pivot of a 2D actor from the stage height, its texture
+## aspect and the user's sprite scale / Y offset (same math as the legacy
+## slots, but per actor - it never re-lays out the legacy pair).
+func _layout_2d(a: Dictionary) -> void:
+	if stage_2d == null:
+		return
+	var def: ActorDefinition = a.def
+	var h: float = stage_2d.size.y * (def.height_2d if def != null else 0.95)
+	var feet: float = def.feet_anchor if def != null else 1.0
+	var aspect := 0.6
+	var tex: Texture2D = a.body.get("texture") if a.body is TextureRect else null
+	if tex != null and tex.get_height() > 0:
+		aspect = float(tex.get_width()) / float(tex.get_height())
+	var size := Vector2(h * aspect, h)
+	var visual: Control = a.visual
+	visual.size = size
+	visual.position = Vector2(-size.x * 0.5, -size.y * feet + sprite_y)
+	visual.pivot_offset = Vector2(size.x * 0.5, size.y * feet)
+	visual.scale = Vector2(sprite_scale, sprite_scale)
+	var body: Control = a.body
+	body.position = Vector2.ZERO
+	body.size = size
+
+
+func relayout() -> void:
+	for id: String in actors:
+		var a: Dictionary = actors[id]
+		if a.mode == "2d":
+			_layout_2d(a)
+
+
+func _set_look(a: Dictionary, key: String) -> void:
+	a.look = key
+	var tex: Texture2D = sprites.get(key)
+	if a.body is Sprite3DQuad:
+		(a.body as Sprite3DQuad).texture = tex
+	elif a.body is TextureRect:
+		(a.body as TextureRect).texture = tex
+		_layout_2d(a)
+	elif a.body.has_method("set_look"):
+		a.body.set_look(key)
+
+
+func _place(a: Dictionary, t: Dictionary, duration: float, trans: String, ease_name: String, instant: bool) -> void:
+	a.place = t.resolved
+	director.tween_to(a.root, "position", t.pos, duration, trans, ease_name, instant)
+	if t.get("yaw") != null and a.body is Sprite3DQuad:
+		director.tween_to(a.body, "yaw_offset_deg", float(t.yaw), duration, trans, ease_name, instant)
+
+
+func _apply_show(p: Dictionary, restoring: bool, stored: Dictionary) -> Dictionary:
+	var id: String = p.actor
+	if RESERVED.has(id):
+		return _reject(p.tag, "'%s' is a legacy slot - use #sprite=key:%s" % [id, id])
+	var a: Variant = actors.get(id)
+	var key := ""
+	if restoring and stored.has("look"):
+		key = str(stored.look)
+	elif p.look != "":
+		key = _look_key(id, p.look)
+		if key == "":
+			return _reject(p.tag, "unknown look '%s' for %s" % [p.look, id])
+	var has_place: bool = p.place != "" or p.coords != null
+	var t: Dictionary = {}
+	if has_place:
+		t = _target(p, a, restoring, stored.get("place"))
+		if not t.ok:
+			return _reject(p.tag, str(t.error))
+	var out := {}
+	if a == null:
+		var def: ActorDefinition = definitions.get(id)
+		var scene_body := def != null and def.scene != null
+		if key == "":
+			key = _default_key(id)
+		if key == "" and not scene_body:
+			return _reject(p.tag, "%s has no valid default_appearance - give a look" % id)
+		if not has_place:
+			var fallback := {"ok": true, "tag": p.tag, "place": def.default_place if def != null else "center", "coords": null, "by": null}
+			if is_3d() and _find_marker(str(fallback.place)) == null:
+				t = _from_record({"kind": "pos", "pos": [0.0, 0.0, 0.0]})
+			else:
+				t = _target(fallback, null, false, null)
+			if not t.ok:
+				return _reject(p.tag, str(t.error))
+		a = _new_actor(id, key)
+		_place(a, t, 0.0, "", "", true)
+		out.look = key
+		out.place = t.resolved
+	else:
+		if key != "":
+			_set_look(a, key)
+			out.look = key
+		if has_place:
+			# Explicit show placement always snaps and cancels movement.
+			_place(a, t, 0.0, "", "", true)
+			out.place = t.resolved
+	return _accept(out)
+
+
+func _apply_move(p: Dictionary, restoring: bool, stored: Dictionary) -> Dictionary:
+	var a: Variant = actors.get(p.actor)
+	if a == null:
+		return _reject(p.tag, "no actor '%s' on stage" % p.actor)
+	var t := _target(p, a, restoring, stored.get("place"))
+	if not t.ok:
+		return _reject(p.tag, str(t.error))
+	var dur: float = float(p.opts.get("t", move_time))
+	_place(a, t, dur, str(p.opts.get("trans", move_trans)), str(p.opts.get("ease", move_ease)), restoring)
+	return _accept({"place": t.resolved})
+
+
+func _apply_hide(p: Dictionary, restoring: bool, stored: Dictionary) -> Dictionary:
+	var id: String = p.actor
+	var a: Variant = actors.get(id)
+	if a == null:
+		return _reject(p.tag, "no actor '%s' on stage" % id)
+	var has_place: bool = p.place != "" or p.coords != null
+	var out := {}
+	if has_place:
+		var t := _target(p, a, restoring, stored.get("place"))
+		if not t.ok:
+			return _reject(p.tag, str(t.error))
+		out.place = t.resolved
+		if not restoring:
+			# Logically gone right away (a later #show creates a new actor,
+			# exactly as restore does); the node walks off as a ghost.
+			actors.erase(id)
+			if focus_id == id:
+				focus_id = ""
+			var dur: float = float(p.opts.get("t", move_time))
+			_place(a, t, dur, str(p.opts.get("trans", move_trans)), str(p.opts.get("ease", move_ease)), false)
+			_ghosts.append(a)
+			var gen := director.generation
+			get_tree().create_timer(maxf(dur, 0.0) + 0.02).timeout.connect(_on_ghost_done.bind(a, gen))
+			return _accept(out)
+	_remove(id)
+	return _accept(out)
+
+
+func _on_ghost_done(a: Dictionary, gen: int) -> void:
+	if gen != director.generation or not _ghosts.has(a):
+		return
+	_ghosts.erase(a)
+	_free_actor(a)
+
+
+func _remove(id: String) -> void:
+	var a: Variant = actors.get(id)
+	if a == null:
+		return
+	actors.erase(id)
+	if focus_id == id:
+		focus_id = ""
+	_free_actor(a)
+
+
+func _free_actor(a: Dictionary) -> void:
+	for name: String in _videos.keys():
+		if str(_videos[name].get("on", "")) == str(a.id):
+			_stop_video(name)
+	if is_instance_valid(a.root):
+		director.kill_node(a.root)
+		director.kill_node(a.body)
+		if a.root.get_parent() != null:
+			a.root.get_parent().remove_child(a.root)
+		a.root.queue_free()
+
+
+#endregion
+
+
+#region Focus
+
+
+## Spotlight [param id] (a live actor or a legacy slot name; "" clears).
+## Everyone else on stage is dimmed; the focused actor draws in front.
+func apply_focus(id: String) -> Dictionary:
+	focus_id = id
+	for aid: String in actors:
+		_apply_dim(actors[aid])
+	if actors.has(id):
+		var a: Dictionary = actors[id]
+		if a.mode == "2d" and a.root.get_parent() != null:
+			a.root.get_parent().move_child(a.root, -1)
+	return _accept({})
+
+
+func _apply_dim(a: Dictionary) -> void:
+	var lit: bool = focus_id == "" or focus_id == "none" or focus_id == a.id
+	if a.visual is Control:
+		(a.visual as Control).modulate.a = 1.0 if lit else DIM_2D
+	elif a.body is Sprite3DQuad:
+		(a.body as Sprite3DQuad).modulate = Color.WHITE if lit else DIM_3D
+
+
+#endregion
+
+
+#region Animation
+
+
+func _apply_anim(p: Dictionary, restoring: bool) -> Dictionary:
+	var a: Variant = actors.get(p.actor)
+	if a == null:
+		return _reject(p.tag, "no actor '%s' on stage" % p.actor)
+	var player: Node = a.player
+	if player == null:
+		return _reject(p.tag, "%s has no animations" % p.actor)
+	if player is AnimationTree and p.opts.has("loop"):
+		return _reject(p.tag, "AnimationTree supports state travel only (no ?loop)")
+	if not director.play_clip(player, str(p.clip), p.opts.has("loop"), restoring):
+		return _reject(p.tag, "%s has no animation '%s'" % [p.actor, p.clip])
+	return _accept({})
+
+
+#endregion
+
+
+#region Video
+
+
+func _video_stream(name: String) -> VideoStream:
+	if videos.has(name):
+		return videos[name]
+	for ext: String in ["ogv", "tres"]:
+		var path := "res://assets/video/%s.%s" % [name, ext]
+		if ResourceLoader.exists(path):
+			return load(path) as VideoStream
+	return null
+
+
+func _apply_video(p: Dictionary, restoring: bool) -> Dictionary:
+	var name: String = p.name
+	if bool(p.stop):
+		_stop_video(name)
+		_pending_videos = _pending_videos.filter(func(v: Dictionary) -> bool: return v.name != name)
+		return _accept({})
+	var stream := _video_stream(name)
+	if stream == null:
+		return _reject(p.tag, "no video '%s'" % name)
+	var on := str(p.opts.get("on", ""))
+	if on != "" and not actors.has(on):
+		return _reject(p.tag, "no actor '%s' to play the video on" % on)
+	var loop: bool = p.opts.has("loop")
+	if restoring:
+		# Non-looping videos are omitted on restore; looping ones start once
+		# after reconstruction (finish_restore), never during it.
+		_pending_videos = _pending_videos.filter(func(v: Dictionary) -> bool: return v.name != name)
+		if loop:
+			_pending_videos.append({"name": name, "stream": stream, "on": on, "volume": p.opts.get("volume")})
+		return _accept({})
+	_start_video(name, stream, on, loop, p.opts.get("volume"))
+	return _accept({})
+
+
+func _start_video(name: String, stream: VideoStream, on: String, loop: bool, volume: Variant) -> void:
+	_stop_video(name)
+	var player := VideoStreamPlayer.new()
+	player.name = "Video_%s" % name
+	player.stream = stream
+	player.loop = loop
+	player.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if volume != null and str(volume).is_valid_float():
+		player.volume_db = linear_to_db(clampf(str(volume).to_float(), 0.0, 1.0))
+	video_layer.add_child(player)
+	if on != "":
+		player.modulate.a = 0.0  # decode only; the texture shows on the actor
+		player.size = Vector2(2, 2)
+	else:
+		player.expand = true
+		player.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	player.play()
+	_videos[name] = {"player": player, "loop": loop, "on": on}
+	if on != "":
+		var a: Dictionary = actors[on]
+		var tex := player.get_video_texture()
+		if a.body is Sprite3DQuad:
+			(a.body as Sprite3DQuad).texture = tex
+		elif a.body is TextureRect:
+			(a.body as TextureRect).texture = tex
+	if not loop:
+		player.finished.connect(_on_video_finished.bind(name, player))
+
+
+func _on_video_finished(name: String, player: VideoStreamPlayer) -> void:
+	if _videos.has(name) and _videos[name].player == player:
+		_stop_video(name)
+
+
+func _stop_video(name: String) -> void:
+	if not _videos.has(name):
+		return
+	var v: Dictionary = _videos[name]
+	_videos.erase(name)
+	if is_instance_valid(v.player):
+		v.player.stop()
+		v.player.queue_free()
+	var on: String = v.get("on", "")
+	if on != "" and actors.has(on):
+		_set_look(actors[on], str(actors[on].look))
+
+
+func video_names() -> Array:
+	return _videos.keys()
+
+
+#endregion
+
+
+#region Stage switching
+
+
+func _apply_stage(p: Dictionary) -> Dictionary:
+	var name: String = p.name
+	if name == current_stage:
+		return _accept({})
+	var root: Node3D = null
+	if name != "2d":
+		root = _load_stage(name)
+		if root == null:
+			return _reject(p.tag, "no stage scene '%s'" % name)
+	_clear_stage()
+	if _stage_root != null and _stage_root.get_parent() != null:
+		_stage_root.get_parent().remove_child(_stage_root)
+	_stage_root = root
+	current_stage = name
+	if root != null:
+		viewport.add_child(root)
+		viewport_container.show()
+		var cam := root.find_children("*", "Camera3D", true, false)
+		if not cam.is_empty():
+			(cam[0] as Camera3D).make_current()
+	else:
+		viewport_container.hide()
+	stage_cleared.emit(name)
+	return _accept({})
+
+
+func _load_stage(name: String) -> Node3D:
+	if _stage_cache.has(name) and is_instance_valid(_stage_cache[name]):
+		return _stage_cache[name]
+	var packed: PackedScene = stage_scenes.get(name)
+	if packed == null:
+		var path := "res://scenes/stages/%s.tscn" % name
+		if ResourceLoader.exists(path):
+			packed = load(path)
+	if packed == null:
+		return null
+	var root := packed.instantiate() as Node3D
+	if root == null:
+		return null
+	_stage_cache[name] = root
+	return root
+
+
+## Free actors, ghosts, videos and focus of the current stage. Definitions
+## stay registered.
+func _clear_stage() -> void:
+	for id: String in actors.keys():
+		_remove(id)
+	for a: Dictionary in _ghosts:
+		_free_actor(a)
+	_ghosts.clear()
+	for name: String in _videos.keys():
+		_stop_video(name)
+	_pending_videos.clear()
+	focus_id = ""
+
+
+#endregion
+
+
+#region Restore
+
+
+## Drop everything the story put on stage and return to the 2D stage.
+## Called before replaying history. Definitions stay registered.
+func reset_all() -> void:
+	_clear_stage()
+	if _stage_root != null and _stage_root.get_parent() != null:
+		_stage_root.get_parent().remove_child(_stage_root)
+	_stage_root = null
+	current_stage = "2d"
+	if viewport_container != null:
+		viewport_container.hide()
+
+
+## Reconstruction is done: start looping videos once.
+func finish_restore() -> void:
+	var pending := _pending_videos
+	_pending_videos = []
+	for v: Dictionary in pending:
+		if v.on != "" and not actors.has(v.on):
+			continue
+		_start_video(v.name, v.stream, v.on, true, v.volume)
+
+
+func _exit_tree() -> void:
+	for name: String in _videos.keys():
+		_stop_video(name)
+	for key: String in _stage_cache:
+		var root = _stage_cache[key]
+		if is_instance_valid(root) and root.get_parent() == null:
+			root.free()
+	_stage_cache.clear()
+
+
+func _on_stage_resized() -> void:
+	call_deferred("_replace_anchored")
+
+
+## On resize, anchored actors are re-placed; actors at coordinates stay.
+func _replace_anchored() -> void:
+	for id: String in actors:
+		var a: Dictionary = actors[id]
+		if a.mode != "2d":
+			continue
+		_layout_2d(a)
+		if str(a.place.get("kind", "")) == "anchor":
+			var anchor := _anchor(str(a.place.name))
+			if anchor != null:
+				director.set_now(a.root, "position", _anchor_pos(anchor))
+
+
+#endregion

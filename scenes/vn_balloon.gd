@@ -21,6 +21,23 @@ const DisplayScale = preload("res://scenes/display_scale.gd")
 ##                         a speaker's expression change (#sprite=maya_smile:left with no
 ##                         #focus=) still brings that portrait in front of the other
 ##   #box=hide / #box=show hide or show the dialogue box (pure stage directions)
+##
+## Short staging tags (StageActors, scenes/stage/; cheat sheet in
+## docs/STAGING.md): #show=maya:smile@left, #move=maya@center?t=0.8,
+## #move=maya?by=100 0, #hide=maya@off_left, #focus=maya, #anim=maya:wave,
+## #video=intro[:stop], #stage=classroom|2d. Klima's advanced motion tags
+## (#tween= #set= #shake= #nla= #sprite3d= #place3d= #target=) go to the
+## StageDirector (scenes/motion/). Every accepted presentation command is
+## recorded in story order per history entry ("motion"), and restore replays
+## that one ordered list through the same dispatcher (appendix A).
+
+## Emitted after story state AND stage were both restored (rollback, load,
+## route travel, panic resume). Game code listens; the balloon never calls
+## game-specific controllers.
+signal stage_restored
+
+## Version of the per-entry presentation record ("pfmt" in history entries).
+const PRESENTATION_FORMAT := 1
 
 
 ## The dialogue resource (only needed when dropping the balloon into a scene manually).
@@ -69,6 +86,20 @@ const DisplayScale = preload("res://scenes/display_scale.gd")
 ## Portrait textures, referenced from dialogue with `#sprite=<key>:<slot>`.
 @export var sprites: Dictionary[String, Texture2D] = {}
 
+## Characters for the short staging tags (ActorDefinition resources).
+@export var actor_definitions: Array[Resource] = []
+
+## 3D stage scenes for #stage=name (unknown names try res://scenes/stages/<name>.tscn).
+@export var stage_scenes: Dictionary[String, PackedScene] = {}
+
+## Videos for #video=name (unknown names try res://assets/video/<name>.ogv).
+@export var videos: Dictionary[String, VideoStream] = {}
+
+## Stage defaults for #move / #hide exits.
+@export var move_time: float = 0.45
+@export var move_trans: String = "sine"
+@export var move_ease: String = "in_out"
+
 
 ## The base balloon anchor
 @onready var balloon: Control = %Balloon
@@ -77,6 +108,8 @@ const DisplayScale = preload("res://scenes/display_scale.gd")
 @onready var background: TextureRect = %Background
 @onready var sprite_left: TextureRect = %SpriteLeft
 @onready var sprite_right: TextureRect = %SpriteRight
+@onready var motion: StageDirector = %MotionDirector
+@onready var stage_actors: StageActors = %StageActors
 
 ## Dialogue box
 @onready var dialogue_box: PanelContainer = %DialogueBox
@@ -230,6 +263,8 @@ var _current_bg: String = ""
 var _current_left: String = ""
 var _current_right: String = ""
 var _current_focus: String = ""
+## Presentation commands accepted for the line being applied: [{tag, resolved}].
+var _line_records: Array = []
 
 ## Modes
 var auto_mode: bool = false
@@ -392,6 +427,7 @@ func _ready() -> void:
 			route_graph_panel.travel_requested.connect(_on_route_travel_requested)
 	DirAccess.make_dir_recursive_absolute(saves_dir)
 	_ensure_audio_buses()
+	_setup_staging()
 	audio = get_node_or_null("/root/AudioDirector")
 	if audio != null:
 		dialogue_label.spoke.connect(_on_label_spoke)
@@ -543,7 +579,10 @@ func apply_dialogue_line() -> void:
 
 	# Log this line in the backlog (skipped while rolling back to it), capturing
 	# the story state and the dressed stage so rollback can restore both.
-	if not _restoring and (not dialogue_line.text.is_empty() or not dialogue_line.character.is_empty()):
+	# Direction-only lines (no text, no speaker) are kept when they changed
+	# the stage, hidden from the backlog and skipped as rollback stops.
+	var shown_line: bool = not dialogue_line.text.is_empty() or not dialogue_line.character.is_empty()
+	if not _restoring and (shown_line or not _line_records.is_empty()):
 		var entry: Dictionary = {
 			"id": dialogue_line.id,
 			"character": dialogue_line.character,
@@ -553,6 +592,9 @@ func apply_dialogue_line() -> void:
 			"right": _current_right,
 			"focus": _current_focus,
 			"choices": dialogue_line.responses.size() > 0,
+			"pfmt": PRESENTATION_FORMAT,
+			"motion": _line_records.duplicate(true),
+			"display_in_backlog": shown_line,
 		}
 		var game_state: Node = get_tree().root.get_node_or_null("GameState")
 		if is_instance_valid(game_state) and game_state.has_method("snapshot"):
@@ -699,24 +741,10 @@ func _restore_waiting() -> void:
 
 
 func _apply_stage_tags(line: DialogueLine) -> void:
-	# A line can change the speaker's expression without repeating #focus=.
-	# Remember that slot and bring it forward after the tags, unless the line
-	# named a focus of its own.
-	var speaker_slot := ""
-	var had_focus := false
+	_line_records = []
+	# Transient audio/UI tags keep their existing handling (not replayed).
 	for tag: String in line.tags:
-		if tag.begins_with("bg="):
-			_set_background(tag.substr(3))
-		elif tag.begins_with("sprite="):
-			var spec := tag.substr(7)
-			_set_sprite(spec)
-			var slot := _speaker_slot_for_sprite(spec, line.character)
-			if slot != "":
-				speaker_slot = slot
-		elif tag.begins_with("focus="):
-			had_focus = true
-			_set_focus(tag.substr(6))
-		elif tag == "box=hide":
+		if tag == "box=hide":
 			dialogue_box.hide()
 			name_plate.hide()
 			next_indicator.hide()
@@ -728,14 +756,83 @@ func _apply_stage_tags(line: DialogueLine) -> void:
 			audio.request_music(tag.substr(6))
 		elif tag.begins_with("sfx=") and audio != null:
 			audio.play_sfx(tag.substr(4))
-	if not had_focus and speaker_slot != "":
-		_set_focus(speaker_slot)
+	# Restore already reconstructed the stage from the recorded commands
+	# (including this line's), so the same line must not apply them twice.
+	if _restoring:
+		return
+	# Presentation commands in story order; the implicit speaker focus (a
+	# speaker's own #sprite= brings them forward) is appended by the shared
+	# parser after all of the line's tags.
+	for tag: String in StageTagParser.line_commands(line.tags, line.character):
+		var result: Dictionary = _apply_presentation(tag, false, {})
+		if bool(result.get("ok", false)):
+			_line_records.append({"tag": tag, "resolved": result.get("resolved", {})})
+
+
+## The one presentation dispatcher, shared by live play and restore.
+## Returns {ok, resolved}. Rejected commands are never recorded.
+func _apply_presentation(tag: String, restoring: bool, resolved: Dictionary) -> Dictionary:
+	if tag.begins_with("bg="):
+		_set_background(tag.substr(3))
+		return {"ok": true, "resolved": {}}
+	if tag.begins_with("sprite="):
+		_set_sprite(tag.substr(7))
+		return {"ok": true, "resolved": {}}
+	if tag.begins_with("focus="):
+		var id := tag.substr(6).strip_edges()
+		if id in ["left", "right", "none", ""] or stage_actors.has_actor(id):
+			_set_focus(id)
+			return {"ok": true, "resolved": {}}
+		push_warning("VNBalloon: no actor '%s' to focus (%s)" % [id, tag])
+		return {"ok": false}
+	if StageTagParser.is_stage_tag(tag):
+		return stage_actors.apply(StageTagParser.parse(tag), restoring, resolved)
+	if motion.is_motion_tag(tag):
+		return {"ok": motion.apply_tag(tag, restoring), "resolved": {}}
+	return {"ok": false}
+
+
+func _setup_staging() -> void:
+	motion.attach(self, {
+		"bg": background,
+		"left": sprite_left,
+		"right": sprite_right,
+		"box": dialogue_box,
+		"stage": balloon.get_node_or_null("Stage"),
+	})
+	motion.texture_resolver = func(key: String) -> Texture2D: return sprites.get(key)
+	stage_actors.setup(motion, balloon.get_node("Stage"), %Actors, %Anchors, %VideoLayer, %Stage3D, %Stage3DViewport)
+	stage_actors.sprites = sprites
+	stage_actors.stage_scenes = stage_scenes
+	stage_actors.videos = videos
+	stage_actors.legacy = {"left": sprite_left, "right": sprite_right}
+	stage_actors.move_time = move_time
+	stage_actors.move_trans = move_trans
+	stage_actors.move_ease = move_ease
+	for def: Resource in actor_definitions:
+		if def is ActorDefinition:
+			stage_actors.add_definition(def)
+	if not stage_actors.stage_cleared.is_connected(_on_stage_cleared):
+		stage_actors.stage_cleared.connect(_on_stage_cleared)
+
+
+## A stage switch clears the legacy slots too (cleared, not destroyed).
+func _on_stage_cleared(_new_stage: String) -> void:
+	_set_sprite("none:left")
+	_set_sprite("none:right")
+	_current_focus = ""
+	sprite_left.modulate.a = 0.0
+	sprite_right.modulate.a = 0.0
 
 
 ## Slot of a portrait tag that belongs to the speaking character, or "" when
 ## the tag clears a slot, names someone else, or the line has no speaker.
 ## "maya_smile" matches Maya; an explicit #focus= on the same line still wins.
 func _speaker_slot_for_sprite(spec: String, speaker: String) -> String:
+	return StageTagParser.speaker_slot_for_sprite(spec, speaker)
+
+
+func _legacy_speaker_slot_for_sprite(spec: String, speaker: String) -> String:
 	var parts: PackedStringArray = spec.split(":")
 	var key := parts[0].strip_edges().to_lower()
 	var who := speaker.strip_edges().to_lower()
@@ -778,7 +875,7 @@ func _on_sync_voice_toggled(on: bool) -> void:
 
 func _set_background(key: String) -> void:
 	_current_bg = key
-	if key == "none":
+	if key == "none" or key == "":
 		background.texture = null
 	elif backgrounds.has(key):
 		background.texture = backgrounds[key]
@@ -812,6 +909,18 @@ func _set_focus(slot_name: String) -> void:
 		sprite_right.modulate.a = dim
 	elif slot_name == "right" and sprite_left.texture != null:
 		sprite_left.modulate.a = dim
+	elif stage_actors != null and stage_actors.has_actor(slot_name):
+		# A dynamic actor has the spotlight: both legacy slots step back.
+		if sprite_left.texture != null:
+			sprite_left.modulate.a = dim
+		if sprite_right.texture != null:
+			sprite_right.modulate.a = dim
+	if sprite_left.texture == null:
+		sprite_left.modulate.a = 0.0
+	if sprite_right.texture == null:
+		sprite_right.modulate.a = 0.0
+	if stage_actors != null:
+		stage_actors.apply_focus(slot_name)
 	_apply_speaker_order()
 
 
@@ -840,7 +949,45 @@ func _strip_bbcode(source: String) -> String:
 
 
 ## Re-dress the stage exactly as it was when a history entry was shown.
+## New-format history replays the ordered presentation commands from the
+## last checkpoint (an old-format entry's snapshot, or an empty stage) up to
+## the cursor; old saves use their legacy bg/left/right/focus snapshot.
 func _restore_stage(entry: Dictionary) -> void:
+	if history_cursor >= 0 and history_cursor < history.size() and history[history_cursor].has("pfmt"):
+		_restore_presentation(history_cursor)
+	else:
+		motion.reset_all()
+		stage_actors.reset_all()
+		_restore_legacy_snapshot(entry)
+	stage_restored.emit()
+
+
+func _restore_presentation(cursor: int) -> void:
+	var start := cursor
+	while start >= 0 and history[start].has("pfmt"):
+		start -= 1
+	motion.reset_all()
+	stage_actors.reset_all()
+	if start >= 0:
+		_restore_legacy_snapshot(history[start])
+	else:
+		_set_background("")
+		_set_sprite("none:left")
+		_set_sprite("none:right")
+		_current_focus = ""
+		_set_focus("")
+	for i: int in range(start + 1, cursor + 1):
+		var records: Variant = history[i].get("motion", [])
+		if records is not Array:
+			continue
+		for rec: Variant in records:
+			if rec is Dictionary:
+				var resolved: Variant = rec.get("resolved", {})
+				_apply_presentation(str(rec.get("tag", "")), true, resolved if resolved is Dictionary else {})
+	stage_actors.finish_restore()
+
+
+func _restore_legacy_snapshot(entry: Dictionary) -> void:
 	_set_background(str(entry.get("bg", "")))
 	var left_key: String = str(entry.get("left", ""))
 	_set_sprite(("%s:left" % left_key) if left_key != "" else "none:left")
@@ -870,6 +1017,10 @@ func open_history() -> void:
 
 	for i: int in history.size():
 		var entry: Dictionary = history[i]
+		# Direction-only entries stay in history (indices unchanged) but
+		# never show as blank backlog rows.
+		if not bool(entry.get("display_in_backlog", true)):
+			continue
 		var item: Button = history_entry_template.duplicate()
 		item.text = entry.text if entry.character.is_empty() else "%s: %s" % [entry.character, entry.text]
 		item.show()
@@ -912,10 +1063,26 @@ func rollback_to(index: int) -> void:
 	_restoring = false
 
 
-## Roll forward to the newest kept line after a rollback.
+## Roll forward to the next displayed line after a rollback.
 func roll_forward() -> void:
-	if history_cursor < history.size() - 1:
-		rollback_to(history_cursor + 1)
+	var i := _next_displayed(history_cursor)
+	if i >= 0:
+		rollback_to(i)
+
+
+## Player rollback / roll-forward stop only on displayed entries.
+func _prev_displayed(from: int) -> int:
+	for i: int in range(mini(from, history.size()) - 1, -1, -1):
+		if bool(history[i].get("display_in_backlog", true)):
+			return i
+	return -1
+
+
+func _next_displayed(from: int) -> int:
+	for i: int in range(from + 1, history.size()):
+		if bool(history[i].get("display_in_backlog", true)):
+			return i
+	return -1
 
 
 func _on_history_entry_pressed(index: int) -> void:
@@ -944,6 +1111,7 @@ func save_to_slot(i: int) -> Error:
 	var current: Dictionary = history[history_cursor] if history_cursor >= 0 else history[history.size() - 1]
 	var data: Dictionary = {
 		"resource": dialogue_resource.resource_path,
+		"presentation_format": PRESENTATION_FORMAT,
 		"history": history,
 		"cursor": history_cursor,
 		"meta": {
@@ -1910,6 +2078,10 @@ func _apply_sprite_transform() -> void:
 		spr.offset_bottom = bottom
 		spr.pivot_offset = Vector2(spr.size.x * 0.5, spr.size.y)
 		spr.scale = Vector2(sprite_scale, sprite_scale)
+	if stage_actors != null:
+		stage_actors.sprite_scale = sprite_scale
+		stage_actors.sprite_y = sprite_y
+		stage_actors.relayout()
 	_apply_speaker_order()
 
 
@@ -2631,8 +2803,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed \
 		and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
 		get_viewport().set_input_as_handled()
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP and history_cursor > 0:
-			rollback_to(history_cursor - 1)
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP and _prev_displayed(history_cursor) >= 0:
+			rollback_to(_prev_displayed(history_cursor))
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			roll_forward()
 		return
@@ -2682,8 +2854,8 @@ func _on_balloon_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed \
 		and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
 		get_viewport().set_input_as_handled()
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP and history_cursor > 0:
-			rollback_to(history_cursor - 1)
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP and _prev_displayed(history_cursor) >= 0:
+			rollback_to(_prev_displayed(history_cursor))
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			roll_forward()
 		return

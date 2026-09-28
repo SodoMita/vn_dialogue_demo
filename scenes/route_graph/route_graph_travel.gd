@@ -191,8 +191,15 @@ static func _is_end(key: String) -> bool:
 	return key == "end" or key == "end!" or key == "END"
 
 
+## Branch-local only: never touches the visible stage. The balloon's
+## _commit_replay() -> _restore_stage() materializes the chosen route from
+## the recorded commands (same shared parser as live play).
 static func _dress(stage: Dictionary, line: DialogueLine) -> Dictionary:
 	var next := stage.duplicate(true)
+	var records: Array = []
+	for cmd in StageTagParser.line_commands(line.tags, line.character):
+		records.append({"tag": str(cmd), "resolved": {}})
+	next["line_motion"] = records
 	for tag in line.tags:
 		var text := str(tag)
 		if text.begins_with("bg="):
@@ -218,6 +225,9 @@ static func _record(line: DialogueLine, stage: Dictionary, game_state: Node) -> 
 		"right": str(stage.get("right", "")),
 		"focus": str(stage.get("focus", "")),
 		"choices": line.responses.size() > 0,
+		"pfmt": 1,
+		"motion": (stage.get("line_motion", []) as Array).duplicate(true),
+		"display_in_backlog": not (str(line.text).is_empty() and str(line.character).is_empty()),
 	}
 	if game_state != null and game_state.has_method("snapshot"):
 		entry["state"] = game_state.snapshot()
