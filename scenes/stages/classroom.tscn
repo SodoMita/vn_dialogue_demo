@@ -1,0 +1,106 @@
+[gd_scene load_steps=12 format=3]
+
+[sub_resource type="ProceduralSkyMaterial" id="Sky_mat"]
+sky_top_color = Color(0.55, 0.7, 0.9, 1)
+sky_horizon_color = Color(0.85, 0.82, 0.75, 1)
+ground_bottom_color = Color(0.3, 0.25, 0.2, 1)
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("Sky_mat")
+
+[sub_resource type="Environment" id="Env_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+ambient_light_source = 3
+ambient_light_color = Color(0.9, 0.85, 0.8, 1)
+ambient_light_energy = 0.6
+tonemap_mode = 2
+
+[sub_resource type="StandardMaterial3D" id="Mat_floor"]
+albedo_color = Color(0.55, 0.4, 0.28, 1)
+
+[sub_resource type="PlaneMesh" id="Mesh_floor"]
+material = SubResource("Mat_floor")
+size = Vector2(12, 10)
+
+[sub_resource type="StandardMaterial3D" id="Mat_wall"]
+albedo_color = Color(0.86, 0.84, 0.76, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_wall"]
+material = SubResource("Mat_wall")
+size = Vector3(12, 3.2, 0.2)
+
+[sub_resource type="StandardMaterial3D" id="Mat_board"]
+albedo_color = Color(0.12, 0.25, 0.18, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_board"]
+material = SubResource("Mat_board")
+size = Vector3(3.6, 1.2, 0.05)
+
+[sub_resource type="StandardMaterial3D" id="Mat_desk"]
+albedo_color = Color(0.72, 0.55, 0.35, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_desk"]
+material = SubResource("Mat_desk")
+size = Vector3(1.1, 0.75, 0.6)
+
+[sub_resource type="BoxMesh" id="Mesh_door"]
+size = Vector3(1.0, 2.1, 0.08)
+
+[node name="Classroom" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_1")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, -0.25, 0.433, 0, 0.866, 0.5, -0.5, -0.433, 0.75, 0, 4, 0)
+light_energy = 0.9
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.985, 0.174, 0, -0.174, 0.985, 0, 1.7, 4.2)
+current = true
+fov = 55.0
+
+[node name="Floor" type="MeshInstance3D" parent="."]
+mesh = SubResource("Mesh_floor")
+
+[node name="BackWall" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, -3.2)
+mesh = SubResource("Mesh_wall")
+
+[node name="Board" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 1.7, -3.07)
+mesh = SubResource("Mesh_board")
+
+[node name="Door" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6, 1.05, -3.07)
+mesh = SubResource("Mesh_door")
+
+[node name="Desk1" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 0.375, -1.3)
+mesh = SubResource("Mesh_desk")
+
+[node name="Desk2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 0.375, -1.3)
+mesh = SubResource("Mesh_desk")
+
+[node name="Marks" type="Node3D" parent="."]
+
+[node name="door" type="Marker3D" parent="Marks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6, 0, -2.6)
+
+[node name="desk" type="Marker3D" parent="Marks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 0, -0.7)
+
+[node name="guest_desk" type="Marker3D" parent="Marks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 0, -0.7)
+
+[node name="hall" type="Marker3D" parent="Marks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.5, 0, -2.6)
+
+[node name="center" type="Marker3D" parent="Marks"]
+
+[node name="maya_spot" type="Marker3D" parent="Marks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, 0.3)
+
+[node name="Actors" type="Node3D" parent="."]
