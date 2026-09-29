@@ -444,6 +444,47 @@ func _sprite3d_tests() -> void:
 	await get_tree().process_frame
 	check(not is_instance_valid(quad2) or (quad2 as Node).is_queued_for_deletion(), "removed quad is freed")
 
+	# spawn_quad() itself (the public API StageActors-era code calls), not just
+	# the #sprite3d= tag: the same alias updates the node in place.
+	print("== spawn_quad in place ==")
+	var tex_a := PlaceholderTexture2D.new()
+	tex_a.size = Vector2(100, 200)
+	var tex_b := PlaceholderTexture2D.new()
+	tex_b.size = Vector2(200, 200)
+	var first: Sprite3DQuad = motion.spawn_quad("sq", tex_a, world, 2.0, true, Vector3(1, 0, 1))
+	first.rotation_degrees.y = 33.0
+	motion.tween_to(first, "position", Vector3(4, 0, 4), 1.0)
+	await _wait(0.1)
+	var again: Sprite3DQuad = motion.spawn_quad("sq", tex_b, world, 3.0, false)
+	check(again == first, "spawn_quad with the same alias returns the SAME node")
+	check(is_instance_valid(first) and not first.is_queued_for_deletion() and first.get_parent() == world, "the node was not freed or detached")
+	check(again.texture == tex_b and is_equal_approx(again.world_height, 3.0) and not again.bottom_anchored, "texture, height and anchor were updated")
+	check(motion.is_tweening(again, "position"), "the running tween survives the update")
+	check_close(again.rotation_degrees.y, 33.0, "rotation is kept")
+	check(motion.resolve_target("sq") == again, "the alias still points at the node")
+	var count_before: int = world.get_child_count()
+	motion.spawn_quad("sq", tex_a, world, 2.0, true)
+	check(world.get_child_count() == count_before, "repeated spawns do not add nodes")
+	# Reparenting keeps the world transform.
+	var other := Node3D.new()
+	other.name = "OtherParent"
+	other.position = Vector3(10, 0, 0)
+	world.add_child(other)
+	motion.tween_to(again, "position", again.position, 0.0, "linear", "linear", true)
+	var world_pos: Vector3 = again.global_position
+	var moved: Sprite3DQuad = motion.spawn_quad("sq", tex_a, other, 2.0, true)
+	check(moved == again and moved.get_parent() == other and moved.global_position.distance_to(world_pos) < 0.01, "a new parent re-parents in place and keeps the world position")
+	# A different alias is a different node; after removal a fresh node is built.
+	var second: Sprite3DQuad = motion.spawn_quad("sq2", tex_a, world, 2.0, true)
+	check(second != moved, "a different alias is a different node")
+	motion.remove_quad("sq")
+	await get_tree().process_frame
+	var fresh: Sprite3DQuad = motion.spawn_quad("sq", tex_a, world, 2.0, true)
+	check(fresh != moved and not fresh.is_queued_for_deletion(), "after remove_quad a new node is built")
+	motion.remove_quad("sq")
+	motion.remove_quad("sq2")
+	other.queue_free()
+
 
 ## The real balloon: MotionDirector node wiring, built-in aliases and the
 ## exact tags the story uses (Aurora's hover, the rift shake).
