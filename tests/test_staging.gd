@@ -100,6 +100,7 @@ func run() -> void:
 	await _video_tests()
 	await _old_save_tests()
 	await _route_tests()
+	await _review_regression_tests()
 
 
 #region Parser
@@ -168,17 +169,9 @@ func _setup_balloon() -> void:
 	add_child(balloon)
 	await frames(2)
 	actors = balloon.stage_actors
-	# Placeholder looks for the example scene (maya_sad, ken).
-	for key: String in ["maya_sad", "ken"]:
-		var img := Image.create(60, 100, false, Image.FORMAT_RGBA8)
-		img.fill(Color(0.8, 0.5, 0.6) if key == "maya_sad" else Color(0.4, 0.6, 0.9))
-		var tex := ImageTexture.create_from_image(img)
-		balloon.sprites[key] = tex
-		actors.sprites[key] = tex
-	var ken := ActorDefinition.new()
-	ken.id = "ken"
-	ken.default_appearance = "ken"
-	actors.add_definition(ken)
+	# The shipped balloon registers Maya, Rook and Ken with their real sprites;
+	# nothing is injected, so the documented Ken example runs as authored.
+	check(actors.definitions.has("ken") and actors.sprites.has("ken") and actors.sprites.has("maya_sad"), "shipped balloon registers Ken and the example looks")
 	check(actors.definitions.has("maya") and actors.definitions.has("rook"), "character definitions registered from the balloon")
 	check(balloon.get_node_or_null("%Anchors") != null and actors.anchor_names().size() == 11, "11 built-in 2D anchors authored in the stage scene")
 
@@ -551,20 +544,74 @@ func _route_tests() -> void:
 	await _wait_line()
 	check(restored_count[0] == 1, "stage_restored fires once per restore")
 
-	# --- Fix #1 regression: resolver-backed records ---
-	var dressed2: Dictionary = RouteTravel._dress(balloon._travel_stage(), line)
-	var rr: Variant = (dressed2.line_motion as Array)[0].resolved
-	check(rr is Dictionary and (rr as Dictionary).has("place") and str((rr.place as Dictionary).get("kind", "")) == "pos", "resolver stores the ?by= endpoint on the branch record")
-	var shadow: Dictionary = dressed2.get("_shadow", {})
-	check(shadow.has("maya") and (shadow.maya as Dictionary).has("place"), "resolver updates the branch shadow so later ?by= chains add to the branch")
-	# Actually run RouteTravel.replay so the resolved records are exercised.
-	var gs: Node = get_tree().root.get_node_or_null("GameState")
-	var walk: Dictionary = await RouteTravel.replay(res, str(balloon.dialogue_line.id), {"line_ids": ["two_d/END"], "jump_key": ""}, balloon.history, balloon.history_cursor, gs, [], true, false, balloon._travel_stage())
-	if bool(walk.get("ok", false)):
-		var lines: Array = walk.get("lines", [])
-		var filled: int = 0
-		for entry in lines:
-			for rec_v in (entry.get("motion", []) as Array):
-				if rec_v is Dictionary and (rec_v.resolved as Dictionary).size() > 0:
-					filled += 1
-		check(filled > 0, "RouteTravel.replay produces resolved records (fix #1)")
+
+## Regressions from the remi-q7x review (items 1, 2 and 4).
+func _review_regression_tests() -> void:
+	print("== review regressions ==")
+	var RouteTravel = load("res://scenes/route_graph/route_graph_travel.gd")
+	# 1. Real RouteTravel.replay -> commit: records end up resolved and validated.
+	await _start(DIALOGUE_2D, "two_d")
+	for i in 4:
+		await _advance()
+	await wait(0.3)
+	var live_pos: Variant = _actor_pos("maya")
+	var res: Resource = balloon.dialogue_resource
+	var walk: DialogueLine = await res.get_next_dialogue_line("two_d")
+	var guard := 0
+	while walk != null and not walk.text.begins_with("Bad tags") and guard < 20:
+		walk = await res.get_next_dialogue_line(str(walk.next_id))
+		guard += 1
+	check(walk != null and walk.text.begins_with("Bad tags"), "found the route target line")
+	var found: Dictionary = await RouteTravel.replay(res, "", {"line_ids": [str(walk.id)]}, [], 0, null, [], true, true, {})
+	check(bool(found.get("ok", false)) and (found.lines as Array).size() >= 6, "RouteTravel.replay walks the whole branch")
+	balloon._commit_replay(found, -1)
+	await _wait_line()
+	check(near(_actor_pos("maya"), live_pos), "committed route reproduces the live-play position")
+	var unresolved := 0
+	var rejected := 0
+	var by_records := 0
+	for e: Dictionary in balloon.history:
+		for r: Dictionary in e.get("motion", []):
+			var tag := str(r.tag)
+			var resolved: Dictionary = r.get("resolved", {})
+			if (tag.begins_with("show=") or tag.begins_with("move=") or tag.begins_with("hide=")) and resolved.is_empty():
+				unresolved += 1
+			if tag.contains("ghost") or tag.contains("nosuchlook"):
+				rejected += 1
+			if tag.contains("?by=") and resolved.has("place"):
+				by_records += 1
+	check(unresolved == 0, "route travel persists resolved endpoints for every staging command")
+	check(rejected == 0, "commands that never applied are not persisted")
+	check(by_records == 2, "relative moves persist their resolved destination")
+	balloon.rollback_to(balloon.history_cursor)
+	await _wait_line()
+	check(near(_actor_pos("maya"), live_pos), "restoring the committed route again gives the same position")
+
+	# 2. A bare #show restores its recorded placement, not the moved marker.
+	actors.reset_all()
+	check(actors.apply(StageTagParser.parse("stage=classroom")).ok, "3D stage for the bare-show check")
+	var shown: Dictionary = actors.apply(StageTagParser.parse("show=maya"))
+	check(shown.ok and shown.resolved.has("place"), "bare #show records where it placed the actor")
+	var placed_at: Vector3 = actors.resolve("maya").global_position
+	actors.reset_all()
+	actors.apply(StageTagParser.parse("stage=classroom"))
+	var mark: Node3D = actors._find_marker("center")
+	mark.position += Vector3(2, 0, 0)
+	actors.apply(StageTagParser.parse("show=maya"), true, shown.resolved)
+	check(near(actors.resolve("maya").global_position, placed_at, 0.01), "bare #show restore consumes the stored placement")
+	mark.position -= Vector3(2, 0, 0)
+
+	# 4. A pending looping video dies with its actor.
+	actors.reset_all()
+	actors.apply(StageTagParser.parse("show=maya@left"), true, {})
+	actors.apply(StageTagParser.parse("video=intro?on=maya&loop"), true, {})
+	actors.finish_restore()
+	check(actors._videos.has("intro"), "control: a pending video on a live actor starts after restore")
+	actors.reset_all()
+	actors.apply(StageTagParser.parse("show=maya@left"), true, {})
+	actors.apply(StageTagParser.parse("video=intro?on=maya&loop"), true, {})
+	actors.apply(StageTagParser.parse("hide=maya"), true, {})
+	actors.apply(StageTagParser.parse("show=maya@right"), true, {})
+	actors.finish_restore()
+	check(not actors._videos.has("intro"), "a video pending for a removed actor is not attached to its replacement")
+	actors.reset_all()

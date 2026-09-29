@@ -122,6 +122,8 @@ var _logical: Dictionary = {}
 var _authored: Dictionary = {}
 ## AnimationPlayers started by `#nla=` / [method play_clip]: iid -> player.
 var _players: Dictionary = {}
+## AnimationTrees driven by story tags (stopped on reset / #nla_stop).
+var _trees: Dictionary = {}
 ## Bumped by [method reset_all]; delayed callbacks compare against it so a
 ## callback scheduled by abandoned history never fires into the new stage.
 var generation: int = 0
@@ -384,15 +386,7 @@ func _apply_tween(tag: String, instant: bool) -> bool:
 		return _reject(tag, "cannot read that value")
 	var relative: bool = bool(opts.get("relative", false))
 	var key: String = "%d:%s" % [node.get_instance_id(), prop]
-	# Snap overlapping tweens FIRST so a relative move on position:x sees the
-	# whole-position logical destination, not a mid-tween on-screen value.
-	# _cancel_overlapping sets any other-property tween to its logical end and
-	# clears its _logical entry; a whole-vector logical then becomes visible
-	# to logical_value(prop) via a component read on the freshly-set value.
-	if relative:
-		_cancel_overlapping(node, prop)
-		current = node.get_indexed(NodePath(prop))
-	var base: Variant = _logical.get(key, current)
+	var base: Variant = _logical_at(node, prop, current)
 	if relative:
 		to = _apply_relative(base, to)
 	if fields.size() > 2 and fields[2] != "" and not fields[2].is_valid_float():
@@ -497,10 +491,31 @@ func set_now(node: Node, prop: String, value: Variant) -> void:
 
 ## The value a property is heading to (running tween) or its current value.
 func logical_value(node: Node, prop: String) -> Variant:
-	var key: String = "%d:%s" % [node.get_instance_id(), prop]
+	return _logical_at(node, prop, node.get_indexed(NodePath(prop)))
+
+
+## The value [param prop] is heading to, seen through both spellings: a
+## component ("position:x") reads out of a pending whole-vector tween, and a
+## whole property ("position") overlays pending component tweens on its
+## current value. Live play, skip and restore therefore agree.
+func _logical_at(node: Node, prop: String, current: Variant) -> Variant:
+	var iid: int = node.get_instance_id()
+	var key: String = "%d:%s" % [iid, prop]
 	if _logical.has(key):
 		return _logical[key]
-	return node.get_indexed(NodePath(prop))
+	var head: String = prop.get_slice(":", 0)
+	if prop != head:
+		var whole_key: String = "%d:%s" % [iid, head]
+		if _logical.has(whole_key):
+			var whole: Variant = _logical[whole_key]
+			return whole[prop.get_slice(":", 1)]
+		return current
+	var result: Variant = current
+	var prefix: String = "%d:%s:" % [iid, head]
+	for other: String in _logical.keys():
+		if other.begins_with(prefix):
+			result[other.substr(prefix.length())] = _logical[other]
+	return result
 
 
 ## True while a tween drives [param prop] (or an overlapping property).
@@ -531,6 +546,7 @@ func kill_node(node: Node) -> void:
 ## non-looping clip; looping clips simply start. Returns false on failure.
 func play_clip(track: Node, clip: String, loop: bool = false, instant: bool = false) -> bool:
 	if track is AnimationTree:
+		_trees[track.get_instance_id()] = track
 		var playback: Variant = track.get("parameters/playback")
 		if playback == null or not playback.has_method("travel"):
 			return false
@@ -538,8 +554,6 @@ func play_clip(track: Node, clip: String, loop: bool = false, instant: bool = fa
 			playback.start(StringName(clip))
 		else:
 			playback.travel(StringName(clip))
-		# Retained-tree playback must also be stopped by reset_all.
-		_players[track.get_instance_id()] = track
 		return true
 	var player := track as AnimationPlayer
 	if player == null or not player.has_animation(clip):
@@ -601,15 +615,10 @@ func _apply_set(tag: String, _instant: bool) -> bool:
 	var to: Variant = _parse_value(fields[1].substr(eq + 1), current)
 	if to == null:
 		return _reject(tag, "cannot read that value")
-	_capture_home(node)
-	# Snap overlapping tweens FIRST so a relative set to position:x is added
-	# to the whole-position logical destination, not to a mid-tween value.
 	if bool(parsed[1].get("relative", false)):
-		_cancel_overlapping(node, prop)
-		current = node.get_indexed(NodePath(prop))
-		to = _apply_relative(_logical.get("%d:%s" % [node.get_instance_id(), prop], current), to)
-	else:
-		_cancel_overlapping(node, prop)
+		to = _apply_relative(_logical_at(node, prop, current), to)
+	_capture_home(node)
+	_cancel_overlapping(node, prop)
 	_logical.erase("%d:%s" % [node.get_instance_id(), prop])
 	node.set_indexed(NodePath(prop), to)
 	return _accept(tag)
@@ -745,6 +754,7 @@ func _apply_nla(tag: String, instant: bool) -> bool:
 	var loop: bool = bool(opts.get("loop", false))
 	_looping[fields[0]] = loop
 	if track is AnimationTree:
+		_trees[track.get_instance_id()] = track
 		var playback: Variant = track.get("parameters/playback")
 		if playback == null or not playback.has_method("travel"):
 			return _reject(tag, "AnimationTree track has no state machine playback")
@@ -833,6 +843,12 @@ func _process_ranged(_delta: float) -> void:
 				_ranged.remove_at(i)
 
 
+func _stop_tree(tree: Node) -> void:
+	var playback: Variant = tree.get("parameters/playback")
+	if playback != null and playback.has_method("stop"):
+		playback.stop()
+
+
 func _apply_nla_stop(tag: String) -> bool:
 	var alias: String = tag.substr(tag.find("=") + 1).strip_edges()
 	var track: Node = resolve_target(alias)
@@ -840,15 +856,11 @@ func _apply_nla_stop(tag: String) -> bool:
 		return _reject(tag, "unknown NLA track")
 	_drop_ranged(alias)
 	_looping[alias] = false
-	if track is AnimationTree:
-		var playback: Variant = track.get("parameters/playback")
-		if playback != null and playback.has_method("start"):
-			playback.start(StringName("RESET"))
-		track.active = false
-		_players.erase(track.get_instance_id())
-	elif track is AnimationPlayer:
+	if track is AnimationPlayer:
 		track.stop()
-		_players.erase(track.get_instance_id())
+	elif track is AnimationTree:
+		_stop_tree(track)
+		_trees.erase(track.get_instance_id())
 	return _accept(tag)
 
 
@@ -858,27 +870,20 @@ func _apply_nla_stop(tag: String) -> bool:
 #region Sprite3D quads
 
 
-## Spawn a Y-billboard portrait quad in a 3D scene. If [param alias] is
-## already registered, the existing quad is refreshed in place (texture,
-## reparent, height, position) so callers never have to remove first — the
-## in-place fix previously living inside _apply_sprite3d.
+## Spawn (or replace) a Y-billboard portrait quad in a 3D scene.
 func spawn_quad(alias: String, tex: Texture2D, parent: Node3D, height: float, anchor_bottom: bool, pos: Variant = null) -> Sprite3DQuad:
-	var existing: Variant = _spawned.get(alias)
+	var existing = _spawned.get(alias)
+	var quad: Sprite3DQuad = null
 	if is_instance_valid(existing) and existing is Sprite3DQuad:
-		var q: Sprite3DQuad = existing
-		q.texture = tex
-		if parent != null and q.get_parent() != parent:
-			q.reparent(parent, true)
-		q.world_height = height
-		q.bottom_anchored = anchor_bottom
-		if pos is Vector3:
-			set_now(q, "position", pos)
-		_targets[alias] = q
-		return q
-	remove_quad(alias)
-	var quad: Sprite3DQuad = SPRITE3D_QUAD.new()
-	quad.name = "Sprite3D_%s" % alias
-	parent.add_child(quad)
+		# Same alias: update in place (keeps placement and running tweens).
+		quad = existing
+		if quad.get_parent() != parent:
+			quad.reparent(parent, true)
+	else:
+		remove_quad(alias)
+		quad = SPRITE3D_QUAD.new()
+		quad.name = "Sprite3D_%s" % alias
+		parent.add_child(quad)
 	quad.world_height = height
 	quad.bottom_anchored = anchor_bottom
 	quad.texture = tex
@@ -1008,21 +1013,16 @@ func _apply_place3d(tag: String) -> bool:
 func reset_all() -> void:
 	generation += 1
 	_logical.clear()
-	# Stop authored playback started by story tags. AnimationTree is
-	# stopped via its state-machine playback (start=RESET clears travel);
-	# AnimationPlayer.stop() suffices for plain tracks.
+	# Stop authored animation playback started by story tags.
 	for iid: int in _players.keys():
 		var player = _players[iid]
-		if not is_instance_valid(player):
-			continue
-		if player is AnimationTree:
-			var playback: Variant = player.get("parameters/playback")
-			if playback != null and playback.has_method("start"):
-				playback.start(StringName("RESET"))
-			player.active = false
-		else:
+		if is_instance_valid(player):
 			player.stop()
 	_players.clear()
+	for tid: int in _trees.keys():
+		if is_instance_valid(_trees[tid]):
+			_stop_tree(_trees[tid])
+	_trees.clear()
 	# Drop aliases registered by (possibly abandoned) history; keep authored.
 	for alias: String in _targets.keys():
 		if not _authored.has(alias):

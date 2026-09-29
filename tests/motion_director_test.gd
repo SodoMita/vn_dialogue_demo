@@ -218,6 +218,25 @@ func _run_tests() -> void:
 	check(cube2d.position != before_travel, "tree is driving the slide clip (position moving)")
 	tree.active = false
 	await _wait(0.1)
+	# Regression: retained AnimationTrees are tracked, so reset_all stops them.
+	tree.active = true
+	check(_tag("nla=blend_tree:idle"), "tree travel accepted again")
+	await _wait(0.1)
+	check(pb.is_playing(), "tree playback is running before the reset")
+	motion.reset_all()
+	await _wait(0.1)  # a state machine applies stop() on its next process step
+	check(not pb.is_playing(), "reset_all stops tracked AnimationTree playback")
+	tree.active = false
+	_reregister()
+	_tag("nla_track=blend_tree:TestRoot/Tree")
+	tree.active = true
+	_tag("nla=blend_tree:idle")
+	await _wait(0.1)
+	check(_tag("nla_stop=blend_tree"), "nla_stop accepted on an AnimationTree track")
+	await _wait(0.1)
+	check(not pb.is_playing(), "nla_stop stops an AnimationTree track")
+	tree.active = false
+	await _wait(0.1)
 
 	print("== shake ==")
 	var base: Vector2 = cube2d.position
@@ -303,6 +322,27 @@ func _logical_tests() -> void:
 	motion.set_now(cube2d, "position", Vector2(1, 2))
 	await _wait(0.5)
 	check(cube2d.position.distance_to(Vector2(1, 2)) < 0.01, "set_now cancels a running tween_to")
+	# Mixed whole-vector / component moves agree on one logical state.
+	motion.reset_all()
+	_reregister()
+	_tag("set=cube:position=0 0")
+	_tag("tween=cube:position=100 50:1.0")
+	await _wait(0.1)
+	check_close(motion.logical_value(cube2d, "position:x"), 100.0, "component logical value reads out of a pending position tween")
+	_tag("tween=cube:x=10:0.2?relative")
+	await _wait(0.5)
+	check_close(cube2d.position.x, 110.0, "relative x after a pending whole-vector tween starts from its logical end")
+	check_close(cube2d.position.y, 50.0, "whole-vector destination kept on the other component")
+	motion.reset_all()
+	_reregister()
+	_tag("set=cube:position=0 0")
+	_tag("tween=cube:x=100:1.0")
+	await _wait(0.1)
+	check_close(motion.logical_value(cube2d, "position").x, 100.0, "whole-property logical value overlays the pending component tween")
+	_tag("tween=cube:position=10 10:0.2?relative")
+	await _wait(0.5)
+	check_close(cube2d.position.x, 110.0, "relative vector after a pending x tween starts from its logical end")
+	check_close(cube2d.position.y, 10.0, "relative vector y applied")
 	motion.reset_all()
 	_reregister()
 
