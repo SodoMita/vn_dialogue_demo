@@ -375,21 +375,27 @@ func resolve_record(parsed: Dictionary, shadow: Dictionary) -> Dictionary:
 		return {"ok": false, "resolved": {}, "shadow": shadow}
 	var next: Dictionary = shadow.duplicate(true)
 	_walker_shadow_ref = shadow
+	var out: Dictionary
 	var cmd: String = str(parsed.cmd)
 	match cmd:
 		"focus", "anim", "video":
-			return {"ok": true, "resolved": {}, "shadow": next}
+			out = {"ok": true, "resolved": {}, "shadow": next}
 		"stage":
 			var sname: String = str(parsed.get("name", "2d"))
 			next = {"_stage": sname}
-			return {"ok": true, "resolved": {}, "shadow": next}
+			out = {"ok": true, "resolved": {}, "shadow": next}
 		"show":
-			return _resolve_show_record(parsed, next)
+			out = _resolve_show_record(parsed, next)
 		"move":
-			return _resolve_move_record(parsed, next)
+			out = _resolve_move_record(parsed, next)
 		"hide":
-			return _resolve_hide_record(parsed, next)
-	return {"ok": false, "resolved": {}, "shadow": shadow}
+			out = _resolve_hide_record(parsed, next)
+		_:
+			out = {"ok": false, "resolved": {}, "shadow": shadow}
+	# Clear the walker ref so a later live-play call doesn't accidentally
+	# reuse a stale branch shadow.
+	_walker_shadow_ref = null
+	return out
 
 
 func _branch_is_3d(shadow: Dictionary) -> bool:
