@@ -818,7 +818,8 @@ func _silent_2d_tests() -> void:
 	var rooftop_line: String = str(intro.cues["rooftop"])
 	var found: Dictionary = await RouteTravel.replay(intro, "", {"jump_key": "rooftop", "line_ids": [rooftop_line]}, [], 0, null, [], true, true, {})
 	check(bool(found.get("ok", false)) and (found.get("lines", []) as Array).size() >= 8, "route walk reaches the rooftop through the intro")
-	check(str((found.line as DialogueLine).id) == rooftop_line, "the walk lands on the rooftop's first line")
+	var landed: DialogueLine = found.line
+	check(str(landed.id).ends_with("@" + rooftop_line) and landed.text.begins_with("Wind over the chain-link"), "the walk lands on the rooftop's first line")
 	balloon._commit_replay(found, -1)
 	await _wait_line()
 	check(balloon.history.size() >= 8, "the committed route replaced the backlog (%d entries)" % balloon.history.size())
