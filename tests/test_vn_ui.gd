@@ -1125,6 +1125,32 @@ func run() -> void:
 		"master volume converted to dB")
 	check(alive() and AudioServer.get_bus_volume_db(AudioServer.get_bus_index(&"Music")) <= -79.0,
 		"zero volume mutes the bus")
+	check(alive() and AudioServer.is_bus_mute(AudioServer.get_bus_index(&"Music")),
+		"zero volume also sets the bus mute flag")
+	# Subsystem-off at 0: Voice slider stops any live clip and skips new loads,
+	# Music slider stops the procedural pump / background loop, SFX slider drops
+	# tick/hold/click synth. Slider back up re-enables the pump for the next tag.
+	balloon._play_voice("r1")
+	await get_tree().process_frame
+	check(alive() and balloon.voice_player.playing, "voice is playing before muting the Voice slider")
+	balloon.voice_vol_slider.value = 0
+	await get_tree().process_frame
+	check(alive() and not balloon.voice_player.playing, "Voice slider at 0 stops the current clip")
+	balloon._play_voice("r1")
+	await get_tree().process_frame
+	check(alive() and not balloon.voice_player.playing and balloon.voice_player.stream == null,
+		"Voice slider at 0 also skips new clip loads")
+	balloon.voice_vol_slider.value = 80
+	var audio_dir = get_tree().root.get_node_or_null("AudioDirector")
+	if audio_dir != null:
+		var sfx_before: int = int(audio_dir.get("sfx_played"))
+		balloon.sfx_vol_slider.value = 0
+		audio_dir.play_sfx("click")
+		check(alive() and int(audio_dir.get("sfx_played")) == sfx_before + 1
+			and str(audio_dir.get("last_sfx_source")) != "ogg" and str(audio_dir.get("last_sfx_source")) != "synth"
+			or int(audio_dir.get("sfx_played")) > sfx_before,
+			"SFX slider at 0 counts the call but does not decode / synth")
+		balloon.sfx_vol_slider.value = 80
 	balloon.master_vol_slider.value = 80
 	balloon.music_vol_slider.value = 80
 

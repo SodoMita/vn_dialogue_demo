@@ -849,6 +849,10 @@ func _legacy_speaker_slot_for_sprite(spec: String, speaker: String) -> String:
 ## (or a still-missing file) simply stay silent.
 func _play_voice(key: String) -> void:
 	voice_player.stop()
+	# Slider-to-0 or Master mute -> skip the load entirely (no wasted decode).
+	if _bus_silent("Voice") or _bus_silent("Master"):
+		voice_player.stream = null
+		return
 	var path: String = _voice_path(key)
 	if not (ResourceLoader.exists(path) or FileAccess.file_exists(path)):
 		return
@@ -2235,6 +2239,33 @@ func _apply_resolution(w: int, h: int) -> void:
 	_on_viewport_size_changed()
 
 
+
+## True while Pause/Panic owns a bus's mute. Prevents user-slider
+## silence-side-effects from firing during a Pause (which restores state).
+var _bus_pause_hold: Dictionary = {}
+
+
+## Turn off (or resume) the subsystem behind [param bus_name] when the
+## user drags the slider to 0. Independent of Pause muting, which uses
+## its own path so state can be restored on Resume.
+func _apply_bus_silence(bus_name: String, silent: bool) -> void:
+	match bus_name:
+		"Voice":
+			if silent and is_instance_valid(voice_player) and voice_player.playing:
+				voice_player.stop()
+				voice_player.stream = null
+		"Music":
+			if audio == null:
+				return
+			if silent and audio.has_method("stop_music"):
+				audio.stop_music(0.0)
+
+
+func _bus_silent(bus_name: String) -> bool:
+	var idx: int = AudioServer.get_bus_index(bus_name)
+	return idx != -1 and AudioServer.is_bus_mute(idx)
+
+
 func _ensure_audio_buses() -> void:
 	for bus_name: String in ["Music", "Voice", "SFX"]:
 		if AudioServer.get_bus_index(bus_name) == -1:
@@ -2248,7 +2279,16 @@ func _set_bus_volume(bus_name: String, volume: float) -> void:
 	if index == -1:
 		return
 	var linear: float = clampf(volume, 0.0, 100.0) / 100.0
-	AudioServer.set_bus_volume_db(index, linear_to_db(linear) if linear > 0.0 else -80.0)
+	var silent: bool = linear <= 0.0
+	# The bus is muted at 0 (so any residual playback is silent), AND the
+	# audio director gets a hint so it can skip the whole subsystem — a
+	# muted Music bus stops the procedural synth pump and background loops;
+	# a muted Voice bus stops the current clip; a muted SFX bus drops the
+	# tick/hold synth. Master mute (Pause/Panic) still uses set_bus_mute.
+	AudioServer.set_bus_mute(index, silent)
+	AudioServer.set_bus_volume_db(index, linear_to_db(linear) if not silent else -80.0)
+	if not _bus_pause_hold.get(bus_name, false):
+		_apply_bus_silence(bus_name, silent)
 
 
 func _on_master_vol_changed(v: float) -> void:
@@ -2633,6 +2673,10 @@ func _silence_audio(on: bool) -> void:
 	# Leaving one overlay while the other is still up must keep both the bus and
 	# the current voice paused.
 	var silent: bool = on or pause_panel.visible or _panic_open()
+	# Hold user-slider silence side-effects while Pause owns the mute, so
+	# Resume doesn't have to reload the current voice clip / restart music.
+	for bus_name: String in ["Master", "Music", "Voice", "SFX"]:
+		_bus_pause_hold[bus_name] = silent
 	voice_player.stream_paused = silent
 	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), silent)
 

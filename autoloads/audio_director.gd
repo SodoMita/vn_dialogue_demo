@@ -105,6 +105,13 @@ var _last_tick_ms: int = -1000
 var _tick_parity: int = 0
 
 
+
+## True when the named bus is muted at the AudioServer level (either
+## user slider at 0 or a Pause/Panic mute on Master).
+func _bus_off(bus_name: String) -> bool:
+	var idx: int = AudioServer.get_bus_index(bus_name)
+	return idx != -1 and AudioServer.is_bus_mute(idx)
+
 func _ready() -> void:
 	_ensure_audio_buses()
 	_gen = AudioStreamGenerator.new()
@@ -140,6 +147,8 @@ func _make_music_player(node_name: String) -> AudioStreamPlayer:
 
 
 func _process(delta: float) -> void:
+	if _bus_off("Music") or _bus_off("Master"):
+		return
 	if music_source != "procedural" and _gain <= 0.0005 and _gain_target <= 0.0005:
 		return
 	_ramp_gain(delta)
@@ -277,6 +286,9 @@ func play_sfx(key: String, pitch: float = 1.0) -> void:
 	sfx_played += 1
 	last_sfx = key
 	last_sfx_pitch = pitch
+	# Silent SFX bus (or master) skips decode + synth entirely.
+	if _bus_off("SFX") or _bus_off("Master"):
+		return
 	var path: String = "res://assets/sfx/%s.ogg" % key
 	if ResourceLoader.exists(path) or FileAccess.file_exists(path):
 		last_sfx_source = "ogg"
@@ -292,6 +304,8 @@ func typing_tick(letter: String) -> void:
 	typing_ticks += 1
 	if letter.strip_edges().is_empty():
 		return
+	if _bus_off("SFX") or _bus_off("Master"):
+		return
 	var now: int = Time.get_ticks_msec()
 	if now - _last_tick_ms < 30:
 		return
@@ -305,6 +319,8 @@ func typing_tick(letter: String) -> void:
 
 ## Falling, swelling tone for a hold gesture.
 func hold_start() -> void:
+	if _bus_off("SFX") or _bus_off("Master"):
+		return
 	sfx_played += 1
 	last_sfx = "hold"
 	last_sfx_source = "synth"
