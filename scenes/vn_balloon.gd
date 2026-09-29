@@ -21,6 +21,23 @@ const DisplayScale = preload("res://scenes/display_scale.gd")
 ##                         a speaker's expression change (#sprite=maya_smile:left with no
 ##                         #focus=) still brings that portrait in front of the other
 ##   #box=hide / #box=show hide or show the dialogue box (pure stage directions)
+##
+## Short staging tags (StageActors, scenes/stage/; cheat sheet in
+## docs/STAGING.md): #show=maya:smile@left, #move=maya@center?t=0.8,
+## #move=maya?by=100 0, #hide=maya@off_left, #focus=maya, #anim=maya:wave,
+## #video=intro[:stop], #stage=classroom|2d. Klima's advanced motion tags
+## (#tween= #set= #shake= #nla= #sprite3d= #place3d= #target=) go to the
+## StageDirector (scenes/motion/). Every accepted presentation command is
+## recorded in story order per history entry ("motion"), and restore replays
+## that one ordered list through the same dispatcher (appendix A).
+
+## Emitted after story state AND stage were both restored (rollback, load,
+## route travel, panic resume). Game code listens; the balloon never calls
+## game-specific controllers.
+signal stage_restored
+
+## Version of the per-entry presentation record ("pfmt" in history entries).
+const PRESENTATION_FORMAT := 1
 
 
 ## The dialogue resource (only needed when dropping the balloon into a scene manually).
@@ -69,6 +86,20 @@ const DisplayScale = preload("res://scenes/display_scale.gd")
 ## Portrait textures, referenced from dialogue with `#sprite=<key>:<slot>`.
 @export var sprites: Dictionary[String, Texture2D] = {}
 
+## Characters for the short staging tags (ActorDefinition resources).
+@export var actor_definitions: Array[Resource] = []
+
+## 3D stage scenes for #stage=name (unknown names try res://scenes/stages/<name>.tscn).
+@export var stage_scenes: Dictionary[String, PackedScene] = {}
+
+## Videos for #video=name (unknown names try res://assets/video/<name>.ogv).
+@export var videos: Dictionary[String, VideoStream] = {}
+
+## Stage defaults for #move / #hide exits.
+@export var move_time: float = 0.45
+@export var move_trans: String = "sine"
+@export var move_ease: String = "in_out"
+
 
 ## The base balloon anchor
 @onready var balloon: Control = %Balloon
@@ -77,6 +108,8 @@ const DisplayScale = preload("res://scenes/display_scale.gd")
 @onready var background: TextureRect = %Background
 @onready var sprite_left: TextureRect = %SpriteLeft
 @onready var sprite_right: TextureRect = %SpriteRight
+@onready var motion: StageDirector = %MotionDirector
+@onready var stage_actors: StageActors = %StageActors
 
 ## Dialogue box
 @onready var dialogue_box: PanelContainer = %DialogueBox
@@ -204,6 +237,10 @@ var temporary_game_states: Array = []
 
 ## The AudioDirector autoload (music + SFX); null when a scene runs standalone.
 var audio: Node = null
+## True while Pause or the boss screen silences the game (see _silence_audio).
+var _audio_silenced: bool = false
+## Legacy slot instance id -> (offset_left, offset_top) its own layout gave it.
+var _sprite_laid_offs: Dictionary = {}
 
 ## See if we are waiting for the player
 var is_waiting_for_input: bool = false
@@ -230,6 +267,8 @@ var _current_bg: String = ""
 var _current_left: String = ""
 var _current_right: String = ""
 var _current_focus: String = ""
+## Presentation commands accepted for the line being applied: [{tag, resolved}].
+var _line_records: Array = []
 
 ## Modes
 var auto_mode: bool = false
@@ -392,6 +431,7 @@ func _ready() -> void:
 			route_graph_panel.travel_requested.connect(_on_route_travel_requested)
 	DirAccess.make_dir_recursive_absolute(saves_dir)
 	_ensure_audio_buses()
+	_setup_staging()
 	audio = get_node_or_null("/root/AudioDirector")
 	if audio != null:
 		dialogue_label.spoke.connect(_on_label_spoke)
@@ -518,7 +558,7 @@ func start(with_dialogue_resource: DialogueResource = null, cue: String = "", ex
 		start_from_cue = cue
 	show()
 	# Ambient music under the conversation; tagged #music= lines override this.
-	if audio != null and audio.music_source == "":
+	if audio != null and audio.music_source == "" and not audio.has_music_request():
 		audio.play_theme(&"calm")
 	dialogue_line = await dialogue_resource.get_next_dialogue_line(start_from_cue, temporary_game_states)
 
@@ -543,7 +583,10 @@ func apply_dialogue_line() -> void:
 
 	# Log this line in the backlog (skipped while rolling back to it), capturing
 	# the story state and the dressed stage so rollback can restore both.
-	if not _restoring and (not dialogue_line.text.is_empty() or not dialogue_line.character.is_empty()):
+	# Direction-only lines (no text, no speaker) are kept when they changed
+	# the stage, hidden from the backlog and skipped as rollback stops.
+	var shown_line: bool = not dialogue_line.text.is_empty() or not dialogue_line.character.is_empty()
+	if not _restoring and (shown_line or not _line_records.is_empty()):
 		var entry: Dictionary = {
 			"id": dialogue_line.id,
 			"character": dialogue_line.character,
@@ -553,6 +596,9 @@ func apply_dialogue_line() -> void:
 			"right": _current_right,
 			"focus": _current_focus,
 			"choices": dialogue_line.responses.size() > 0,
+			"pfmt": PRESENTATION_FORMAT,
+			"motion": _line_records.duplicate(true),
+			"display_in_backlog": shown_line,
 		}
 		var game_state: Node = get_tree().root.get_node_or_null("GameState")
 		if is_instance_valid(game_state) and game_state.has_method("snapshot"):
@@ -699,24 +745,10 @@ func _restore_waiting() -> void:
 
 
 func _apply_stage_tags(line: DialogueLine) -> void:
-	# A line can change the speaker's expression without repeating #focus=.
-	# Remember that slot and bring it forward after the tags, unless the line
-	# named a focus of its own.
-	var speaker_slot := ""
-	var had_focus := false
+	_line_records = []
+	# Transient audio/UI tags keep their existing handling (not replayed).
 	for tag: String in line.tags:
-		if tag.begins_with("bg="):
-			_set_background(tag.substr(3))
-		elif tag.begins_with("sprite="):
-			var spec := tag.substr(7)
-			_set_sprite(spec)
-			var slot := _speaker_slot_for_sprite(spec, line.character)
-			if slot != "":
-				speaker_slot = slot
-		elif tag.begins_with("focus="):
-			had_focus = true
-			_set_focus(tag.substr(6))
-		elif tag == "box=hide":
+		if tag == "box=hide":
 			dialogue_box.hide()
 			name_plate.hide()
 			next_indicator.hide()
@@ -728,14 +760,83 @@ func _apply_stage_tags(line: DialogueLine) -> void:
 			audio.request_music(tag.substr(6))
 		elif tag.begins_with("sfx=") and audio != null:
 			audio.play_sfx(tag.substr(4))
-	if not had_focus and speaker_slot != "":
-		_set_focus(speaker_slot)
+	# Restore already reconstructed the stage from the recorded commands
+	# (including this line's), so the same line must not apply them twice.
+	if _restoring:
+		return
+	# Presentation commands in story order; the implicit speaker focus (a
+	# speaker's own #sprite= brings them forward) is appended by the shared
+	# parser after all of the line's tags.
+	for tag: String in StageTagParser.line_commands(line.tags, line.character):
+		var result: Dictionary = _apply_presentation(tag, false, {})
+		if bool(result.get("ok", false)):
+			_line_records.append({"tag": tag, "resolved": result.get("resolved", {})})
+
+
+## The one presentation dispatcher, shared by live play and restore.
+## Returns {ok, resolved}. Rejected commands are never recorded.
+func _apply_presentation(tag: String, restoring: bool, resolved: Dictionary) -> Dictionary:
+	if tag.begins_with("bg="):
+		_set_background(tag.substr(3))
+		return {"ok": true, "resolved": {}}
+	if tag.begins_with("sprite="):
+		_set_sprite(tag.substr(7))
+		return {"ok": true, "resolved": {}}
+	if tag.begins_with("focus="):
+		var id := tag.substr(6).strip_edges()
+		if id in ["left", "right", "none", ""] or stage_actors.has_actor(id):
+			_set_focus(id)
+			return {"ok": true, "resolved": {}}
+		push_warning("VNBalloon: no actor '%s' to focus (%s)" % [id, tag])
+		return {"ok": false}
+	if StageTagParser.is_stage_tag(tag):
+		return stage_actors.apply(StageTagParser.parse(tag), restoring, resolved)
+	if motion.is_motion_tag(tag):
+		return {"ok": motion.apply_tag(tag, restoring), "resolved": {}}
+	return {"ok": false}
+
+
+func _setup_staging() -> void:
+	motion.attach(self, {
+		"bg": background,
+		"left": sprite_left,
+		"right": sprite_right,
+		"box": dialogue_box,
+		"stage": balloon.get_node_or_null("Stage"),
+	})
+	motion.texture_resolver = func(key: String) -> Texture2D: return sprites.get(key)
+	stage_actors.setup(motion, balloon.get_node("Stage"), %Actors, %Anchors, %VideoLayer, %Stage3D, %Stage3DViewport)
+	stage_actors.sprites = sprites
+	stage_actors.stage_scenes = stage_scenes
+	stage_actors.videos = videos
+	stage_actors.legacy = {"left": sprite_left, "right": sprite_right}
+	stage_actors.move_time = move_time
+	stage_actors.move_trans = move_trans
+	stage_actors.move_ease = move_ease
+	for def: Resource in actor_definitions:
+		if def is ActorDefinition:
+			stage_actors.add_definition(def)
+	if not stage_actors.stage_cleared.is_connected(_on_stage_cleared):
+		stage_actors.stage_cleared.connect(_on_stage_cleared)
+
+
+## A stage switch clears the legacy slots too (cleared, not destroyed).
+func _on_stage_cleared(_new_stage: String) -> void:
+	_set_sprite("none:left")
+	_set_sprite("none:right")
+	_current_focus = ""
+	sprite_left.modulate.a = 0.0
+	sprite_right.modulate.a = 0.0
 
 
 ## Slot of a portrait tag that belongs to the speaking character, or "" when
 ## the tag clears a slot, names someone else, or the line has no speaker.
 ## "maya_smile" matches Maya; an explicit #focus= on the same line still wins.
 func _speaker_slot_for_sprite(spec: String, speaker: String) -> String:
+	return StageTagParser.speaker_slot_for_sprite(spec, speaker)
+
+
+func _legacy_speaker_slot_for_sprite(spec: String, speaker: String) -> String:
 	var parts: PackedStringArray = spec.split(":")
 	var key := parts[0].strip_edges().to_lower()
 	var who := speaker.strip_edges().to_lower()
@@ -752,6 +853,10 @@ func _speaker_slot_for_sprite(spec: String, speaker: String) -> String:
 ## (or a still-missing file) simply stay silent.
 func _play_voice(key: String) -> void:
 	voice_player.stop()
+	if not _voice_enabled():
+		# Voice (or Master) at 0 switches voice off: no clip is loaded or played.
+		voice_player.stream = null
+		return
 	var path: String = _voice_path(key)
 	if not (ResourceLoader.exists(path) or FileAccess.file_exists(path)):
 		return
@@ -778,7 +883,7 @@ func _on_sync_voice_toggled(on: bool) -> void:
 
 func _set_background(key: String) -> void:
 	_current_bg = key
-	if key == "none":
+	if key == "none" or key == "":
 		background.texture = null
 	elif backgrounds.has(key):
 		background.texture = backgrounds[key]
@@ -796,6 +901,10 @@ func _set_sprite(spec: String) -> void:
 	if key == "none":
 		slot.texture = null
 		slot.modulate.a = 0.0
+		# An empty slot forgets any #move: the next portrait starts at home.
+		var moved := _slot_displacement(slot)
+		if moved != Vector2.ZERO and motion != null:
+			motion.set_now(slot, "position", slot.position - moved)
 	elif sprites.has(key):
 		slot.texture = sprites[key]
 		slot.modulate.a = 1.0
@@ -812,6 +921,18 @@ func _set_focus(slot_name: String) -> void:
 		sprite_right.modulate.a = dim
 	elif slot_name == "right" and sprite_left.texture != null:
 		sprite_left.modulate.a = dim
+	elif stage_actors != null and stage_actors.has_actor(slot_name):
+		# A dynamic actor has the spotlight: both legacy slots step back.
+		if sprite_left.texture != null:
+			sprite_left.modulate.a = dim
+		if sprite_right.texture != null:
+			sprite_right.modulate.a = dim
+	if sprite_left.texture == null:
+		sprite_left.modulate.a = 0.0
+	if sprite_right.texture == null:
+		sprite_right.modulate.a = 0.0
+	if stage_actors != null:
+		stage_actors.apply_focus(slot_name)
 	_apply_speaker_order()
 
 
@@ -840,7 +961,62 @@ func _strip_bbcode(source: String) -> String:
 
 
 ## Re-dress the stage exactly as it was when a history entry was shown.
+## New-format history replays the ordered presentation commands from the
+## last checkpoint (an old-format entry's snapshot, or an empty stage) up to
+## the cursor; old saves use their legacy bg/left/right/focus snapshot.
 func _restore_stage(entry: Dictionary) -> void:
+	if history_cursor >= 0 and history_cursor < history.size() and history[history_cursor].has("pfmt"):
+		_restore_presentation(history_cursor)
+	else:
+		motion.reset_all()
+		stage_actors.reset_all()
+		_restore_legacy_snapshot(entry)
+	stage_restored.emit()
+
+
+func _restore_presentation(cursor: int) -> void:
+	var start := cursor
+	while start >= 0 and history[start].has("pfmt"):
+		start -= 1
+	motion.reset_all()
+	stage_actors.reset_all()
+	if start >= 0:
+		_restore_legacy_snapshot(history[start])
+	else:
+		_set_background("")
+		_set_sprite("none:left")
+		_set_sprite("none:right")
+		_current_focus = ""
+		_set_focus("")
+	for i: int in range(start + 1, cursor + 1):
+		var records: Variant = history[i].get("motion", [])
+		if records is not Array:
+			continue
+		# Records the branch walker could not resolve (e.g. markers of a stage
+		# the branch switches to) resolve here, against the staging rebuilt so
+		# far. Persist that and drop commands that never applied, so later
+		# restores never look markers up again.
+		var kept: Array = []
+		for rec: Variant in records:
+			if rec is not Dictionary:
+				continue
+			var stored: Variant = rec.get("resolved", {})
+			var had: bool = stored is Dictionary and not (stored as Dictionary).is_empty()
+			var result: Dictionary = _apply_presentation(str(rec.get("tag", "")), true, stored if stored is Dictionary else {})
+			if not bool(result.get("ok", false)):
+				if had:
+					kept.append(rec)
+				continue
+			if not had and result.get("resolved") is Dictionary:
+				rec["resolved"] = (result.resolved as Dictionary).duplicate(true)
+			kept.append(rec)
+		if kept.size() != (records as Array).size():
+			history[i]["motion"] = kept
+	motion.finish_restore()
+	stage_actors.finish_restore()
+
+
+func _restore_legacy_snapshot(entry: Dictionary) -> void:
 	_set_background(str(entry.get("bg", "")))
 	var left_key: String = str(entry.get("left", ""))
 	_set_sprite(("%s:left" % left_key) if left_key != "" else "none:left")
@@ -870,6 +1046,10 @@ func open_history() -> void:
 
 	for i: int in history.size():
 		var entry: Dictionary = history[i]
+		# Direction-only entries stay in history (indices unchanged) but
+		# never show as blank backlog rows.
+		if not bool(entry.get("display_in_backlog", true)):
+			continue
 		var item: Button = history_entry_template.duplicate()
 		item.text = entry.text if entry.character.is_empty() else "%s: %s" % [entry.character, entry.text]
 		item.show()
@@ -912,10 +1092,26 @@ func rollback_to(index: int) -> void:
 	_restoring = false
 
 
-## Roll forward to the newest kept line after a rollback.
+## Roll forward to the next displayed line after a rollback.
 func roll_forward() -> void:
-	if history_cursor < history.size() - 1:
-		rollback_to(history_cursor + 1)
+	var i := _next_displayed(history_cursor)
+	if i >= 0:
+		rollback_to(i)
+
+
+## Player rollback / roll-forward stop only on displayed entries.
+func _prev_displayed(from: int) -> int:
+	for i: int in range(mini(from, history.size()) - 1, -1, -1):
+		if bool(history[i].get("display_in_backlog", true)):
+			return i
+	return -1
+
+
+func _next_displayed(from: int) -> int:
+	for i: int in range(from + 1, history.size()):
+		if bool(history[i].get("display_in_backlog", true)):
+			return i
+	return -1
 
 
 func _on_history_entry_pressed(index: int) -> void:
@@ -944,6 +1140,7 @@ func save_to_slot(i: int) -> Error:
 	var current: Dictionary = history[history_cursor] if history_cursor >= 0 else history[history.size() - 1]
 	var data: Dictionary = {
 		"resource": dialogue_resource.resource_path,
+		"presentation_format": PRESENTATION_FORMAT,
 		"history": history,
 		"cursor": history_cursor,
 		"meta": {
@@ -1441,10 +1638,7 @@ func _load_settings() -> void:
 			var slider: HSlider = {"vol_master": master_vol_slider, "vol_music": music_vol_slider,
 				"vol_voice": voice_vol_slider, "vol_sfx": sfx_vol_slider}[key]
 			slider.value = float(data[key])
-	_set_bus_volume("Master", master_vol_slider.value)
-	_set_bus_volume("Music", music_vol_slider.value)
-	_set_bus_volume("Voice", voice_vol_slider.value)
-	_set_bus_volume("SFX", sfx_vol_slider.value)
+	_apply_volumes()
 	if data.has("procedural_music"):
 		procedural_music = bool(data.procedural_music)
 		procedural_music_check.button_pressed = procedural_music
@@ -1881,6 +2075,14 @@ func _on_sprite_y_changed(v: float) -> void:
 
 ## Sprite scale pivots at each sprite's bottom centre; the Y offset is a delta
 ## on top of the authored offsets so the anchored rect keeps its height.
+## How far #move / #tween pushed a legacy slot from where its layout put it.
+func _slot_displacement(spr: Control) -> Vector2:
+	var laid: Variant = _sprite_laid_offs.get(spr.get_instance_id())
+	if laid is not Vector2:
+		return Vector2.ZERO
+	return Vector2(spr.offset_left, spr.offset_top) - (laid as Vector2)
+
+
 func _apply_sprite_transform() -> void:
 	var stage := balloon.size
 	# Portrait only. A 720-wide view used the landscape rects, so the two
@@ -1888,6 +2090,11 @@ func _apply_sprite_transform() -> void:
 	var tall := stage.y > stage.x + 1.0
 	for spr: TextureRect in [sprite_left, sprite_right]:
 		var id := spr.get_instance_id()
+		# A slot moved by #move / #tween keeps its displacement across layout
+		# passes (an expression change must not snap it home). Measured in
+		# offsets: they only change when the slot is moved, while its position
+		# also follows the parent's size.
+		var displaced := _slot_displacement(spr)
 		if not _sprite_base_offsets.has(id):
 			_sprite_base_offsets[id] = Vector2(spr.offset_top, spr.offset_bottom)
 		if not _sprite_base_sides.has(id):
@@ -1910,6 +2117,19 @@ func _apply_sprite_transform() -> void:
 		spr.offset_bottom = bottom
 		spr.pivot_offset = Vector2(spr.size.x * 0.5, spr.size.y)
 		spr.scale = Vector2(sprite_scale, sprite_scale)
+		_sprite_laid_offs[id] = Vector2(spr.offset_left, spr.offset_top)
+		if motion != null:
+			motion.set_home(spr, "position", spr.position)
+			motion.set_home(spr, "scale", spr.scale)
+		if displaced != Vector2.ZERO:
+			spr.offset_left += displaced.x
+			spr.offset_right += displaced.x
+			spr.offset_top += displaced.y
+			spr.offset_bottom += displaced.y
+	if stage_actors != null:
+		stage_actors.sprite_scale = sprite_scale
+		stage_actors.sprite_y = sprite_y
+		stage_actors.relayout()
 	_apply_speaker_order()
 
 
@@ -2063,26 +2283,54 @@ func _set_bus_volume(bus_name: String, volume: float) -> void:
 	AudioServer.set_bus_volume_db(index, linear_to_db(linear) if linear > 0.0 else -80.0)
 
 
+## Apply all four Settings sliders. Every bus follows its slider, and a level
+## of 0 also switches that subsystem OFF: the AudioDirector stops music / SFX
+## generation and playback, the balloon stops loading and playing voice clips,
+## and Master 0 switches all of them off (and mutes the Master bus).
+func _apply_volumes() -> void:
+	_set_bus_volume("Master", master_vol_slider.value)
+	_set_bus_volume("Music", music_vol_slider.value)
+	_set_bus_volume("Voice", voice_vol_slider.value)
+	_set_bus_volume("SFX", sfx_vol_slider.value)
+	if audio != null:
+		audio.set_levels(master_vol_slider.value, music_vol_slider.value,
+				voice_vol_slider.value, sfx_vol_slider.value)
+	if not _voice_enabled():
+		voice_player.stop()
+		voice_player.stream = null
+	_refresh_master_mute()
+
+
+func _voice_enabled() -> bool:
+	return master_vol_slider.value > 0.0 and voice_vol_slider.value > 0.0
+
+
+## Master is muted while an overlay silences the game or Master is at 0.
+func _refresh_master_mute() -> void:
+	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"),
+			_audio_silenced or master_vol_slider.value <= 0.0)
+
+
 func _on_master_vol_changed(v: float) -> void:
-	_set_bus_volume("Master", v)
+	_apply_volumes()
 	_update_slider_value_labels()
 	_save_settings()
 
 
-func _on_music_vol_changed(v: float) -> void:
-	_set_bus_volume("Music", v)
+func _on_music_vol_changed(_v: float) -> void:
+	_apply_volumes()
 	_update_slider_value_labels()
 	_save_settings()
 
 
-func _on_voice_vol_changed(v: float) -> void:
-	_set_bus_volume("Voice", v)
+func _on_voice_vol_changed(_v: float) -> void:
+	_apply_volumes()
 	_update_slider_value_labels()
 	_save_settings()
 
 
-func _on_sfx_vol_changed(v: float) -> void:
-	_set_bus_volume("SFX", v)
+func _on_sfx_vol_changed(_v: float) -> void:
+	_apply_volumes()
 	_update_slider_value_labels()
 	_save_settings()
 
@@ -2445,8 +2693,9 @@ func _silence_audio(on: bool) -> void:
 	# Leaving one overlay while the other is still up must keep both the bus and
 	# the current voice paused.
 	var silent: bool = on or pause_panel.visible or _panic_open()
+	_audio_silenced = silent
 	voice_player.stream_paused = silent
-	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), silent)
+	_refresh_master_mute()
 
 
 ## Touch pause: keyboards have the pause action, phones only get this button.
@@ -2631,8 +2880,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed \
 		and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
 		get_viewport().set_input_as_handled()
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP and history_cursor > 0:
-			rollback_to(history_cursor - 1)
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP and _prev_displayed(history_cursor) >= 0:
+			rollback_to(_prev_displayed(history_cursor))
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			roll_forward()
 		return
@@ -2682,8 +2931,8 @@ func _on_balloon_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed \
 		and (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
 		get_viewport().set_input_as_handled()
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP and history_cursor > 0:
-			rollback_to(history_cursor - 1)
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP and _prev_displayed(history_cursor) >= 0:
+			rollback_to(_prev_displayed(history_cursor))
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			roll_forward()
 		return
@@ -2855,6 +3104,40 @@ func _route_player_state() -> Dictionary:
 	}
 
 
+
+## Snapshot of the live stage for a branch walker, plus the shared resolver
+## and shadow. RouteTravel._dress feeds every parsed command through the
+## resolver so records land with computed endpoints — restore then never
+## looks markers up again.
+func _travel_stage() -> Dictionary:
+	var shadow: Dictionary = {"_stage": stage_actors.current_stage}
+	for aid: String in stage_actors.actors:
+		var a: Dictionary = stage_actors.actors[aid]
+		var entry: Dictionary = {}
+		if a.has("look"):
+			entry["look"] = str(a.look)
+		if a.has("place") and a.place is Dictionary and not (a.place as Dictionary).is_empty():
+			entry["place"] = (a.place as Dictionary).duplicate(true)
+		shadow[aid] = entry
+	return {
+		"bg": _current_bg,
+		"left": _current_left,
+		"right": _current_right,
+		"focus": _current_focus,
+		"_resolver": Callable(stage_actors, "resolve_record"),
+		"_shadow": shadow,
+	}
+
+
+
+## Seed a resolver + empty shadow onto [param seed] (defaults to a fresh
+## dict). Used by full-restart replays where no live actors carry over.
+func _travel_stage_seed(seed: Dictionary = {}) -> Dictionary:
+	var out: Dictionary = seed.duplicate(true)
+	out["_resolver"] = Callable(stage_actors, "resolve_record")
+	out["_shadow"] = {"_stage": stage_actors.current_stage}
+	return out
+
 func _on_route_travel_requested(target: Dictionary) -> void:
 	_close_route_graph()
 	_halt_modes_for_travel()
@@ -2894,12 +3177,7 @@ func _travel_to_target(target: Dictionary) -> void:
 		current_id = str(dialogue_line.id)
 	elif history_cursor >= 0 and history_cursor < history.size():
 		current_id = str(history[history_cursor].get("id", ""))
-	var stage := {
-		"bg": _current_bg,
-		"left": _current_left,
-		"right": _current_right,
-		"focus": _current_focus,
-	}
+	var stage := _travel_stage()
 	_silent_travel = true
 	if current_id != "":
 		var from_here: Dictionary = await RouteTravel.replay(dialogue_resource, current_id, target, history, history_cursor, game_state, temporary_game_states, true, false, stage)
@@ -2911,7 +3189,7 @@ func _travel_to_target(target: Dictionary) -> void:
 		_restore_travel(snap)
 	if game_state != null and game_state.has_method("reset"):
 		game_state.reset()
-	var from_start: Dictionary = await RouteTravel.replay(dialogue_resource, "", target, history, 0, game_state, temporary_game_states, spoilers_ok, true, {})
+	var from_start: Dictionary = await RouteTravel.replay(dialogue_resource, "", target, history, 0, game_state, temporary_game_states, spoilers_ok, true, _travel_stage_seed())
 	if bool(from_start.get("ok", false)):
 		_silent_travel = false
 		_commit_replay(from_start, -1)
@@ -2931,7 +3209,7 @@ func _travel_to_target(target: Dictionary) -> void:
 		if other != null and game_state != null and game_state.has_method("reset"):
 			game_state.reset()
 			_silent_travel = true
-			var from_file: Dictionary = await RouteTravel.replay(other, "", target, history, 0, game_state, temporary_game_states, spoilers_ok, true, {})
+			var from_file: Dictionary = await RouteTravel.replay(other, "", target, history, 0, game_state, temporary_game_states, spoilers_ok, true, _travel_stage_seed())
 			if bool(from_file.get("ok", false)):
 				dialogue_resource = other
 				_silent_travel = false
@@ -2966,7 +3244,7 @@ func _rewrite_would_reach_resource(resource, target: Dictionary, game_state: Nod
 	if game_state != null and game_state.has_method("reset"):
 		game_state.reset()
 	_silent_travel = true
-	var probe: Dictionary = await RouteTravel.replay(resource, "", target, [], 0, game_state, temporary_game_states, true, true, {})
+	var probe: Dictionary = await RouteTravel.replay(resource, "", target, [], 0, game_state, temporary_game_states, true, true, _travel_stage_seed())
 	_silent_travel = false
 	return bool(probe.get("ok", false))
 

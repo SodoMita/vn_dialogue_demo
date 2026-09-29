@@ -1,0 +1,15 @@
+// Short staging tags demo (docs/STAGING.md). Start it with cue "start".
+~ start
+The classroom, this time as a 3D stage. [#stage=classroom, #show=maya@door, #music=calm]
+Maya: Morning! [#move=maya@desk?t=0.9, #anim=maya:wave]
+Rook: Late again. [#show=rook@guest_desk, #focus=rook]
+Maya: Am not! [#show=maya:surprised, #focus=maya]
+Ken: Made it! ...Wait, the bell already rang? [#show=ken:surprised@door, #focus=ken]
+Rook: Ten minutes ago. [#show=rook:smile, #focus=rook]
+Ken: Ugh. Sorry. [#show=ken:sad, #focus=ken]
+[#hide=maya@hall, #hide=ken@hall]
+Rook: ...Back to the flat stage, then. [#stage=2d, #bg=rooftop]
+Maya: Two slots were never enough. [#show=maya:smile@far_left, #show=rook@far_right, #show=ken:smile@center, #focus=maya]
+Ken: Room for one more! [#anim=ken:wave, #focus=ken]
+Rook: Show-off. [#move=rook?by=-160 0, #show=rook:sad, #focus=rook]
+=> END

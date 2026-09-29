@@ -191,8 +191,35 @@ static func _is_end(key: String) -> bool:
 	return key == "end" or key == "end!" or key == "END"
 
 
+## Branch-local only: never touches the visible stage. The balloon's
+## _commit_replay() -> _restore_stage() materializes the chosen route from
+## the recorded commands (same shared parser as live play).
+## When [param stage] carries a "_resolver" Callable (supplied by the
+## balloon), each command is validated against the branch shadow and the
+## computed endpoint is persisted; restore does not look markers up again.
 static func _dress(stage: Dictionary, line: DialogueLine) -> Dictionary:
 	var next := stage.duplicate(true)
+	var resolver: Variant = stage.get("_resolver")
+	var shadow: Dictionary = stage.get("_shadow", {})
+	var records: Array = []
+	for cmd in StageTagParser.line_commands(line.tags, line.character):
+		var tag_text := str(cmd)
+		var record := {"tag": tag_text, "resolved": {}}
+		if resolver is Callable and (resolver as Callable).is_valid():
+			var parsed: Dictionary = StageTagParser.parse(tag_text)
+			var out: Dictionary = (resolver as Callable).call(parsed, shadow)
+			if bool(out.get("ok", false)):
+				var resolved: Variant = out.get("resolved", {})
+				if resolved is Dictionary:
+					record["resolved"] = resolved
+				shadow = out.get("shadow", shadow)
+			else:
+				# Rejected on the branch (bad look, missing marker, ?by= on
+				# nobody) — do not persist it; live play rejects the same tag.
+				continue
+		records.append(record)
+	next["_shadow"] = shadow
+	next["line_motion"] = records
 	for tag in line.tags:
 		var text := str(tag)
 		if text.begins_with("bg="):
@@ -218,6 +245,9 @@ static func _record(line: DialogueLine, stage: Dictionary, game_state: Node) -> 
 		"right": str(stage.get("right", "")),
 		"focus": str(stage.get("focus", "")),
 		"choices": line.responses.size() > 0,
+		"pfmt": 1,
+		"motion": (stage.get("line_motion", []) as Array).duplicate(true),
+		"display_in_backlog": not (str(line.text).is_empty() and str(line.character).is_empty()),
 	}
 	if game_state != null and game_state.has_method("snapshot"):
 		entry["state"] = game_state.snapshot()

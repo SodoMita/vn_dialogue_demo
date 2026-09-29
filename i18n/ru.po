@@ -452,3 +452,9 @@ msgstr "Этот путь переписывает прежние выборы."
 
 msgid "Moved to %s, but the story state was not established."
 msgstr "Переход: %s, но состояние сюжета не установлено."
+
+msgid "Classroom_3D"
+msgstr "Класс (3D)"
+
+msgid "classroom_3d"
+msgstr "Класс (3D)"

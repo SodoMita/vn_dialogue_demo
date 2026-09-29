@@ -73,10 +73,12 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - **styled text**: BBCode (`[b]`, `[i]`, `[color=…]`, …) renders in the typewriter label;
   the backlog and save-slot labels store the same lines without markup
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **296 checks pass** (the suite
-also reports 9 known failures around held-skip mode, unchanged by the audio work and
-pre-existing on `main`), zero `SCRIPT ERROR` / `Parse Error` in import and runtime logs.
-Real rendered frames are saved in `docs/` (captured under Xvfb).
+Verified headless with Godot 4.7: `bash run_tests.sh` runs the asset rules (WebP only) and five
+suites - UI, route graph, panic return, motion director and staging - and every check passes,
+with zero `SCRIPT ERROR` / `Parse Error` in import and runtime logs. Real rendered frames are
+saved in `docs/` (captured under Xvfb).
+
+**Web build / releases:** see [docs/WEB_BUILD.md](docs/WEB_BUILD.md) (build/* pipeline, the SharedArrayBuffer service worker, the browser smoke test).
 
 ## The balloon is an authored scene, not a scene-builder script
 
@@ -102,6 +104,30 @@ test-suite asserts this). All node references use `%UniqueName` lookups.
 | `[#sprite=key:left\|right]`, `[#sprite=none:slot]` | show / clear a portrait (keys of `sprites`) |
 | `[#focus=left\|right]` | spotlight one slot, dim the other |
 | `[#box=hide]` / `[#box=show]` | hide / show the dialogue box for pure stage moments |
+
+### Short staging tags (movable actors, 3D stage, animation, video)
+
+Full cheat sheet: **`docs/STAGING.md`**; demo: `examples/staging_demo.dialogue`. The 2D stage is no longer limited to `SpriteLeft` / `SpriteRight`: any number of short-tag actors can share the stage with the legacy pair (the shipped intro keeps a silent third bystander next to Maya and Rook, and the test suite puts twelve sprites on the 2D stage at once).
+
+| tag | effect |
+| --- | --- |
+| `#show=maya[:look][@place]` | show a character / change look / snap to a place |
+| `#move=maya@place` · `@x y` · `?by=dx dy` (`?t=0.8`) | walk/slide (tweened) |
+| `#hide=maya[@off_left]` | remove, optionally walking off first |
+| `#focus=maya` | spotlight any actor (legacy `left`/`right` still work) |
+| `#anim=maya:wave` | play an animation authored on the character |
+| `#video=intro[:stop]` (`?loop`, `?on=maya`) | Ogg Theora video on the stage or on a character |
+| `#stage=classroom` / `#stage=2d` | switch to a 3D stage scene (`scenes/stages/`) and back |
+
+2D places are the anchors under `Balloon/Stage/Anchors`; 3D places are the `Marker3D`
+nodes under a stage scene's `Marks`. Characters are `ActorDefinition` resources
+(`characters/*.tres`). Klima's advanced motion tags (`#tween=` `#set=` `#shake=` `#nla=`
+`#sprite3d=` `#place3d=` `#target=`) run on the same `StageDirector`
+(`scenes/motion/`). Every accepted presentation command is recorded in story order per
+history entry and replayed on rollback / load / route travel (end poses).
+
+![3D stage](docs/18_staging_3d.webp)
+![2D actors](docs/19_staging_2d.webp)
 
 Dialogue also uses v4 features: `{{var}}` interpolation, `do x = true` mutations, `if/else`,
 cues (`~ start`, `~ rooftop`), choices, and `[speed=0.5]...[/speed]` bbcode. See
@@ -169,7 +195,7 @@ draws it at the window's pixel density, so the UI and sprites stay the same size
 The panic page uses that same scale, and when it replaces the game it also uses the saved rotation), **Glyph scale** for the story map (1×–4×, how many texels each symbol is baked with; the atlas grows to fit, capped at 4096), and texture filtering for the game art and for the map (nearest, linear, or with mipmaps); *Audio*: the **Generated music** toggle
 (procedural engine vs. bundled OGG loops), **Typewriter sound** and **Button sound**
 toggles, plus master, music, voice and SFX volumes driving runtime-created buses
-(0 mutes, 100 = 0 dB); *Sprites*: character-sprite scale
+(100 = 0 dB; **0 switches that subsystem off**, not just down: music stops generating and its loops stop, SFX and typewriter blips are not synthesized or played, voice clips are not loaded, and Master 0 switches all of them off and mutes the Master bus; raising the level resumes the music the story last asked for); *Sprites*: character-sprite scale
 (pivoted at the bottom centre) and a Y offset, independent of the UI scale. UI scale and skip speed each have a number field beside the slider; the skip number is the delay in seconds (the slider still reads as speed, right is faster). Every slider except volume has a wider range, and every slider is taller so it is easier to press. In a portrait view the character sprites are larger and set apart, and the speaker stands in front of the other portrait, still behind the dialogue UI. Changing that speaker's expression brings their portrait forward even when the line does not repeat the focus tag. Every control
 applies live and is
 persisted to `user://settings.json`, and lines the player has read are recorded in
@@ -242,6 +268,10 @@ binding button, then press the desired key.
 ./run_tests.sh            # import + per-script checks + headless UI and route-graph suites
 ```
 
+`tests/motion_director_test.tscn` (StageDirector) and `tests/test_staging.tscn` (short tags,
+parser contract, many actors, 3D markers, stage switching, video restore rules, ordered
+history restore, old saves, route travel, docs examples) run as part of it.
+
 The suite (`tests/test_vn_ui.gd`) drives the *real* balloon with synthetic keyboard input and
 checks: authored-scene structure, no code-built UI, balloon routing via project setting,
 tags → stage, typewriter + skip, next indicator, choices via keyboard, mutations, conditions,
@@ -304,6 +334,8 @@ menu (and non-left clicks don't), and that the save/load menu `X` closes it.
 - `docs/CUSTOMIZING.md` — swapping art/voices/story content, theming, settings ranges.
 - `docs/RECREATION.md` — rebuilding this balloon from scratch with Dialogue Manager,
   layout blueprint and the pitfalls list.
+- `docs/STAGING.md` — short staging tags, places, characters, 3D stages, video, restore rules, Klima migration.
+- `ai_agent_docs/` — agent handoff notes, the edit plan and the test baseline.
 - `docs/ROUTE_GRAPH_DESIGN.md` — the optional story-map renderer (single-pass, one atlas fetch). The map marks where you are; a header click travels there; an edge click pans to the further of that edge's two nodes; **Visited only** hides unread routes until you approve spoilers.
 
 Rendered screenshots (under Xvfb + software GL):
@@ -322,5 +354,5 @@ xvfb-run -a -s "-screen 0 1280x720x24" Godot_v4.7.2-stable_linux.x86_64 \
 - The two "resources still in use at exit" lines you may see are teardown bookkeeping of the
   *test harness* (forced `get_tree().quit()`); the game scene itself exits clean.
 - Art in `assets/` is AI-generated placeholder imagery (magenta-keyed to transparency for the
-  sprites); swap in your own PNGs and re-point the balloon's exported `backgrounds` /
+  sprites); swap in your own WebP art (see `tests/check_assets.sh` — PNG/JPEG are rejected) and re-point the balloon's exported `backgrounds` /
   `sprites` dictionaries in the inspector.

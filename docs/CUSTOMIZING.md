@@ -31,8 +31,12 @@ Rook: Line text [#sprite=rook:right, #focus=right, #voice=r1]
 
 ## Art
 
-- Put WebP files in `assets/backgrounds/` and `assets/characters/` (lossy q0.9 keeps quality
-  and a tiny footprint; PNG imports fine too).
+- Ship art as **WebP** only (`assets/backgrounds/`, `assets/characters/`): lossy
+  quality ~0.9 keeps portraits crisp under 80 KB. `tests/check_assets.sh` (run first
+  by `run_tests.sh` and in CI) rejects PNG/JPEG/GIF/BMP/TGA and any SVG that isn't the
+  project icon or a whitelisted silhouette. Silent bystanders may use a small SVG
+  (<= 8 KB; see `assets/characters/shadow.svg`) since a silhouette has no fine detail
+  that needs a rasterised alternative.
 - Assign them in `vn_balloon.tscn`: the balloon node exports `backgrounds` and `sprites`
   dictionaries — add an entry per key and use that key in the tags above.
 - Portraits are authored rects on `Balloon/Stage` (`SpriteLeft`, `SpriteRight`); their
