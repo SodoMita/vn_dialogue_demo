@@ -3027,6 +3027,40 @@ func _route_player_state() -> Dictionary:
 	}
 
 
+
+## Snapshot of the live stage for a branch walker, plus the shared resolver
+## and shadow. RouteTravel._dress feeds every parsed command through the
+## resolver so records land with computed endpoints — restore then never
+## looks markers up again.
+func _travel_stage() -> Dictionary:
+	var shadow: Dictionary = {"_stage": stage_actors.current_stage}
+	for aid: String in stage_actors.actors:
+		var a: Dictionary = stage_actors.actors[aid]
+		var entry: Dictionary = {}
+		if a.has("look"):
+			entry["look"] = str(a.look)
+		if a.has("place") and a.place is Dictionary and not (a.place as Dictionary).is_empty():
+			entry["place"] = (a.place as Dictionary).duplicate(true)
+		shadow[aid] = entry
+	return {
+		"bg": _current_bg,
+		"left": _current_left,
+		"right": _current_right,
+		"focus": _current_focus,
+		"_resolver": Callable(stage_actors, "resolve_record"),
+		"_shadow": shadow,
+	}
+
+
+
+## Seed a resolver + empty shadow onto [param seed] (defaults to a fresh
+## dict). Used by full-restart replays where no live actors carry over.
+func _travel_stage_seed(seed: Dictionary = {}) -> Dictionary:
+	var out: Dictionary = seed.duplicate(true)
+	out["_resolver"] = Callable(stage_actors, "resolve_record")
+	out["_shadow"] = {"_stage": stage_actors.current_stage}
+	return out
+
 func _on_route_travel_requested(target: Dictionary) -> void:
 	_close_route_graph()
 	_halt_modes_for_travel()
@@ -3066,12 +3100,7 @@ func _travel_to_target(target: Dictionary) -> void:
 		current_id = str(dialogue_line.id)
 	elif history_cursor >= 0 and history_cursor < history.size():
 		current_id = str(history[history_cursor].get("id", ""))
-	var stage := {
-		"bg": _current_bg,
-		"left": _current_left,
-		"right": _current_right,
-		"focus": _current_focus,
-	}
+	var stage := _travel_stage()
 	_silent_travel = true
 	if current_id != "":
 		var from_here: Dictionary = await RouteTravel.replay(dialogue_resource, current_id, target, history, history_cursor, game_state, temporary_game_states, true, false, stage)
@@ -3083,7 +3112,7 @@ func _travel_to_target(target: Dictionary) -> void:
 		_restore_travel(snap)
 	if game_state != null and game_state.has_method("reset"):
 		game_state.reset()
-	var from_start: Dictionary = await RouteTravel.replay(dialogue_resource, "", target, history, 0, game_state, temporary_game_states, spoilers_ok, true, {})
+	var from_start: Dictionary = await RouteTravel.replay(dialogue_resource, "", target, history, 0, game_state, temporary_game_states, spoilers_ok, true, _travel_stage_seed())
 	if bool(from_start.get("ok", false)):
 		_silent_travel = false
 		_commit_replay(from_start, -1)
@@ -3103,7 +3132,7 @@ func _travel_to_target(target: Dictionary) -> void:
 		if other != null and game_state != null and game_state.has_method("reset"):
 			game_state.reset()
 			_silent_travel = true
-			var from_file: Dictionary = await RouteTravel.replay(other, "", target, history, 0, game_state, temporary_game_states, spoilers_ok, true, {})
+			var from_file: Dictionary = await RouteTravel.replay(other, "", target, history, 0, game_state, temporary_game_states, spoilers_ok, true, _travel_stage_seed())
 			if bool(from_file.get("ok", false)):
 				dialogue_resource = other
 				_silent_travel = false
@@ -3138,7 +3167,7 @@ func _rewrite_would_reach_resource(resource, target: Dictionary, game_state: Nod
 	if game_state != null and game_state.has_method("reset"):
 		game_state.reset()
 	_silent_travel = true
-	var probe: Dictionary = await RouteTravel.replay(resource, "", target, [], 0, game_state, temporary_game_states, true, true, {})
+	var probe: Dictionary = await RouteTravel.replay(resource, "", target, [], 0, game_state, temporary_game_states, true, true, _travel_stage_seed())
 	_silent_travel = false
 	return bool(probe.get("ok", false))
 

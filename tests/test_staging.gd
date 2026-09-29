@@ -550,3 +550,21 @@ func _route_tests() -> void:
 	balloon.rollback_to(balloon.history_cursor)
 	await _wait_line()
 	check(restored_count[0] == 1, "stage_restored fires once per restore")
+
+	# --- Fix #1 regression: resolver-backed records ---
+	var dressed2: Dictionary = RouteTravel._dress(balloon._travel_stage(), line)
+	var rr: Variant = (dressed2.line_motion as Array)[0].resolved
+	check(rr is Dictionary and (rr as Dictionary).has("place") and str((rr.place as Dictionary).get("kind", "")) == "pos", "resolver stores the ?by= endpoint on the branch record")
+	var shadow: Dictionary = dressed2.get("_shadow", {})
+	check(shadow.has("maya") and (shadow.maya as Dictionary).has("place"), "resolver updates the branch shadow so later ?by= chains add to the branch")
+	# Actually run RouteTravel.replay so the resolved records are exercised.
+	var gs: Node = get_tree().root.get_node_or_null("GameState")
+	var walk: Dictionary = await RouteTravel.replay(res, str(balloon.dialogue_line.id), {"line_ids": ["two_d/END"], "jump_key": ""}, balloon.history, balloon.history_cursor, gs, [], true, false, balloon._travel_stage())
+	if bool(walk.get("ok", false)):
+		var lines: Array = walk.get("lines", [])
+		var filled: int = 0
+		for entry in lines:
+			for rec_v in (entry.get("motion", []) as Array):
+				if rec_v is Dictionary and (rec_v.resolved as Dictionary).size() > 0:
+					filled += 1
+		check(filled > 0, "RouteTravel.replay produces resolved records (fix #1)")

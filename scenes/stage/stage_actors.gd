@@ -281,6 +281,203 @@ func _actor_parent_3d() -> Node3D:
 	return n if n != null else _stage_root
 
 
+#region Branch-local resolver (route walker)
+
+
+## Compute a JSON-safe record for [param parsed] against the branch shadow
+## without touching any actor on stage. Returns {ok, resolved, shadow},
+## where [param shadow] carries per-actor logical placement so a `?by=`
+## chain in a branch adds to the branch's last endpoint, not the live one.
+##
+## Shadow shape: {"_stage": String, actor_id: {"place": Dictionary,
+## "look": String}}.  Called by RouteTravel._dress() through a Callable
+## the balloon supplies. Resolution of 3D markers is only attempted when
+## the branch's tracked stage matches the currently-loaded 3D scene; a
+## branch that switches to another stage leaves subsequent markers
+## unresolved (restore, which loads the stage first, will look them up).
+func resolve_record(parsed: Dictionary, shadow: Dictionary) -> Dictionary:
+	if not bool(parsed.get("ok", false)):
+		return {"ok": false, "resolved": {}, "shadow": shadow}
+	var next: Dictionary = shadow.duplicate(true)
+	var cmd: String = str(parsed.cmd)
+	match cmd:
+		"focus", "anim", "video":
+			return {"ok": true, "resolved": {}, "shadow": next}
+		"stage":
+			var sname: String = str(parsed.get("name", "2d"))
+			next = {"_stage": sname}
+			return {"ok": true, "resolved": {}, "shadow": next}
+		"show":
+			return _resolve_show_record(parsed, next)
+		"move":
+			return _resolve_move_record(parsed, next)
+		"hide":
+			return _resolve_hide_record(parsed, next)
+	return {"ok": false, "resolved": {}, "shadow": shadow}
+
+
+func _branch_is_3d(shadow: Dictionary) -> bool:
+	var s: String = str(shadow.get("_stage", current_stage))
+	return s != "2d" and s != ""
+
+
+func _branch_matches_live(shadow: Dictionary) -> bool:
+	return str(shadow.get("_stage", current_stage)) == current_stage
+
+
+## Look-key check without live sprites (sprites dictionary is shared with
+## the balloon, so it is safe to read; no scene mutation).
+func _record_look(id: String, look: String) -> String:
+	return _look_key(id, look)
+
+
+func _resolve_place_record(parsed: Dictionary, shadow_place: Variant, three: bool, live_ok: bool) -> Dictionary:
+	if parsed.coords != null:
+		var c: Array = parsed.coords
+		if c.size() != (3 if three else 2):
+			return {"ok": false, "error": "coordinates need %d numbers on a %s stage" % [3 if three else 2, "3D" if three else "2D"]}
+		return {"ok": true, "record": {"kind": "pos", "pos": c.duplicate()}}
+	if parsed.by != null:
+		var b: Array = parsed.by
+		if b.size() != (3 if three else 2):
+			return {"ok": false, "error": "?by= needs %d numbers on a %s stage" % [3 if three else 2, "3D" if three else "2D"]}
+		var base: Variant = _record_position(shadow_place, three)
+		if base == null:
+			return {"ok": false, "error": "?by= needs an actor on stage"}
+		var dest: Array = []
+		if three:
+			var v: Vector3 = (base as Vector3) + Vector3(b[0], b[1], b[2])
+			dest = [v.x, v.y, v.z]
+		else:
+			var v2: Vector2 = (base as Vector2) + Vector2(b[0], b[1])
+			dest = [v2.x, v2.y]
+		return {"ok": true, "record": {"kind": "pos", "pos": dest}}
+	var name: String = str(parsed.place)
+	if name == "":
+		return {"ok": true, "record": {}}
+	if three:
+		if not live_ok:
+			# Branch is on a stage we cannot inspect; leave unresolved.
+			return {"ok": true, "record": {}}
+		var m: Node3D = _find_marker(name)
+		if m == null:
+			return {"ok": false, "error": "no single marker '%s' under Marks" % name}
+		var par := _actor_parent_3d()
+		var local: Transform3D = m.global_transform
+		if par != null:
+			local = par.global_transform.affine_inverse() * m.global_transform
+		var q: Quaternion = local.basis.get_rotation_quaternion()
+		var sc: Vector3 = local.basis.get_scale()
+		var yaw := rad_to_deg(m.global_transform.basis.get_euler().y)
+		return {"ok": true, "record": {"kind": "marker", "name": name,
+				"pos": [local.origin.x, local.origin.y, local.origin.z],
+				"rot": [q.x, q.y, q.z, q.w],
+				"scale": [sc.x, sc.y, sc.z], "yaw": yaw}}
+	if _anchor(name) == null:
+		return {"ok": false, "error": "no 2D anchor '%s'" % name}
+	return {"ok": true, "record": {"kind": "anchor", "name": name}}
+
+
+func _record_position(rec: Variant, three: bool) -> Variant:
+	if not (rec is Dictionary) or (rec as Dictionary).is_empty():
+		return null
+	var kind: String = str(rec.get("kind", ""))
+	if kind == "anchor":
+		var anchor := _anchor(str(rec.get("name", "")))
+		if anchor == null:
+			return null
+		return _anchor_pos(anchor)
+	var arr: Array = rec.get("pos", [])
+	if three:
+		if arr.size() != 3:
+			return null
+		return Vector3(float(arr[0]), float(arr[1]), float(arr[2]))
+	if arr.size() != 2:
+		return null
+	return Vector2(float(arr[0]), float(arr[1]))
+
+
+func _resolve_show_record(parsed: Dictionary, shadow: Dictionary) -> Dictionary:
+	var id: String = parsed.actor
+	if RESERVED.has(id):
+		return {"ok": false, "resolved": {}, "shadow": shadow}
+	var three: bool = _branch_is_3d(shadow)
+	var live_ok: bool = _branch_matches_live(shadow)
+	var existing: Variant = shadow.get(id)
+	var out: Dictionary = {}
+	var look_key := ""
+	if parsed.look != "":
+		look_key = _record_look(id, str(parsed.look))
+		if look_key == "":
+			# Unknown look for a defined actor: still record the tag so live
+			# play (with the same rejection) matches the walker.
+			return {"ok": true, "resolved": {}, "shadow": shadow}
+		out["look"] = look_key
+	var has_place: bool = parsed.place != "" or parsed.coords != null
+	if has_place:
+		var r: Dictionary = _resolve_place_record(parsed, existing.get("place") if existing is Dictionary else null, three, live_ok)
+		if not r.ok:
+			return {"ok": false, "resolved": {}, "shadow": shadow}
+		if not (r.record as Dictionary).is_empty():
+			out["place"] = r.record
+	elif existing == null:
+		# New actor without @place: use default_place if we can resolve it.
+		var def: ActorDefinition = definitions.get(id)
+		var def_place := def.default_place if def != null else "center"
+		var synth := {"ok": true, "tag": parsed.tag, "actor": id, "look": "",
+				"place": def_place, "coords": null, "by": null}
+		var r2: Dictionary = _resolve_place_record(synth, null, three, live_ok)
+		if r2.ok and not (r2.record as Dictionary).is_empty():
+			out["place"] = r2.record
+	var rec: Dictionary = (existing as Dictionary).duplicate() if existing is Dictionary else {}
+	if out.has("look"):
+		rec["look"] = out.look
+	if out.has("place"):
+		rec["place"] = out.place
+	shadow[id] = rec
+	return {"ok": true, "resolved": out, "shadow": shadow}
+
+
+func _resolve_move_record(parsed: Dictionary, shadow: Dictionary) -> Dictionary:
+	var id: String = parsed.actor
+	var existing: Variant = shadow.get(id)
+	if existing == null:
+		return {"ok": false, "resolved": {}, "shadow": shadow}
+	var three: bool = _branch_is_3d(shadow)
+	var live_ok: bool = _branch_matches_live(shadow)
+	var r: Dictionary = _resolve_place_record(parsed, existing.get("place"), three, live_ok)
+	if not r.ok:
+		return {"ok": false, "resolved": {}, "shadow": shadow}
+	var out: Dictionary = {}
+	if not (r.record as Dictionary).is_empty():
+		out["place"] = r.record
+		existing["place"] = r.record
+		shadow[id] = existing
+	return {"ok": true, "resolved": out, "shadow": shadow}
+
+
+func _resolve_hide_record(parsed: Dictionary, shadow: Dictionary) -> Dictionary:
+	var id: String = parsed.actor
+	var existing: Variant = shadow.get(id)
+	if existing == null:
+		return {"ok": false, "resolved": {}, "shadow": shadow}
+	var three: bool = _branch_is_3d(shadow)
+	var live_ok: bool = _branch_matches_live(shadow)
+	var has_place: bool = parsed.place != "" or parsed.coords != null
+	var out: Dictionary = {}
+	if has_place:
+		var r: Dictionary = _resolve_place_record(parsed, existing.get("place"), three, live_ok)
+		if not r.ok:
+			return {"ok": false, "resolved": {}, "shadow": shadow}
+		if not (r.record as Dictionary).is_empty():
+			out["place"] = r.record
+	shadow.erase(id)
+	return {"ok": true, "resolved": out, "shadow": shadow}
+
+
+#endregion
+
+
 #endregion
 
 
