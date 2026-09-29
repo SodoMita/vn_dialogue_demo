@@ -12,6 +12,9 @@ if [ ! -x "$GODOT" ]; then
   exit 2
 fi
 
+echo "== Asset rules (WebP only) =="
+bash tests/check_assets.sh || exit 1
+
 echo "== Godot version =="
 "$GODOT" --version
 

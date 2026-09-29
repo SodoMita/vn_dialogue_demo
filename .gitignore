@@ -1,2 +1,6 @@
 .godot/
 __pycache__/
+
+# release pipeline output
+build/
+dist/
