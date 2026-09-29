@@ -169,17 +169,9 @@ func _setup_balloon() -> void:
 	add_child(balloon)
 	await frames(2)
 	actors = balloon.stage_actors
-	# Placeholder looks for the example scene (maya_sad, ken).
-	for key: String in ["maya_sad", "ken"]:
-		var img := Image.create(60, 100, false, Image.FORMAT_RGBA8)
-		img.fill(Color(0.8, 0.5, 0.6) if key == "maya_sad" else Color(0.4, 0.6, 0.9))
-		var tex := ImageTexture.create_from_image(img)
-		balloon.sprites[key] = tex
-		actors.sprites[key] = tex
-	var ken := ActorDefinition.new()
-	ken.id = "ken"
-	ken.default_appearance = "ken"
-	actors.add_definition(ken)
+	# The shipped balloon registers Maya, Rook and Ken with their real sprites;
+	# nothing is injected, so the documented Ken example runs as authored.
+	check(actors.definitions.has("ken") and actors.sprites.has("ken") and actors.sprites.has("maya_sad"), "shipped balloon registers Ken and the example looks")
 	check(actors.definitions.has("maya") and actors.definitions.has("rook"), "character definitions registered from the balloon")
 	check(balloon.get_node_or_null("%Anchors") != null and actors.anchor_names().size() == 11, "11 built-in 2D anchors authored in the stage scene")
 
