@@ -1,39 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Silent bystander sprite. Vector SVG on purpose: a silhouette has no
-  faces or fine detail, so it stays sharp at any scale without a
-  50-KB rasterised alternative for every expression. Used by the
-  "shadow" ActorDefinition; scenes show them behind the speakers as a
-  silent third character.
+  Silent bystander silhouette. Slimmer proportions than the placeholder,
+  and one bezier path per body limb so it stays a real person shape at
+  any scale. Vector on purpose: no per-expression variants, no need for
+  a rasterised alternative (see check_assets.sh whitelist).
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 400"
      preserveAspectRatio="xMidYMid meet">
   <defs>
-    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1a1f2b"/>
-      <stop offset="1" stop-color="#0a0d13"/>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#141824"/>
+      <stop offset="1" stop-color="#05070c"/>
     </linearGradient>
-    <radialGradient id="rim" cx="0.5" cy="0.4" r="0.6">
-      <stop offset="0.75" stop-color="#000" stop-opacity="0"/>
-      <stop offset="1" stop-color="#3a4a70" stop-opacity="0.55"/>
+    <radialGradient id="r" cx="0.5" cy="0.35" r="0.65">
+      <stop offset="0.72" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#3a5580" stop-opacity="0.4"/>
     </radialGradient>
   </defs>
-  <!-- head -->
-  <ellipse cx="100" cy="60" rx="34" ry="42" fill="url(#body)"/>
-  <!-- neck -->
-  <rect x="88" y="96" width="24" height="14" fill="url(#body)"/>
-  <!-- shoulders + torso -->
-  <path d="M 40 130 Q 100 108 160 130 L 156 240 Q 100 234 44 240 Z"
-        fill="url(#body)"/>
-  <!-- left arm -->
-  <path d="M 44 138 Q 30 200 42 262 Q 54 290 60 300 L 72 296 Q 60 250 60 200 Q 58 150 60 140 Z"
-        fill="url(#body)"/>
-  <!-- right arm -->
-  <path d="M 156 138 Q 170 200 158 262 Q 146 290 140 300 L 128 296 Q 140 250 140 200 Q 142 150 140 140 Z"
-        fill="url(#body)"/>
-  <!-- hips + legs -->
-  <path d="M 60 240 Q 100 230 140 240 L 138 360 Q 130 388 120 388 L 108 388 L 106 300 L 94 300 L 92 388 L 80 388 Q 70 388 62 360 Z"
-        fill="url(#body)"/>
-  <!-- rim light -->
-  <ellipse cx="100" cy="200" rx="80" ry="180" fill="url(#rim)" opacity="0.7"/>
+  <g fill="url(#g)">
+    <!-- head, slim oval -->
+    <ellipse cx="100" cy="46" rx="22" ry="28"/>
+    <!-- neck (short trapezium) -->
+    <path d="M 92 70 L 108 70 L 112 86 L 88 86 Z"/>
+    <!-- torso: narrow shoulders and taper -->
+    <path d="M 74 92 Q 100 84 126 92 L 130 176 Q 116 184 100 184 Q 84 184 70 176 Z"/>
+    <!-- left arm slightly relaxed -->
+    <path d="M 74 96 Q 60 148 66 214 Q 68 224 74 224 L 82 220 Q 78 176 82 128 Q 84 108 82 98 Z"/>
+    <!-- right arm hanging -->
+    <path d="M 126 96 Q 140 148 134 214 Q 132 224 126 224 L 118 220 Q 122 176 118 128 Q 116 108 118 98 Z"/>
+    <!-- hips + skirt taper into two legs -->
+    <path d="M 70 176 Q 100 172 130 176 L 128 224 Q 120 236 118 244 L 108 244 L 106 200 L 94 200 L 92 244 L 82 244 Q 80 236 72 224 Z"/>
+    <!-- left leg -->
+    <path d="M 82 236 Q 82 300 88 366 L 100 372 L 102 320 L 100 244 Q 92 240 82 236 Z"/>
+    <!-- right leg -->
+    <path d="M 118 236 Q 118 300 112 366 L 100 372 L 98 320 L 100 244 Q 108 240 118 236 Z"/>
+    <!-- shoes -->
+    <path d="M 82 372 Q 76 380 78 388 L 106 388 L 106 372 Z"/>
+    <path d="M 118 372 Q 124 380 122 388 L 94 388 L 94 372 Z"/>
+  </g>
+  <!-- rim light on the outline -->
+  <ellipse cx="100" cy="200" rx="82" ry="188" fill="url(#r)" opacity="0.6"/>
 </svg>
