@@ -447,11 +447,17 @@ func _apply_show(p: Dictionary, restoring: bool, stored: Dictionary) -> Dictiona
 		if key == "" and not scene_body:
 			return _reject(p.tag, "%s has no valid default_appearance - give a look" % id)
 		if not has_place:
-			var fallback := {"ok": true, "tag": p.tag, "place": def.default_place if def != null else "center", "coords": null, "by": null}
-			if is_3d() and _find_marker(str(fallback.place)) == null:
-				t = _from_record({"kind": "pos", "pos": [0.0, 0.0, 0.0]})
+			# On restore a bare #show creates the actor at its RECORDED
+			# placement (from the saved record); a later #move would otherwise
+			# override the destination and drift the actor to a fresh anchor.
+			if restoring and stored is Dictionary and (stored as Dictionary).has("place") and stored.place is Dictionary and not (stored.place as Dictionary).is_empty():
+				t = _from_record(stored.place)
 			else:
-				t = _target(fallback, null, false, null)
+				var fallback := {"ok": true, "tag": p.tag, "place": def.default_place if def != null else "center", "coords": null, "by": null}
+				if is_3d() and _find_marker(str(fallback.place)) == null:
+					t = _from_record({"kind": "pos", "pos": [0.0, 0.0, 0.0]})
+				else:
+					t = _target(fallback, null, false, null)
 			if not t.ok:
 				return _reject(p.tag, str(t.error))
 		a = _new_actor(id, key)
@@ -527,8 +533,13 @@ func _remove(id: String) -> void:
 
 
 func _free_actor(a: Dictionary) -> void:
+	# Tie pending video reconstruction to actor lifetime: an actor gone from
+	# the shadow must not resurrect a looping video on a replacement instance
+	# (finish_restore would otherwise reattach after re-#show).
+	var aid: String = str(a.id)
+	_pending_videos = _pending_videos.filter(func(v: Dictionary) -> bool: return str(v.get("on", "")) != aid)
 	for name: String in _videos.keys():
-		if str(_videos[name].get("on", "")) == str(a.id):
+		if str(_videos[name].get("on", "")) == aid:
 			_stop_video(name)
 	if is_instance_valid(a.root):
 		director.kill_node(a.root)
