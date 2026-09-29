@@ -1,43 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Silent bystander silhouette. Slimmer proportions than the placeholder,
-  and one bezier path per body limb so it stays a real person shape at
-  any scale. Vector on purpose: no per-expression variants, no need for
-  a rasterised alternative (see check_assets.sh whitelist).
+  Silent bystander: a face-less standing silhouette. A single closed outline
+  (left half + its mirror), so there is no seam. Same 0.38 aspect as the
+  full-body WebP characters, so it stands at the same scale on any stage.
+  Used by the "shadow" ActorDefinition. Keep it tiny: tests/check_assets.sh
+  allows SVG only for silhouettes <= 8 KB.
 -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 400"
-     preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 190 500" width="190" height="500">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#141824"/>
-      <stop offset="1" stop-color="#05070c"/>
+    <linearGradient id="fill" gradientUnits="userSpaceOnUse" x1="0" y1="20" x2="0" y2="494">
+      <stop offset="0" stop-color="#232a3a"/>
+      <stop offset="1" stop-color="#090c12"/>
     </linearGradient>
-    <radialGradient id="r" cx="0.5" cy="0.35" r="0.65">
-      <stop offset="0.72" stop-color="#000" stop-opacity="0"/>
-      <stop offset="1" stop-color="#3a5580" stop-opacity="0.4"/>
+    <radialGradient id="floor" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#000" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
     </radialGradient>
   </defs>
-  <g fill="url(#g)">
-    <!-- head, slim oval -->
-    <ellipse cx="100" cy="46" rx="22" ry="28"/>
-    <!-- neck (short trapezium) -->
-    <path d="M 92 70 L 108 70 L 112 86 L 88 86 Z"/>
-    <!-- torso: narrow shoulders and taper -->
-    <path d="M 74 92 Q 100 84 126 92 L 130 176 Q 116 184 100 184 Q 84 184 70 176 Z"/>
-    <!-- left arm slightly relaxed -->
-    <path d="M 74 96 Q 60 148 66 214 Q 68 224 74 224 L 82 220 Q 78 176 82 128 Q 84 108 82 98 Z"/>
-    <!-- right arm hanging -->
-    <path d="M 126 96 Q 140 148 134 214 Q 132 224 126 224 L 118 220 Q 122 176 118 128 Q 116 108 118 98 Z"/>
-    <!-- hips + skirt taper into two legs -->
-    <path d="M 70 176 Q 100 172 130 176 L 128 224 Q 120 236 118 244 L 108 244 L 106 200 L 94 200 L 92 244 L 82 244 Q 80 236 72 224 Z"/>
-    <!-- left leg -->
-    <path d="M 82 236 Q 82 300 88 366 L 100 372 L 102 320 L 100 244 Q 92 240 82 236 Z"/>
-    <!-- right leg -->
-    <path d="M 118 236 Q 118 300 112 366 L 100 372 L 98 320 L 100 244 Q 108 240 118 236 Z"/>
-    <!-- shoes -->
-    <path d="M 82 372 Q 76 380 78 388 L 106 388 L 106 372 Z"/>
-    <path d="M 118 372 Q 124 380 122 388 L 94 388 L 94 372 Z"/>
+  <ellipse cx="95" cy="494" rx="58" ry="7" fill="url(#floor)"/>
+  <g fill="url(#fill)" stroke="#3a4a70" stroke-opacity="0.55" stroke-width="1.4" stroke-linejoin="round">
+    <ellipse cx="95" cy="52" rx="26" ry="33"/>
+    <path d="M 95 86 L 86 86 C 86 97 84 103 79 107 C 63 111 47 114 40 131 C 34 148 32 195 28 245 C 26 282 24 312 30 336 C 34 347 45 345 47 331 C 49 300 50 258 52 218 L 56 184 C 58 216 60 255 63 288 C 60 304 57 322 58 350 C 58 385 61 425 67 474 C 61 479 53 484 52 493 L 85 493 L 85 474 C 86 440 88 400 90 372 C 92 352 94 338 95 326 C 96 338 98 352 100 372 C 102 400 104 440 105 474 L 105 493 L 138 493 C 137 484 129 479 123 474 C 129 425 132 385 132 350 C 133 322 130 304 127 288 C 130 255 132 216 134 184 L 138 218 C 140 258 141 300 143 331 C 145 345 156 347 160 336 C 166 312 164 282 162 245 C 158 195 156 148 150 131 C 143 114 127 111 111 107 C 106 103 104 97 104 86 L 95 86 Z"/>
   </g>
-  <!-- rim light on the outline -->
-  <ellipse cx="100" cy="200" rx="82" ry="188" fill="url(#r)" opacity="0.6"/>
 </svg>
