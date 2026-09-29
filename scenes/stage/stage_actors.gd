@@ -58,6 +58,15 @@ var _ghosts: Array = []
 var _videos: Dictionary = {}
 ## Looping videos requested during reconstruction; started by finish_restore.
 var _pending_videos: Array = []
+
+## Set for the duration of one resolve_record() call so
+## _resolve_place_record can read the branch's target stage without a
+## deeper parameter thread. Cleared after each dispatch.
+var _walker_shadow_ref: Variant = null
+## Cache of PackedScene roots instantiated ONLY for marker probing when
+## the branch travels to a stage we haven't loaded. Never added to the
+## SceneTree; freed by _drop_probe_stages on reset.
+var _probe_stage_cache: Dictionary = {}
 var _stage_root: Node3D = null
 var _stage_cache: Dictionary = {}
 
@@ -282,6 +291,64 @@ func _find_marker(name: String) -> Node3D:
 	return found[0] as Node3D
 
 
+
+## Find a Marker3D by name under a stage scene we have NOT added to the
+## tree. Instantiates the scene once (cached in _probe_stage_cache) and
+## walks its Marks/. Duplicates or misses return null. Used by the route
+## walker so a branch that #stage=other_room can still record marker
+## endpoints without ever showing that room.
+
+## Effective global-like transform for a node in a scene that is NOT in
+## the tree. Multiplies local transforms from [param root] down to
+## [param node], so probed markers still deliver a real world transform.
+static func _transform_up_to(node: Node3D, root: Node3D) -> Transform3D:
+	var t := Transform3D.IDENTITY
+	var chain: Array[Node3D] = []
+	var cursor: Node = node
+	while cursor != null and cursor != root:
+		if cursor is Node3D:
+			chain.push_front(cursor)
+		cursor = cursor.get_parent()
+	if cursor == root and root is Node3D:
+		t = (root as Node3D).transform
+	for n: Node3D in chain:
+		t = t * n.transform
+	return t
+
+
+func _find_marker_in_scene(scene_name: String, marker_name: String) -> Node3D:
+	if scene_name == "" or scene_name == "2d" or marker_name == "":
+		return null
+	var root: Node3D = _probe_stage_cache.get(scene_name)
+	if not is_instance_valid(root):
+		var packed: PackedScene = stage_scenes.get(scene_name)
+		if packed == null:
+			var path := "res://scenes/stages/%s.tscn" % scene_name
+			if ResourceLoader.exists(path):
+				packed = load(path)
+		if packed == null:
+			return null
+		root = packed.instantiate() as Node3D
+		if root == null:
+			return null
+		_probe_stage_cache[scene_name] = root
+	var marks := root.get_node_or_null("Marks")
+	if marks == null:
+		return null
+	var found: Array = marks.find_children(marker_name, "Node3D", true, false)
+	if found.size() != 1:
+		return null
+	return found[0] as Node3D
+
+
+func _drop_probe_stages() -> void:
+	for key: String in _probe_stage_cache.keys():
+		var root = _probe_stage_cache[key]
+		if is_instance_valid(root) and root.get_parent() == null:
+			root.free()
+	_probe_stage_cache.clear()
+
+
 func _actor_parent_3d() -> Node3D:
 	if _stage_root == null:
 		return null
@@ -307,6 +374,7 @@ func resolve_record(parsed: Dictionary, shadow: Dictionary) -> Dictionary:
 	if not bool(parsed.get("ok", false)):
 		return {"ok": false, "resolved": {}, "shadow": shadow}
 	var next: Dictionary = shadow.duplicate(true)
+	_walker_shadow_ref = shadow
 	var cmd: String = str(parsed.cmd)
 	match cmd:
 		"focus", "anim", "video":
@@ -364,19 +432,40 @@ func _resolve_place_record(parsed: Dictionary, shadow_place: Variant, three: boo
 	if name == "":
 		return {"ok": true, "record": {}}
 	if three:
-		if not live_ok:
-			# Branch is on a stage we cannot inspect; leave unresolved.
-			return {"ok": true, "record": {}}
-		var m: Node3D = _find_marker(name)
+		var stage_name: String = ""
+		var shadow_dict: Variant = _walker_shadow_ref
+		if shadow_dict is Dictionary:
+			stage_name = str((shadow_dict as Dictionary).get("_stage", current_stage))
+		if stage_name == "":
+			stage_name = current_stage
+		var m: Node3D = null
+		var probe_root: Node3D = null
+		if live_ok:
+			m = _find_marker(name)
+		else:
+			# Branch travels through another 3D stage: instantiate that scene
+			# once (cached) and query its Marks so records still carry the
+			# computed endpoint. The instance never enters the tree so it is
+			# invisible; it is freed by [method _drop_probe_stages] on reset.
+			m = _find_marker_in_scene(stage_name, name)
+			probe_root = _probe_stage_cache.get(stage_name)
 		if m == null:
 			return {"ok": false, "error": "no single marker '%s' under Marks" % name}
-		var par := _actor_parent_3d()
-		var local: Transform3D = m.global_transform
-		if par != null:
-			local = par.global_transform.affine_inverse() * m.global_transform
+		var world_t: Transform3D
+		if live_ok:
+			world_t = m.global_transform
+		else:
+			# Probed scene is not in the tree: global_transform would return
+			# identity and warn. Multiply local transforms up to the scene root.
+			world_t = _transform_up_to(m, probe_root)
+		var local: Transform3D = world_t
+		if live_ok:
+			var par := _actor_parent_3d()
+			if par != null:
+				local = par.global_transform.affine_inverse() * world_t
 		var q: Quaternion = local.basis.get_rotation_quaternion()
 		var sc: Vector3 = local.basis.get_scale()
-		var yaw := rad_to_deg(m.global_transform.basis.get_euler().y)
+		var yaw := rad_to_deg(world_t.basis.get_euler().y)
 		return {"ok": true, "record": {"kind": "marker", "name": name,
 				"pos": [local.origin.x, local.origin.y, local.origin.z],
 				"rot": [q.x, q.y, q.z, q.w],
@@ -985,6 +1074,7 @@ func _clear_stage() -> void:
 ## Called before replaying history. Definitions stay registered.
 func reset_all() -> void:
 	_clear_stage()
+	_drop_probe_stages()
 	if _stage_root != null and _stage_root.get_parent() != null:
 		_stage_root.get_parent().remove_child(_stage_root)
 	_stage_root = null
@@ -1011,6 +1101,7 @@ func _exit_tree() -> void:
 		if is_instance_valid(root) and root.get_parent() == null:
 			root.free()
 	_stage_cache.clear()
+	_drop_probe_stages()
 
 
 func _on_stage_resized() -> void:

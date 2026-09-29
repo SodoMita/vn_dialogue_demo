@@ -288,10 +288,15 @@ Integration:
 
 ### Left for follow-up
 
-- Route walker cannot resolve 3D markers when the branch travels to a
-  stage that is not the currently-loaded one. It stores `{}` for those
-  and restore's live-lookup after `#stage=` reload picks them up. A
-  fully offline resolver would need to load candidate stage scenes.
+- ~~Route walker cannot resolve 3D markers when the branch travels to a
+  stage that is not the currently-loaded one.~~ **Done (Chocola-9b2,
+  2026-09-29).** `StageActors._find_marker_in_scene` instantiates the
+  candidate scene invisibly (never enters the tree), reads its `Marks/`,
+  and caches the probe root; `resolve_record` uses it whenever the
+  branch shadow's `_stage` doesn't match the currently-loaded one.
+  Probes are freed by `_drop_probe_stages` on `reset_all` and
+  `_exit_tree`. Regression test in `tests/test_staging.gd::
+  _cross_stage_marker_tests` (325 pass).
 - Sprite plates: Rook / Ken black-plate mattes are still the earlier
   generation; the image-gen quota is spent. Follow-up when generator
   quality returns.
