@@ -846,6 +846,8 @@ func _start_video(name: String, stream: VideoStream, on: String, loop: bool, vol
 	player.stream = stream
 	player.loop = loop
 	player.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if AudioServer.get_bus_index(&"SFX") != -1:
+		player.bus = &"SFX"  # video sound follows the SFX volume (and Master)
 	if volume != null and str(volume).is_valid_float():
 		player.volume_db = linear_to_db(clampf(str(volume).to_float(), 0.0, 1.0))
 	video_layer.add_child(player)

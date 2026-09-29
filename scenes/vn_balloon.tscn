@@ -2093,6 +2093,7 @@ one_shot = true
 
 [node name="VoicePlayer" type="AudioStreamPlayer" parent="." unique_id=1970659894]
 unique_name_in_owner = true
+bus = &"Voice"
 
 [connection signal="gui_input" from="Balloon" to="." method="_on_balloon_gui_input"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/QSButton" to="." method="_on_quick_save_pressed"]

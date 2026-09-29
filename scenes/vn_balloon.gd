@@ -237,6 +237,8 @@ var temporary_game_states: Array = []
 
 ## The AudioDirector autoload (music + SFX); null when a scene runs standalone.
 var audio: Node = null
+## True while Pause or the boss screen silences the game (see _silence_audio).
+var _audio_silenced: bool = false
 
 ## See if we are waiting for the player
 var is_waiting_for_input: bool = false
@@ -554,7 +556,7 @@ func start(with_dialogue_resource: DialogueResource = null, cue: String = "", ex
 		start_from_cue = cue
 	show()
 	# Ambient music under the conversation; tagged #music= lines override this.
-	if audio != null and audio.music_source == "":
+	if audio != null and audio.music_source == "" and not audio.has_music_request():
 		audio.play_theme(&"calm")
 	dialogue_line = await dialogue_resource.get_next_dialogue_line(start_from_cue, temporary_game_states)
 
@@ -849,6 +851,10 @@ func _legacy_speaker_slot_for_sprite(spec: String, speaker: String) -> String:
 ## (or a still-missing file) simply stay silent.
 func _play_voice(key: String) -> void:
 	voice_player.stop()
+	if not _voice_enabled():
+		# Voice (or Master) at 0 switches voice off: no clip is loaded or played.
+		voice_player.stream = null
+		return
 	var path: String = _voice_path(key)
 	if not (ResourceLoader.exists(path) or FileAccess.file_exists(path)):
 		return
@@ -1625,10 +1631,7 @@ func _load_settings() -> void:
 			var slider: HSlider = {"vol_master": master_vol_slider, "vol_music": music_vol_slider,
 				"vol_voice": voice_vol_slider, "vol_sfx": sfx_vol_slider}[key]
 			slider.value = float(data[key])
-	_set_bus_volume("Master", master_vol_slider.value)
-	_set_bus_volume("Music", music_vol_slider.value)
-	_set_bus_volume("Voice", voice_vol_slider.value)
-	_set_bus_volume("SFX", sfx_vol_slider.value)
+	_apply_volumes()
 	if data.has("procedural_music"):
 		procedural_music = bool(data.procedural_music)
 		procedural_music_check.button_pressed = procedural_music
@@ -2251,26 +2254,54 @@ func _set_bus_volume(bus_name: String, volume: float) -> void:
 	AudioServer.set_bus_volume_db(index, linear_to_db(linear) if linear > 0.0 else -80.0)
 
 
+## Apply all four Settings sliders. Every bus follows its slider, and a level
+## of 0 also switches that subsystem OFF: the AudioDirector stops music / SFX
+## generation and playback, the balloon stops loading and playing voice clips,
+## and Master 0 switches all of them off (and mutes the Master bus).
+func _apply_volumes() -> void:
+	_set_bus_volume("Master", master_vol_slider.value)
+	_set_bus_volume("Music", music_vol_slider.value)
+	_set_bus_volume("Voice", voice_vol_slider.value)
+	_set_bus_volume("SFX", sfx_vol_slider.value)
+	if audio != null:
+		audio.set_levels(master_vol_slider.value, music_vol_slider.value,
+				voice_vol_slider.value, sfx_vol_slider.value)
+	if not _voice_enabled():
+		voice_player.stop()
+		voice_player.stream = null
+	_refresh_master_mute()
+
+
+func _voice_enabled() -> bool:
+	return master_vol_slider.value > 0.0 and voice_vol_slider.value > 0.0
+
+
+## Master is muted while an overlay silences the game or Master is at 0.
+func _refresh_master_mute() -> void:
+	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"),
+			_audio_silenced or master_vol_slider.value <= 0.0)
+
+
 func _on_master_vol_changed(v: float) -> void:
-	_set_bus_volume("Master", v)
+	_apply_volumes()
 	_update_slider_value_labels()
 	_save_settings()
 
 
-func _on_music_vol_changed(v: float) -> void:
-	_set_bus_volume("Music", v)
+func _on_music_vol_changed(_v: float) -> void:
+	_apply_volumes()
 	_update_slider_value_labels()
 	_save_settings()
 
 
-func _on_voice_vol_changed(v: float) -> void:
-	_set_bus_volume("Voice", v)
+func _on_voice_vol_changed(_v: float) -> void:
+	_apply_volumes()
 	_update_slider_value_labels()
 	_save_settings()
 
 
-func _on_sfx_vol_changed(v: float) -> void:
-	_set_bus_volume("SFX", v)
+func _on_sfx_vol_changed(_v: float) -> void:
+	_apply_volumes()
 	_update_slider_value_labels()
 	_save_settings()
 
@@ -2633,8 +2664,9 @@ func _silence_audio(on: bool) -> void:
 	# Leaving one overlay while the other is still up must keep both the bus and
 	# the current voice paused.
 	var silent: bool = on or pause_panel.visible or _panic_open()
+	_audio_silenced = silent
 	voice_player.stream_paused = silent
-	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), silent)
+	_refresh_master_mute()
 
 
 ## Touch pause: keyboards have the pause action, phones only get this button.
