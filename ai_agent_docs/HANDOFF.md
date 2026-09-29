@@ -296,3 +296,25 @@ Integration:
 - Sprite plates: Rook / Ken black-plate mattes are still the earlier
   generation; the image-gen quota is spent. Follow-up when generator
   quality returns.
+
+## Audit follow-up (Chocola-7f3, branch `chocola-18-7f3-on-dev`, on top of Chocola-9b2's `chocola-18-dev`)
+
+Review items 1-5 and `spawn_quad` are fixed. Every regression test below fails on `3e1d028` and passes now
+(checked by running the suites against the old files).
+
+- Route travel: `RouteTravel._dress` (9b2) resolves against a branch shadow when the balloon supplies a resolver.
+  Records it cannot resolve (markers of a stage the branch switches to - the shipped 2D -> classroom route) are
+  resolved in `_restore_presentation`, then persisted; commands that never applied are dropped. Test: real
+  `RouteTravel.replay` -> `_commit_replay` -> restore (`tests/test_staging.gd::_review_regression_tests`).
+- Bare `#show` on restore consumes the stored placement (moved marker no longer wins). Tested on the 3D stage.
+- `StageDirector._logical_at`: `position` and `position:x` read one logical state (whole tween seen through a
+  component and the reverse); used by `#tween`, `#set` and `logical_value`. Tested in both orders.
+- Pending videos are dropped when their actor is freed (no resurrection on a replacement).
+- AnimationTree tracks are recorded; `reset_all()` and `#nla_stop` stop their playback (takes effect on the
+  tree's next process step). Tested.
+- `spawn_quad` updates an existing alias in place.
+- The staging test no longer injects Ken: the shipped balloon registers him.
+
+Suites at the merge (Godot 4.7 headless): UI 391/8 (same 8 as baseline), route-graph 201/0, motion PASS, staging 283/0.
+
+Still open: `#move=left/right` on the legacy slots; yoyo/infinite `#tween=` restores to its rest value.
