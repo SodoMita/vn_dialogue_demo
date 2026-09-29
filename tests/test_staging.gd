@@ -103,6 +103,8 @@ func run() -> void:
 	await _review_regression_tests()
 	await _legacy_move_tests()
 	await _shipped_route_tests()
+	await _silent_2d_tests()
+
 	await _shipped_rooftop_shadow_tests()
 	await _cross_stage_marker_tests()
 
@@ -742,6 +744,34 @@ func _shipped_route_tests() -> void:
 	actors.reset_all()
 
 
+## balloon.start() is asynchronous and the previous test may have left a valid
+## dialogue_line behind, so wait for the first line's own effect (the shadow).
+func _wait_for_shadow() -> void:
+	for i in 300:
+		if actors.has_actor("shadow"):
+			break
+		await get_tree().process_frame
+	await _wait_line()
+
+
+func _visible_sprites() -> int:
+	# Every portrait drawn on the 2D stage: the two legacy slots plus dynamic actors.
+	var n := 0
+	for slot: TextureRect in [balloon.sprite_left, balloon.sprite_right]:
+		if slot.texture != null and slot.modulate.a > 0.01:
+			n += 1
+	for id: String in actors.actors:
+		var a: Dictionary = actors.actors[id]
+		if a.mode == "2d" and a.visual.visible and (a.body as TextureRect).texture != null:
+			n += 1
+	return n
+
+
+## The shipped 2D intro shows a silent third character (the shadow) next to the
+## two legacy slots, and the system is not limited to two sprites.
+func _silent_2d_tests() -> void:
+	print("== silent third character on the 2D stage ==")
+
 ## The 2D stage is no longer limited to the two legacy SpriteLeft/Right slots:
 ## short-tag actors coexist with the legacy portraits on the same rooftop line.
 ## This test walks the shipped intro up to the rooftop climax, confirms the
@@ -753,6 +783,67 @@ func _shipped_rooftop_shadow_tests() -> void:
 	actors.reset_all()
 	balloon.history.clear()
 	balloon.history_cursor = -1
+	balloon.start(intro, "start")
+	await _wait_for_shadow()
+	check(actors.current_stage == "2d" and actors.has_actor("shadow"), "the shipped 2D classroom shows the silent shadow")
+	check(near(_actor_pos("shadow"), _anchor("far_right"), 1.0), "the shadow stands at the far_right anchor")
+	check(actors.actors.shadow.body.texture == balloon.sprites["shadow"], "the shadow uses its own sprite")
+	check(balloon.sprite_left.texture == null and balloon.sprite_right.texture == null, "no legacy portrait yet, but the shadow is already up")
+	check(_visible_sprites() == 1, "one sprite on stage from the first line")
+	await _advance()  # Rook (right slot)
+	await _advance()  # Maya (left slot)
+	check(balloon.sprite_left.texture != null and balloon.sprite_right.texture != null and actors.has_actor("shadow"), "both legacy slots and the shadow are on stage")
+	check(_visible_sprites() == 3, "three sprites at once on the 2D stage")
+	# The silhouette fills the middle 60% of its texture; that part must be on screen.
+	var shadow_rect: Rect2 = Rect2(actors.actors.shadow.visual.get_global_rect())
+	var screen: Rect2 = balloon.balloon.get_global_rect()
+	var body_l: float = shadow_rect.get_center().x - shadow_rect.size.x * 0.3
+	var body_r: float = shadow_rect.get_center().x + shadow_rect.size.x * 0.3
+	check(body_l >= screen.position.x and body_r <= screen.end.x, "the shadow's silhouette is fully on screen")
+	check(actors.actors.shadow.visual.modulate.a < 1.0 and actors.focus_id != "shadow", "a silent bystander steps back while others speak")
+	var bystander: int = balloon.history_cursor
+	# Any number of sprites: nine more dynamic actors on top of the three. IDs
+	# need no definition when the tag names a sprite key, so the count is not
+	# capped by the number of authored characters.
+	var looks := ["maya", "rook", "ken", "maya_smile", "rook_sad", "ken_smile", "maya_sad", "rook_smile", "ken_sad"]
+	var places := ["far_left", "left", "center", "right", "top_left", "top", "top_right", "far_left", "right"]
+	for i in looks.size():
+		var res: Dictionary = actors.apply(StageTagParser.parse("show=extra%d:%s@%s" % [i, looks[i], places[i]]))
+		check(bool(res.get("ok", false)), "extra%d (%s) joins the stage" % [i, looks[i]])
+	check(actors.actors.size() == 10 and _visible_sprites() == 12, "ten dynamic actors and both legacy slots: twelve sprites at once (%d)" % _visible_sprites())
+	balloon.rollback_to(0)
+	await _wait_line()
+	check(actors.has_actor("shadow") and actors.actors.size() == 1 and _visible_sprites() == 1, "rollback to the first line leaves only the shadow")
+	check(near(_actor_pos("shadow"), _anchor("far_right"), 1.0), "rollback restores the shadow's place")
+	balloon.rollback_to(bystander)
+	await _wait_line()
+	check(_visible_sprites() == 3, "rolling forward again shows all three")
+
+	# Route travel to the rooftop keeps the silent bystander (records get resolved).
+	var RouteTravel = load("res://scenes/route_graph/route_graph_travel.gd")
+	actors.reset_all()
+	balloon.history.clear()
+	balloon.history_cursor = -1
+	balloon.start(intro, "start")
+	await _wait_for_shadow()
+	var rooftop_line: String = str(intro.cues["rooftop"])
+	var found: Dictionary = await RouteTravel.replay(intro, "", {"jump_key": "rooftop", "line_ids": [rooftop_line]}, [], 0, null, [], true, true, {})
+	check(bool(found.get("ok", false)) and (found.get("lines", []) as Array).size() >= 8, "route walk reaches the rooftop through the intro")
+	var landed: DialogueLine = found.line
+	check(str(landed.id).ends_with("@" + rooftop_line) and landed.text.begins_with("Wind over the chain-link"), "the walk lands on the rooftop's first line")
+	balloon._commit_replay(found, -1)
+	await _wait_line()
+	check(balloon.history.size() >= 8, "the committed route replaced the backlog (%d entries)" % balloon.history.size())
+	check(actors.has_actor("shadow") and near(_actor_pos("shadow"), _anchor("far_right"), 1.0), "route travel to the rooftop still shows the shadow at its place")
+	check(balloon.background.texture != null and balloon.background.texture.resource_path.ends_with("rooftop.webp"), "and the rooftop background is up")
+	var recorded := false
+	for e: Dictionary in balloon.history:
+		for r: Dictionary in e.get("motion", []):
+			if str(r.tag).begins_with("show=shadow") and not (r.get("resolved", {}) as Dictionary).is_empty():
+				recorded = true
+	check(recorded, "the shadow's show command is stored with a resolved place")
+	actors.reset_all()
+
 	balloon.start(intro, "rooftop")
 	await _wait_line()
 	check(actors.current_stage == "2d", "rooftop plays on the 2D stage")

@@ -102,6 +102,19 @@ animations, videos and focus. Definitions stay registered. Characters are not
 transferred between 2D and 3D — show them again. The legacy `left`/`right`
 portraits are cleared, not destroyed. Selecting the active stage is a no-op.
 
+### Not limited to two sprites (2D)
+
+`SpriteLeft` / `SpriteRight` are only the two built-in actors `left` and `right`.
+Any other character is a dynamic actor drawn in the `Actors` layer above them, so
+the 2D stage shows any number of sprites at once. The shipped intro demonstrates it:
+from its first classroom line a silent third character (`shadow`, the tiny
+`assets/characters/shadow.svg` silhouette) stands at `far_right` next to Maya
+(left slot) and Rook (right slot), and it follows them to the rooftop (see the
+`Wind over the chain-link fence` scene) until the finale hides it. The tests
+(`_silent_2d_tests`) also put ten dynamic actors and both legacy slots on stage at
+once. An actor needs no `ActorDefinition` when the tag names a sprite key:
+`#show=extra3:maya_smile@top_left` creates actor `extra3`.
+
 ### Moving `left` / `right`
 
 `#move=left@center`, `#move=right?by=-80 0` and `#move=left@640 700` move the two

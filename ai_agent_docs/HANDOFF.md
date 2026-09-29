@@ -387,4 +387,34 @@ Merged `chocola-18-7f3-audio` on top of the first-round audit fixes:
   `release.yml` as a non-blocking step; `tests/check_assets.sh` (WebP-only + sprite size guard, run first by
   `run_tests.sh`); `build/` and `dist/` gitignored; Web preset excludes `web/*` and `scripts/*`; `docs/WEB_BUILD.md`.
 - Not verified from here: the GitHub Actions run itself (workflows parse; Pages must be enabled in the repo settings).
+- Asset rule (human, chat ids 18/36/38): art is highly packed WebP, never PNG; SVG is "awful and bad and not used" for
+  real art, but a tiny SVG may show a silent third character. `tests/check_assets.sh` enforces exactly that (SVG <= 8 KB
+  allowed, larger rejected). Ken stays WebP (~40 KB); Remi's 47 KB-SVG Ken branch must not be merged.
+
+
+Still open: Rook/Ken black-background plate redo (image generator unavailable, current sprites are usable);
+yoyo/infinite loop phase is not reproduced on restore (by design).
+
 - Ken stays WebP: the human said SVG is "awful and bad and not used" (chat id 36); Remi's SVG branch must not be merged.
+
+## 2D demonstration of "any number of sprites" (Chocola-7f3, human chat id 42)
+
+The human's point: on the **2D** scene the system has no dependency on `SpriteLeft`/`SpriteRight` and can show any
+number of sprites. 9b2 had only put the silent `shadow` in the 3D classroom (and, in parallel, on the rooftop).
+Now both exist and are kept: `dialogue/intro.dialogue` shows `#show=shadow@far_right` on the very first classroom line
+(persisting to the rooftop, hidden on the finale), and the rooftop still re-shows it at sunset, so the rooftop scene is
+self-contained when reached without replaying the classroom.
+
+- `tests/test_staging.gd::_silent_2d_tests`: shadow on the first line at the far_right anchor; three sprites at once
+  once Rook and Maya appear; the shadow steps back while others speak; ten definition-less dynamic actors plus both
+  legacy slots = twelve sprites at once; rollback/roll-forward; a real `RouteTravel.replay` to the rooftop keeps the
+  shadow and stores a resolved place. 9b2's `_shipped_rooftop_shadow_tests` also stays.
+- **Checked in a real browser**: real Web export, headless Chromium, advanced through the intro: Maya (left slot),
+  Rook (right slot, dimmed while Maya speaks) and the shadow (`far_right`) are on screen together. The isolation +
+  threaded boot also worked in that run.
+- Gotchas found on the way: (1) `.dialogue` files are compiled at import, so edit -> `godot --headless --import` before
+  running tests, otherwise the old line is played; (2) `balloon.start()` is async and a previous test can leave a valid
+  `dialogue_line`, so `_wait_line()` alone can return before the new first line was applied (`_wait_for_shadow()`);
+  (3) `intro.cues["rooftop"]` is the bare line number ("29"), full ids look like `33rodbi2bnnh@29`.
+- Art follow-up (not done): in the screenshot the silhouette reads as a heavy dark blob (wide torso, big head) rather than
+  a person, and it is dimmed to 45% while others speak. It is <= 8 KB SVG by the human's rule; a slimmer shape would look better.
