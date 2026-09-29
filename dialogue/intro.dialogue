@@ -40,4 +40,17 @@ Rook: You brought a witness to my hiding spot. Unforgivable. [#sprite=rook_surpr
 Maya: Same time tomorrow? [#sprite=maya:left, #voice=m8]
 Rook: ...Hmph. Don't be late. [#sprite=rook_smile:right, #voice=r6]
 The three of you watch until the sky burns out. [#box=hide, #music=loop:night]
+- Head home for the night.
+	=> END
+- Take one last look at the classroom.
+	=> classroom_3d
+
+~ classroom_3d
+The door swings open on an empty classroom. [#box=show, #stage=classroom, #show=maya@door, #music=warm]
+Maya: We really did skip the last bell. [#move=maya@desk?t=0.9, #anim=maya:wave]
+Rook: I saw. From here. [#show=rook@guest_desk, #focus=rook]
+Maya: Guess we all needed the quiet. [#show=maya:smile, #focus=maya]
+Rook: Don't ruin it by saying so. [#show=rook:smile]
+[#hide=maya@hall?t=0.6, #hide=rook@hall?t=0.6]
+The empty room keeps their voices for a moment more, then lets them go. [#stage=2d, #bg=rooftop]
 => END
