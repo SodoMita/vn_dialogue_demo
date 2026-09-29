@@ -78,6 +78,8 @@ also reports 9 known failures around held-skip mode, unchanged by the audio work
 pre-existing on `main`), zero `SCRIPT ERROR` / `Parse Error` in import and runtime logs.
 Real rendered frames are saved in `docs/` (captured under Xvfb).
 
+**Web build / releases:** see [docs/WEB_BUILD.md](docs/WEB_BUILD.md) (build/* pipeline, the SharedArrayBuffer service worker, the browser smoke test).
+
 ## The balloon is an authored scene, not a scene-builder script
 
 `scenes/vn_balloon.tscn` contains the *entire* UI as plain nodes you can open and edit in the

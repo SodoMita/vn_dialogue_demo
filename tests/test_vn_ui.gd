@@ -1621,6 +1621,14 @@ func _volume_off_tests() -> void:
 	balloon.sfx_vol_slider.value = 80
 	ad.play_sfx("click")
 	check(ad.sfx_played == played + 1, "raising SFX brings SFX back")
+	# Regression: the hold tone is the ~1 s looping tone, not the 12 ms click
+	# (there was no "holdtone" synth branch), also after SFX 0 freed the cache.
+	ad.hold_start()
+	check(ad._hold_player.stream != null and ad._hold_player.stream.get_length() > 0.9,
+		"the hold tone stream is the full-length tone, rebuilt after SFX 0")
+	check(ad._hold_player.stream is AudioStreamWAV and (ad._hold_player.stream as AudioStreamWAV).loop_mode == AudioStreamWAV.LOOP_FORWARD,
+		"the hold tone loops until the gesture ends")
+	ad.hold_stop()
 
 	# --- Master 0: everything off, and Pause/Resume must not unmute it ---
 	ad.play_theme(&"warm")

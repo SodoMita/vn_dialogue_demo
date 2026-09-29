@@ -130,6 +130,31 @@ jobs:
           set -euo pipefail
           bash scripts/pack_web.sh build/web "$VERSION" "$GITHUB_SHA" "$GITHUB_REF_NAME"
 
+      # Boots the packed web export in headless Chromium on a server WITHOUT
+      # COOP/COEP headers (like GitHub Pages): the service worker must isolate
+      # the page and Godot must start as a threaded build. Reported, but it
+      # never blocks a release (continue-on-error) - the screenshot is attached.
+      - name: Web smoke test (cross-origin isolation + boot)
+        continue-on-error: true
+        timeout-minutes: 8
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/pw && cd /tmp/pw && npm init -y >/dev/null && npm i playwright >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          cd "$GITHUB_WORKSPACE"
+          PLAYWRIGHT_DIR=/tmp/pw node tests/web_smoke.mjs build/web /tmp/web-smoke.jpg
+
+      - name: Upload web smoke screenshot
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-smoke-screenshot
+          path: /tmp/web-smoke.jpg
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Package artifact zips
         shell: bash
         env:
