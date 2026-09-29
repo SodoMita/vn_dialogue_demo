@@ -209,7 +209,7 @@ yoyo/infinite `#tween=` restores to its rest value, not a running loop.
 ## Sprites (Remi-q7x)
 - Full-body, 4 expressions each (neutral = bare id, `_smile`, `_sad`, `_surprised`).
 - Maya, Rook: plate triangulation, `tools/sprite_pipeline/plate_matte.py` (klima tools credited). WebP.
-- Ken (new, `characters/ken.tres`): vtracer SVGs, `tools/sprite_pipeline/vtrace_sprite.py` (user request). ~2 MB each.
+- Ken (`characters/ken.tres`): vtracer SVGs from `tools/sprite_pipeline/vtrace_sprite.py` (posterised polygon base + greedy detail layer + LS colour refit). Each < 48 KB (was ~2 MB); MSE table in `tools/sprite_pipeline/README.md`.
 - Source plates in `art_src/sprite_plates/` (`.gdignore`d). See `tools/sprite_pipeline/README.md`.
 - Staging demo uses all three; docs/18, docs/19 recaptured. Older README screenshots (intro) still show the old waist-up art.
 - `staging_demo.dialogue` lives in `examples/`: inside `res://dialogue/` the route map compiled it too, prefixing every node id and failing route-graph "locale switch rebakes localized node titles" (regression since a9d9c33; 189/0 again after the move).

@@ -53,28 +53,46 @@ Godot via `art_src/.gdignore`) so sprites can be re-cut without regenerating.
 
 ## Vector route: `vtrace_sprite.py` (used for Ken)
 
-Needs only the white render. Traces it with
-[vtracer](https://github.com/visioncortex/vtracer) (`pip install vtracer`)
-into an SVG that has **no background paths**:
+Needs only the white render. Produces a **small** background-free SVG
+(budget `--max-kb`, default 48) with the lowest MSE it can find:
 
-1. background = near-white connected to the border, plus enclosed regions
-   that are flat pure white (gap between Ken's raised arm and head); the shirt
-   is shaded (~243) and survives;
-2. light anti-aliased rim pixels next to the background are dropped
-   (`--fringe-level`, default 160) so no white outline is traced;
-3. background becomes transparent, which vtracer keys out;
-4. the image is traced at 2x (`--upscale`) for smoother curves, viewBox cropped
-   to the figure.
+1. background = near-white connected to the border, plus enclosed flat pure
+   white regions (gap between Ken's raised arm and head); light anti-aliased
+   rim pixels are dropped so no white outline is traced; the crop keeps an
+   8 px margin (`--pad`), same frame as before;
+2. **base layer**: upscale 2x, k-means posterise in Lab (K ~ 8 flat colours),
+   vtracer **polygon** mode, stacked. Posterising first keeps line art and hue
+   borders (a large vtracer `layer_difference` merged the navy jacket into grey
+   and dropped the line art);
+3. Douglas-Peucker on every ring (eps 0.5-0.75 source px);
+4. **detail layer**: small shapes from a fine vtracer trace (irises, mouth,
+   badge, highlights) added greedily by squared-error reduction per byte until
+   the budget is used;
+5. compact path encoding (integer coords, relative, h/v, no z, merged
+   same-colour shapes, `#rgb`) and an exact least-squares refit of every flat
+   colour against the source (render is linear in the colours);
+6. a small grid over (K, speckle, eps) keeps the lowest-MSE result that fits.
 
 ```sh
-python3 tools/sprite_pipeline/vtrace_sprite.py ken_smile_white.png assets/characters/ken_smile.svg --png /tmp/preview.png
+python3 tools/sprite_pipeline/vtrace_sprite.py art_src/sprite_plates/ken_smile_white.webp \
+    assets/characters/ken_smile.svg --max-kb 48 --preview /tmp/preview.webp
 ```
 
-Defaults: `--color-precision 8 --layer-difference 12 --filter-speckle 6`.
-Colour precision 7 merged one jacket panel of `ken_surprised` into a grey
-cluster; 8 fixed it. Look at every trace. Each SVG is ~2 MB (about 4000
-paths); Godot imports it as a normal Texture2D (raise `svg/scale` in the
-`.import` file for a sharper texture on big screens).
+About 2 min per sprite. Needs `vtracer cairosvg scipy opencv-python-headless`.
+MSE = crop composited on white vs the source plate, 0-255 RGB:
+
+| sprite | old (bbd7d8d) | new |
+|---|---|---|
+| ken | 2027 KB, MSE 80.7 | 47.0 KB, MSE 125.1 |
+| ken_smile | 2010 KB, MSE 87.2 | 46.9 KB, MSE 147.6 |
+| ken_sad | 2032 KB, MSE 86.4 | 47.0 KB, MSE 140.2 |
+| ken_surprised | 2005 KB, MSE 86.7 | 47.0 KB, MSE 169.9 |
+
+What did not work (Ken neutral, all near 45 KB): plain vtracer polygon at 1x
+(MSE 363), plain vtracer at 2.5x with a coarse layer_difference (MSE 256, but
+it looks bad: lost line art and hue), spline mode (~3x bytes), a hybrid ink /
+fill split (MSE 384), upscale >= 3 or colour precision 7 (worse at equal size).
+Soft blush gradients are still lost (flat fills).
 
 ## No usable black plate: single-plate raster mode
 
