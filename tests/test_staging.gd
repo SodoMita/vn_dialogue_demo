@@ -102,6 +102,7 @@ func run() -> void:
 	await _route_tests()
 	await _review_regression_tests()
 	await _legacy_move_tests()
+	await _shipped_route_tests()
 
 
 #region Parser
@@ -678,3 +679,55 @@ func _legacy_move_tests() -> void:
 	balloon.sprite_scale = 1.0
 	balloon._apply_sprite_transform()
 	check(near(_legacy_feet(), far, 1.0), "a relayout keeps a moved slot where it was put")
+
+
+## The route from the shipped demo to the 3D scene: the last rooftop choice
+## leads to ~ classroom_3d, which exercises #stage / #show / #move / #anim /
+## #hide with the shipped characters, and rolls back/forward cleanly.
+func _shipped_route_tests() -> void:
+	print("== shipped demo -> 3D classroom ==")
+	var CompilerScript = load("res://scenes/route_graph/route_graph_compiler.gd")
+	var intro: Resource = load("res://dialogue/intro.dialogue")
+	check("classroom_3d" in intro.get_cues(), "intro has a classroom_3d cue")
+	var graph: Dictionary = CompilerScript.compile(intro)
+	var reachable := false
+	var has_node := false
+	for node: Dictionary in graph.get("nodes", []):
+		if str(node.id) == "classroom_3d":
+			has_node = true
+		for outp: Dictionary in node.get("outputs", []):
+			if str(outp.get("target", "")) == "classroom_3d" and str(node.id) != "classroom_3d":
+				reachable = true
+	check(has_node and reachable, "the route map has an edge from the demo into classroom_3d")
+
+	actors.reset_all()
+	balloon.history.clear()
+	balloon.history_cursor = -1
+	balloon.start(intro, "classroom_3d")
+	await _wait_line()
+	check(actors.current_stage == "classroom" and actors.has_actor("maya"), "classroom_3d switches to the 3D stage and shows Maya at the door")
+	var door: Node3D = actors._find_marker("door")
+	check(door != null and near(actors.resolve("maya").global_position, door.global_position, 0.05), "Maya starts at the door marker")
+	await _advance()  # walk to the desk + wave
+	await wait(1.2)
+	var desk: Node3D = actors._find_marker("desk")
+	check(near(actors.resolve("maya").global_position, desk.global_position, 0.05), "Maya walked to the desk")
+	check(actors.actors.maya.player != null, "the shipped Maya carries an animation player for #anim=wave")
+	await _advance()  # rook + focus
+	check(actors.has_actor("rook") and actors.focus_id == "rook", "Rook stands at the guest desk with focus")
+	var with_rook: int = balloon.history_cursor
+	await _advance()  # maya smile
+	await _advance()  # rook smile
+	await _advance()  # both walk off
+	await wait(0.9)
+	check(not actors.has_actor("maya") and not actors.has_actor("rook"), "both characters walked off and were removed")
+	await _advance()  # back to 2D
+	check(actors.current_stage == "2d" and not actors.has_actor("maya"), "the epilogue returns to the 2D stage")
+	balloon.rollback_to(with_rook)
+	await _wait_line()
+	check(actors.current_stage == "classroom" and actors.has_actor("maya") and actors.has_actor("rook"), "rolling back into the epilogue rebuilds the 3D scene")
+	check(near(actors.resolve("maya").global_position, desk.global_position, 0.05), "restore puts Maya at the desk (end pose)")
+	balloon.rollback_to(0)
+	await _wait_line()
+	check(actors.current_stage == "classroom" and actors.has_actor("maya") and not actors.has_actor("rook"), "rolling back to the first line restores the door scene")
+	actors.reset_all()

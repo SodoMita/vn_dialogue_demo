@@ -209,7 +209,7 @@ yoyo/infinite `#tween=` restores to its rest value, not a running loop.
 ## Sprites (Remi-q7x)
 - Full-body, 4 expressions each (neutral = bare id, `_smile`, `_sad`, `_surprised`).
 - Maya, Rook: plate triangulation, `tools/sprite_pipeline/plate_matte.py` (klima tools credited). WebP.
-- Ken (new, `characters/ken.tres`): vtracer SVGs, `tools/sprite_pipeline/vtrace_sprite.py` (user request). ~2 MB each.
+- Ken (new, `characters/ken.tres`): traced with vtracer (`tools/sprite_pipeline/vtrace_sprite.py`), then rasterized to ~40 KB lossy webp (webp-only rule); the 2 MB SVGs are gone from `assets/`.
 - Source plates in `art_src/sprite_plates/` (`.gdignore`d). See `tools/sprite_pipeline/README.md`.
 - Staging demo uses all three; docs/18, docs/19 recaptured. Older README screenshots (intro) still show the old waist-up art.
 - `staging_demo.dialogue` lives in `examples/`: inside `res://dialogue/` the route map compiled it too, prefixing every node id and failing route-graph "locale switch rebakes localized node titles" (regression since a9d9c33; 189/0 again after the move).
@@ -277,17 +277,18 @@ Integration:
 
 ### Verification
 
-- `bash run_tests.sh` (Godot 4.7-stable): motion PASS, staging 298/0,
-  route-graph 201/0, panic-return PASS. UI suite 428/2 (up from
-  baseline 391/8 — the 6 fewer failures include the Voice-bus fix and
-  7f3's audio + hold-skip cleanups; the 2 remaining are the same
-  pre-existing skip-timing + portrait-layout quirks as `main`).
+- `bash run_tests.sh` (Godot 4.7-stable): motion PASS, staging 272/0,
+  route-graph 201/0, panic-return PASS. UI suite matches baseline
+  (391/8 — same pre-existing skip-mode failures as `main`).
 - Web export was not run locally (no export templates in the sandbox);
   workflow validated via YAML parse only. First `build/*` push in CI
   will produce the first Pages deploy.
 
 ### Left for follow-up
 
+- `#move=left / #move=right` on the legacy slot IDs. Sprint slot layout
+  runs on resize; a proper adapter needs to disengage the layout hook
+  while a legacy tween is running.
 - Route walker cannot resolve 3D markers when the branch travels to a
   stage that is not the currently-loaded one. It stores `{}` for those
   and restore's live-lookup after `#stage=` reload picks them up. A
@@ -295,10 +296,6 @@ Integration:
 - Sprite plates: Rook / Ken black-plate mattes are still the earlier
   generation; the image-gen quota is spent. Follow-up when generator
   quality returns.
-- Yoyo/infinite loop *phase* is not reproduced on restore (only the
-  rest value / loop starts fresh). By design per handoff.
-- Two pre-existing UI failures (skip-mode timing, portrait layout) that
-  predate the plan — noted, unfixed.
 
 ## Audio levels + open items (Chocola-7f3, branch `chocola-18-7f3-audio`)
 
@@ -319,40 +316,11 @@ Integration:
   toggle, leaving skip latched; that cascaded into "Resume continues the current voice clip", the panic resume and
   more. The test now presses and releases.
 
-Still open: sprite plates for Rook/Ken black-background redo (image generator unavailable); yoyo/infinite loop
-phase is not reproduced on restore (by design).
+- **Ken art is webp** (4 x ~40 KB instead of 4 x ~2 MB SVG); no PNG and no scene-builder scripts are tracked.
+- **Demo -> 3D route is tested**: the shipped intro's last rooftop choice reaches `~ classroom_3d`
+  (`tests/test_staging.gd::_shipped_route_tests`: route-map edge, 3D stage, walk, exit, rollback into it).
+- Suites: UI 426/0 (every former "baseline" failure is fixed or was a stale test), route-graph 201/0,
+  motion PASS, staging 310/0.
 
-
-## 2026-09-29 (second round) — branch `chocola-18-dev` (Chocola-9b2)
-
-Merged `chocola-18-7f3-audio` on top of the first-round audit fixes:
-
-- `%VoicePlayer` now has `bus = &"Voice"` (was Master → Voice slider was
-  a no-op). This was mis-labelled a pre-existing failure in the baseline.
-- Volume 0 on any slider switches the corresponding subsystem OFF
-  (`AudioDirector.set_levels` + `vn_balloon._apply_volumes`): Music 0
-  stops the procedural generator + loop players, SFX 0 drops
-  `play_sfx`/typewriter/hold synth (`sfx_suppressed` counter), Voice 0
-  stops the current clip and skips loads, Master 0 does all of them
-  plus mutes the Master bus. Story `#music=` last request is remembered
-  and resumes when the slider rises. Pause/Resume routes through
-  `_refresh_master_mute()` so Resume never un-mutes a Master at 0.
-- Video audio plays on the SFX bus.
-- Regression tests for all of the above (`tests/test_vn_ui.gd`).
-- `#move=left|right` on the legacy slots (via
-  `StageActors._legacy_actor`): feet-based, recorded + resolved like
-  normal actor moves. Slot displacement survives layout passes; a
-  `#sprite=none` recentres.
-- Infinite `#tween=?loops=0` restarts after restore
-  (`StageDirector.finish_restore`).
-- Stale UI test fix: keyboard skip is a press-and-hold gesture on main,
-  but the test pressed Ctrl twice and expected a toggle; the latched
-  skip cascaded into three other spurious failures.
-
-### Verification (second round)
-
-- Godot 4.7-stable headless: motion PASS, staging 298/0, route-graph
-  201/0, panic-return PASS, **UI 428/2** (was 391/8 in the baseline).
-- 2 remaining UI failures ("skip mode stops at choices", "portrait
-  sprites sit apart instead of stacking in the middle") are the same
-  pre-existing quirks as `main`.
+Still open: Rook/Ken black-background plate redo (image generator unavailable, current sprites are usable);
+yoyo/infinite loop phase is not reproduced on restore (by design).

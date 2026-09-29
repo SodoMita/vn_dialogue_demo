@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dd216ognss67k"
-path="res://.godot/imported/ken_surprised.svg-f86e41e9dfbca7d1c5de6232a81e44e6.ctex"
+uid="uid://c183lhpmkdgxp"
+path="res://.godot/imported/ken_surprised.webp-7ec1124fd83af3e6775fdc57f6172cbf.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/characters/ken_surprised.svg"
-dest_files=["res://.godot/imported/ken_surprised.svg-f86e41e9dfbca7d1c5de6232a81e44e6.ctex"]
+source_file="res://assets/characters/ken_surprised.webp"
+dest_files=["res://.godot/imported/ken_surprised.webp-7ec1124fd83af3e6775fdc57f6172cbf.ctex"]
 
 [params]
 
@@ -38,6 +38,3 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
-svg/scale=1.0
-editor/scale_with_editor_scale=false
-editor/convert_colors_with_editor_theme=false

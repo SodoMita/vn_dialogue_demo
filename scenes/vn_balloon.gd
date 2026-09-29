@@ -239,8 +239,8 @@ var temporary_game_states: Array = []
 var audio: Node = null
 ## True while Pause or the boss screen silences the game (see _silence_audio).
 var _audio_silenced: bool = false
-## Legacy slot instance id -> the position its own layout gave it (no #move).
-var _sprite_laid_pos: Dictionary = {}
+## Legacy slot instance id -> (offset_left, offset_top) its own layout gave it.
+var _sprite_laid_offs: Dictionary = {}
 
 ## See if we are waiting for the player
 var is_waiting_for_input: bool = false
@@ -902,9 +902,9 @@ func _set_sprite(spec: String) -> void:
 		slot.texture = null
 		slot.modulate.a = 0.0
 		# An empty slot forgets any #move: the next portrait starts at home.
-		var laid: Variant = _sprite_laid_pos.get(slot.get_instance_id())
-		if laid is Vector2 and motion != null:
-			motion.set_now(slot, "position", laid)
+		var moved := _slot_displacement(slot)
+		if moved != Vector2.ZERO and motion != null:
+			motion.set_now(slot, "position", slot.position - moved)
 	elif sprites.has(key):
 		slot.texture = sprites[key]
 		slot.modulate.a = 1.0
@@ -2075,6 +2075,14 @@ func _on_sprite_y_changed(v: float) -> void:
 
 ## Sprite scale pivots at each sprite's bottom centre; the Y offset is a delta
 ## on top of the authored offsets so the anchored rect keeps its height.
+## How far #move / #tween pushed a legacy slot from where its layout put it.
+func _slot_displacement(spr: Control) -> Vector2:
+	var laid: Variant = _sprite_laid_offs.get(spr.get_instance_id())
+	if laid is not Vector2:
+		return Vector2.ZERO
+	return Vector2(spr.offset_left, spr.offset_top) - (laid as Vector2)
+
+
 func _apply_sprite_transform() -> void:
 	var stage := balloon.size
 	# Portrait only. A 720-wide view used the landscape rects, so the two
@@ -2083,10 +2091,10 @@ func _apply_sprite_transform() -> void:
 	for spr: TextureRect in [sprite_left, sprite_right]:
 		var id := spr.get_instance_id()
 		# A slot moved by #move / #tween keeps its displacement across layout
-		# passes (an expression change must not snap it home).
-		var displaced := Vector2.ZERO
-		if _sprite_laid_pos.has(id):
-			displaced = spr.position - (_sprite_laid_pos[id] as Vector2)
+		# passes (an expression change must not snap it home). Measured in
+		# offsets: they only change when the slot is moved, while its position
+		# also follows the parent's size.
+		var displaced := _slot_displacement(spr)
 		if not _sprite_base_offsets.has(id):
 			_sprite_base_offsets[id] = Vector2(spr.offset_top, spr.offset_bottom)
 		if not _sprite_base_sides.has(id):
@@ -2109,12 +2117,15 @@ func _apply_sprite_transform() -> void:
 		spr.offset_bottom = bottom
 		spr.pivot_offset = Vector2(spr.size.x * 0.5, spr.size.y)
 		spr.scale = Vector2(sprite_scale, sprite_scale)
-		_sprite_laid_pos[id] = spr.position
+		_sprite_laid_offs[id] = Vector2(spr.offset_left, spr.offset_top)
 		if motion != null:
 			motion.set_home(spr, "position", spr.position)
 			motion.set_home(spr, "scale", spr.scale)
 		if displaced != Vector2.ZERO:
-			spr.position += displaced
+			spr.offset_left += displaced.x
+			spr.offset_right += displaced.x
+			spr.offset_top += displaced.y
+			spr.offset_bottom += displaced.y
 	if stage_actors != null:
 		stage_actors.sprite_scale = sprite_scale
 		stage_actors.sprite_y = sprite_y
