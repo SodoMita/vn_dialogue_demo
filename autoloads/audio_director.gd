@@ -640,9 +640,16 @@ func _synth_stream(kind: String) -> AudioStream:
 		samples = _synth_buzz()
 	elif kind == "click":
 		samples = _synth_click()
+	elif kind == "holdtone":
+		samples = _synth_holdtone()
 	else:
 		samples = _synth_click()
 	var stream := _to_wav(samples)
+	if kind == "holdtone":
+		# The hold gesture keeps this tone sounding until release: loop it.
+		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		stream.loop_begin = 0
+		stream.loop_end = samples.size()
 	_synth_cache[kind] = stream
 	return stream
 
