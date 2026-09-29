@@ -209,7 +209,7 @@ yoyo/infinite `#tween=` restores to its rest value, not a running loop.
 ## Sprites (Remi-q7x)
 - Full-body, 4 expressions each (neutral = bare id, `_smile`, `_sad`, `_surprised`).
 - Maya, Rook: plate triangulation, `tools/sprite_pipeline/plate_matte.py` (klima tools credited). WebP.
-- Ken (new, `characters/ken.tres`): vtracer SVGs, `tools/sprite_pipeline/vtrace_sprite.py` (user request). ~2 MB each.
+- Ken (new, `characters/ken.tres`): traced with vtracer (`tools/sprite_pipeline/vtrace_sprite.py`), then rasterized to ~40 KB lossy webp (webp-only rule); the 2 MB SVGs are gone from `assets/`.
 - Source plates in `art_src/sprite_plates/` (`.gdignore`d). See `tools/sprite_pipeline/README.md`.
 - Staging demo uses all three; docs/18, docs/19 recaptured. Older README screenshots (intro) still show the old waist-up art.
 - `staging_demo.dialogue` lives in `examples/`: inside `res://dialogue/` the route map compiled it too, prefixing every node id and failing route-graph "locale switch rebakes localized node titles" (regression since a9d9c33; 189/0 again after the move).
@@ -316,5 +316,11 @@ Integration:
   toggle, leaving skip latched; that cascaded into "Resume continues the current voice clip", the panic resume and
   more. The test now presses and releases.
 
-Still open: sprite plates for Rook/Ken black-background redo (image generator unavailable); yoyo/infinite loop
-phase is not reproduced on restore (by design).
+- **Ken art is webp** (4 x ~40 KB instead of 4 x ~2 MB SVG); no PNG and no scene-builder scripts are tracked.
+- **Demo -> 3D route is tested**: the shipped intro's last rooftop choice reaches `~ classroom_3d`
+  (`tests/test_staging.gd::_shipped_route_tests`: route-map edge, 3D stage, walk, exit, rollback into it).
+- Suites: UI 426/0 (every former "baseline" failure is fixed or was a stale test), route-graph 201/0,
+  motion PASS, staging 310/0.
+
+Still open: Rook/Ken black-background plate redo (image generator unavailable, current sprites are usable);
+yoyo/infinite loop phase is not reproduced on restore (by design).

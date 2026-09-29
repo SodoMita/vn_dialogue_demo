@@ -51,7 +51,12 @@ then add the keys to the `sprites` dictionary in `scenes/vn_balloon.tscn`.
 Source plates (lossless WebP) live in `art_src/sprite_plates/` (ignored by
 Godot via `art_src/.gdignore`) so sprites can be re-cut without regenerating.
 
-## Vector route: `vtrace_sprite.py` (used for Ken)
+## Vector route: `vtrace_sprite.py` (used for Ken, then rasterized)
+
+> Shipped art is **webp only**. Ken's traced SVGs (~2 MB each) were rasterized to
+> 475x1259 lossy webp (~40 KB, quality 0.8, alpha kept) with Godot's
+> `Image.load_svg_from_string(svg, 1.0)` + `save_webp(path, true, 0.8)` and the
+> SVGs removed from the repo. Keep a traced SVG only outside `assets/`.
 
 Needs only the white render. Traces it with
 [vtracer](https://github.com/visioncortex/vtracer) (`pip install vtracer`)
