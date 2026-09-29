@@ -105,6 +105,8 @@ func run() -> void:
 	await _shipped_route_tests()
 	await _silent_2d_tests()
 
+	await _shipped_rooftop_shadow_tests()
+
 
 #region Parser
 
@@ -768,6 +770,14 @@ func _visible_sprites() -> int:
 ## two legacy slots, and the system is not limited to two sprites.
 func _silent_2d_tests() -> void:
 	print("== silent third character on the 2D stage ==")
+
+## The 2D stage is no longer limited to the two legacy SpriteLeft/Right slots:
+## short-tag actors coexist with the legacy portraits on the same rooftop line.
+## This test walks the shipped intro up to the rooftop climax, confirms the
+## silent 3rd character (shadow) shows up on the 2D stage alongside the two
+## legacy slots, and exits again.
+func _shipped_rooftop_shadow_tests() -> void:
+	print("== shipped intro: 2D shadow bystander ==")
 	var intro: Resource = load("res://dialogue/intro.dialogue")
 	actors.reset_all()
 	balloon.history.clear()
@@ -832,3 +842,41 @@ func _silent_2d_tests() -> void:
 				recorded = true
 	check(recorded, "the shadow's show command is stored with a resolved place")
 	actors.reset_all()
+
+	balloon.start(intro, "rooftop")
+	await _wait_line()
+	check(actors.current_stage == "2d", "rooftop plays on the 2D stage")
+	# Choose the silent option so we skip straight through, then advance to
+	# the shadow-spawn line and beyond.
+	if is_instance_valid(balloon.dialogue_line) and balloon.dialogue_line.responses.size() > 0:
+		var picks: Array = []
+		for i in range(balloon.dialogue_line.responses.size()):
+			picks.append(str(balloon.dialogue_line.responses[i].text))
+		var silent_idx: int = 2
+		for i in picks.size():
+			if "silent" in picks[i].to_lower() or "sunset" in picks[i].to_lower():
+				silent_idx = i
+				break
+		balloon.responses_menu.response_selected.emit(balloon.dialogue_line.responses[silent_idx])
+		await _wait_line()
+	var guard := 0
+	while guard < 20 and is_instance_valid(balloon.dialogue_line) and not actors.has_actor("shadow"):
+		await _advance()
+		guard += 1
+	check(actors.has_actor("shadow"), "silent shadow spawns on the 2D rooftop stage")
+	# Assert 3 sprites are visible together on the 2D stage.
+	var sprite_left_visible: bool = balloon.sprite_left.texture != null and balloon.sprite_left.modulate.a > 0.0
+	var sprite_right_visible: bool = balloon.sprite_right.texture != null and balloon.sprite_right.modulate.a > 0.0
+	check(sprite_left_visible, "legacy left slot still holds Maya")
+	check(sprite_right_visible, "legacy right slot still holds Rook")
+	check(actors.has_actor("shadow"), "third short-tag actor coexists with the legacy pair")
+	# The 2D stage now hosts more portraits than the two legacy slots.
+	var bodies: int = actors.actors.size()
+	check(bodies >= 1, "2D stage holds >=1 short-tag actor alongside SpriteLeft/Right (3 portraits total)")
+	# Walk to the exit; shadow must be removed by the #hide=shadow tag.
+	var guard2 := 0
+	while guard2 < 30 and is_instance_valid(balloon.dialogue_line) and actors.has_actor("shadow"):
+		await _advance()
+		guard2 += 1
+	await wait(0.7)
+	check(not actors.has_actor("shadow"), "silent shadow exits when the rooftop ends")

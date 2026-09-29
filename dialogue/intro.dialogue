@@ -39,7 +39,10 @@ Rook: You brought a witness to my hiding spot. Unforgivable. [#sprite=rook_surpr
 	[speed=0.5]The sun goes down slow, and for once, nobody says a word.[/speed]
 Maya: Same time tomorrow? [#sprite=maya:left, #voice=m8]
 Rook: ...Hmph. Don't be late. [#sprite=rook_smile:right, #voice=r6]
-The three of you watch until the sky burns out. [#box=hide, #music=loop:night]
+[#show=shadow@far_right]
+Maya: (nudges) There's someone else up here. [#sprite=maya_surprised:left, #focus=left]
+Rook: Always was. This roof is louder than the bell. [#sprite=rook:right, #focus=right]
+The three of you watch until the sky burns out. [#hide=shadow?t=0.6, #box=hide, #music=loop:night]
 - Head home for the night.
 	=> END
 - Take one last look at the classroom.
