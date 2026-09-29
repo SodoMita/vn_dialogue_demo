@@ -188,6 +188,8 @@ func _target(p: Dictionary, a: Variant, restoring: bool, stored: Variant) -> Dic
 			return {"ok": false, "error": "?by= needs %d numbers on a %s stage" % [3 if three else 2, "3D" if three else "2D"]}
 		# Start from the LOGICAL destination, not the mid-tween position.
 		var from: Variant = director.logical_value(a.root, "position")
+		if not three and a is Dictionary and a.has("feet_offset"):
+			from = (from as Vector2) + (a.feet_offset as Vector2)  # legacy slot: feet, not corner
 		var dest: Array = []
 		if three:
 			var v: Vector3 = from + Vector3(b[0], b[1], b[2])
@@ -678,14 +680,32 @@ func _apply_show(p: Dictionary, restoring: bool, stored: Dictionary) -> Dictiona
 	return _accept(out)
 
 
+## A legacy portrait slot as a movable actor: its root is the slot control and
+## "feet_offset" is where its feet sit inside it (bottom centre), so places and
+## ?by= work on feet exactly like they do for a dynamic actor.
+func _legacy_actor(id: String) -> Variant:
+	var node := legacy.get(id) as TextureRect
+	if node == null or is_3d() or node.texture == null:
+		return null
+	return {"id": id, "root": node, "feet_offset": Vector2(node.size.x * 0.5, node.size.y)}
+
+
 func _apply_move(p: Dictionary, restoring: bool, stored: Dictionary) -> Dictionary:
 	var a: Variant = actors.get(p.actor)
+	if a == null and RESERVED.has(str(p.actor)):
+		a = _legacy_actor(str(p.actor))
+		if a == null:
+			return _reject(p.tag, "legacy slot '%s' has no portrait on the 2D stage - #sprite=key:%s first" % [p.actor, p.actor])
 	if a == null:
 		return _reject(p.tag, "no actor '%s' on stage" % p.actor)
 	var t := _target(p, a, restoring, stored.get("place"))
 	if not t.ok:
 		return _reject(p.tag, str(t.error))
 	var dur: float = float(p.opts.get("t", move_time))
+	if a.has("feet_offset"):
+		var to: Vector2 = (t.pos as Vector2) - (a.feet_offset as Vector2)
+		director.tween_to(a.root, "position", to, dur, str(p.opts.get("trans", move_trans)), str(p.opts.get("ease", move_ease)), restoring)
+		return _accept({"place": t.resolved})
 	_place(a, t, dur, str(p.opts.get("trans", move_trans)), str(p.opts.get("ease", move_ease)), restoring)
 	return _accept({"place": t.resolved})
 

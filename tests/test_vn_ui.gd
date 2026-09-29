@@ -492,8 +492,13 @@ func run() -> void:
 	skip_key_event.keycode = KEY_CTRL
 	balloon._input(skip_key_event)
 	check(alive() and balloon.skip_mode, "Skip key enables skip mode")
-	balloon._input(skip_key_event)
-	check(alive() and not balloon.skip_mode, "Skip key toggles skip mode off")
+	# Keyboard skip is a hold gesture (press = on, release = off); only the
+	# toolbar button toggles.
+	var skip_release_event := InputEventKey.new()
+	skip_release_event.pressed = false
+	skip_release_event.keycode = KEY_CTRL
+	balloon._input(skip_release_event)
+	check(alive() and not balloon.skip_mode, "Releasing the skip key turns skip mode off")
 
 	# Skip: runs the dialogue to the next choices without further input.
 	balloon.skip_button.grab_focus()

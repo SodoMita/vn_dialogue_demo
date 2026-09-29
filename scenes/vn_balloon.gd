@@ -239,6 +239,8 @@ var temporary_game_states: Array = []
 var audio: Node = null
 ## True while Pause or the boss screen silences the game (see _silence_audio).
 var _audio_silenced: bool = false
+## Legacy slot instance id -> the position its own layout gave it (no #move).
+var _sprite_laid_pos: Dictionary = {}
 
 ## See if we are waiting for the player
 var is_waiting_for_input: bool = false
@@ -899,6 +901,10 @@ func _set_sprite(spec: String) -> void:
 	if key == "none":
 		slot.texture = null
 		slot.modulate.a = 0.0
+		# An empty slot forgets any #move: the next portrait starts at home.
+		var laid: Variant = _sprite_laid_pos.get(slot.get_instance_id())
+		if laid is Vector2 and motion != null:
+			motion.set_now(slot, "position", laid)
 	elif sprites.has(key):
 		slot.texture = sprites[key]
 		slot.modulate.a = 1.0
@@ -1006,6 +1012,7 @@ func _restore_presentation(cursor: int) -> void:
 			kept.append(rec)
 		if kept.size() != (records as Array).size():
 			history[i]["motion"] = kept
+	motion.finish_restore()
 	stage_actors.finish_restore()
 
 
@@ -2075,6 +2082,11 @@ func _apply_sprite_transform() -> void:
 	var tall := stage.y > stage.x + 1.0
 	for spr: TextureRect in [sprite_left, sprite_right]:
 		var id := spr.get_instance_id()
+		# A slot moved by #move / #tween keeps its displacement across layout
+		# passes (an expression change must not snap it home).
+		var displaced := Vector2.ZERO
+		if _sprite_laid_pos.has(id):
+			displaced = spr.position - (_sprite_laid_pos[id] as Vector2)
 		if not _sprite_base_offsets.has(id):
 			_sprite_base_offsets[id] = Vector2(spr.offset_top, spr.offset_bottom)
 		if not _sprite_base_sides.has(id):
@@ -2097,6 +2109,12 @@ func _apply_sprite_transform() -> void:
 		spr.offset_bottom = bottom
 		spr.pivot_offset = Vector2(spr.size.x * 0.5, spr.size.y)
 		spr.scale = Vector2(sprite_scale, sprite_scale)
+		_sprite_laid_pos[id] = spr.position
+		if motion != null:
+			motion.set_home(spr, "position", spr.position)
+			motion.set_home(spr, "scale", spr.scale)
+		if displaced != Vector2.ZERO:
+			spr.position += displaced
 	if stage_actors != null:
 		stage_actors.sprite_scale = sprite_scale
 		stage_actors.sprite_y = sprite_y
