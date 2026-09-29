@@ -448,7 +448,11 @@ func _apply_show(p: Dictionary, restoring: bool, stored: Dictionary) -> Dictiona
 			return _reject(p.tag, "%s has no valid default_appearance - give a look" % id)
 		if not has_place:
 			var fallback := {"ok": true, "tag": p.tag, "place": def.default_place if def != null else "center", "coords": null, "by": null}
-			if is_3d() and _find_marker(str(fallback.place)) == null:
+			var saved: Variant = stored.get("place") if restoring else null
+			if saved is Dictionary and not (saved as Dictionary).is_empty():
+				# Restore: the recorded destination wins over the live marker/anchor.
+				t = _target(fallback, null, true, saved)
+			elif is_3d() and _find_marker(str(fallback.place)) == null:
 				t = _from_record({"kind": "pos", "pos": [0.0, 0.0, 0.0]})
 			else:
 				t = _target(fallback, null, false, null)
@@ -527,6 +531,7 @@ func _remove(id: String) -> void:
 
 
 func _free_actor(a: Dictionary) -> void:
+	_pending_videos = _pending_videos.filter(func(v: Dictionary) -> bool: return str(v.on) != str(a.id))
 	for name: String in _videos.keys():
 		if str(_videos[name].get("on", "")) == str(a.id):
 			_stop_video(name)

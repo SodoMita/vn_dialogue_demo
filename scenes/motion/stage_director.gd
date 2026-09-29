@@ -122,6 +122,8 @@ var _logical: Dictionary = {}
 var _authored: Dictionary = {}
 ## AnimationPlayers started by `#nla=` / [method play_clip]: iid -> player.
 var _players: Dictionary = {}
+## AnimationTrees driven by story tags (stopped on reset / #nla_stop).
+var _trees: Dictionary = {}
 ## Bumped by [method reset_all]; delayed callbacks compare against it so a
 ## callback scheduled by abandoned history never fires into the new stage.
 var generation: int = 0
@@ -384,7 +386,7 @@ func _apply_tween(tag: String, instant: bool) -> bool:
 		return _reject(tag, "cannot read that value")
 	var relative: bool = bool(opts.get("relative", false))
 	var key: String = "%d:%s" % [node.get_instance_id(), prop]
-	var base: Variant = _logical.get(key, current)
+	var base: Variant = _logical_at(node, prop, current)
 	if relative:
 		to = _apply_relative(base, to)
 	if fields.size() > 2 and fields[2] != "" and not fields[2].is_valid_float():
@@ -489,10 +491,31 @@ func set_now(node: Node, prop: String, value: Variant) -> void:
 
 ## The value a property is heading to (running tween) or its current value.
 func logical_value(node: Node, prop: String) -> Variant:
-	var key: String = "%d:%s" % [node.get_instance_id(), prop]
+	return _logical_at(node, prop, node.get_indexed(NodePath(prop)))
+
+
+## The value [param prop] is heading to, seen through both spellings: a
+## component ("position:x") reads out of a pending whole-vector tween, and a
+## whole property ("position") overlays pending component tweens on its
+## current value. Live play, skip and restore therefore agree.
+func _logical_at(node: Node, prop: String, current: Variant) -> Variant:
+	var iid: int = node.get_instance_id()
+	var key: String = "%d:%s" % [iid, prop]
 	if _logical.has(key):
 		return _logical[key]
-	return node.get_indexed(NodePath(prop))
+	var head: String = prop.get_slice(":", 0)
+	if prop != head:
+		var whole_key: String = "%d:%s" % [iid, head]
+		if _logical.has(whole_key):
+			var whole: Variant = _logical[whole_key]
+			return whole[prop.get_slice(":", 1)]
+		return current
+	var result: Variant = current
+	var prefix: String = "%d:%s:" % [iid, head]
+	for other: String in _logical.keys():
+		if other.begins_with(prefix):
+			result[other.substr(prefix.length())] = _logical[other]
+	return result
 
 
 ## True while a tween drives [param prop] (or an overlapping property).
@@ -523,6 +546,7 @@ func kill_node(node: Node) -> void:
 ## non-looping clip; looping clips simply start. Returns false on failure.
 func play_clip(track: Node, clip: String, loop: bool = false, instant: bool = false) -> bool:
 	if track is AnimationTree:
+		_trees[track.get_instance_id()] = track
 		var playback: Variant = track.get("parameters/playback")
 		if playback == null or not playback.has_method("travel"):
 			return false
@@ -592,7 +616,7 @@ func _apply_set(tag: String, _instant: bool) -> bool:
 	if to == null:
 		return _reject(tag, "cannot read that value")
 	if bool(parsed[1].get("relative", false)):
-		to = _apply_relative(_logical.get("%d:%s" % [node.get_instance_id(), prop], current), to)
+		to = _apply_relative(_logical_at(node, prop, current), to)
 	_capture_home(node)
 	_cancel_overlapping(node, prop)
 	_logical.erase("%d:%s" % [node.get_instance_id(), prop])
@@ -730,6 +754,7 @@ func _apply_nla(tag: String, instant: bool) -> bool:
 	var loop: bool = bool(opts.get("loop", false))
 	_looping[fields[0]] = loop
 	if track is AnimationTree:
+		_trees[track.get_instance_id()] = track
 		var playback: Variant = track.get("parameters/playback")
 		if playback == null or not playback.has_method("travel"):
 			return _reject(tag, "AnimationTree track has no state machine playback")
@@ -818,6 +843,12 @@ func _process_ranged(_delta: float) -> void:
 				_ranged.remove_at(i)
 
 
+func _stop_tree(tree: Node) -> void:
+	var playback: Variant = tree.get("parameters/playback")
+	if playback != null and playback.has_method("stop"):
+		playback.stop()
+
+
 func _apply_nla_stop(tag: String) -> bool:
 	var alias: String = tag.substr(tag.find("=") + 1).strip_edges()
 	var track: Node = resolve_target(alias)
@@ -827,6 +858,9 @@ func _apply_nla_stop(tag: String) -> bool:
 	_looping[alias] = false
 	if track is AnimationPlayer:
 		track.stop()
+	elif track is AnimationTree:
+		_stop_tree(track)
+		_trees.erase(track.get_instance_id())
 	return _accept(tag)
 
 
@@ -838,10 +872,18 @@ func _apply_nla_stop(tag: String) -> bool:
 
 ## Spawn (or replace) a Y-billboard portrait quad in a 3D scene.
 func spawn_quad(alias: String, tex: Texture2D, parent: Node3D, height: float, anchor_bottom: bool, pos: Variant = null) -> Sprite3DQuad:
-	remove_quad(alias)
-	var quad: Sprite3DQuad = SPRITE3D_QUAD.new()
-	quad.name = "Sprite3D_%s" % alias
-	parent.add_child(quad)
+	var existing = _spawned.get(alias)
+	var quad: Sprite3DQuad = null
+	if is_instance_valid(existing) and existing is Sprite3DQuad:
+		# Same alias: update in place (keeps placement and running tweens).
+		quad = existing
+		if quad.get_parent() != parent:
+			quad.reparent(parent, true)
+	else:
+		remove_quad(alias)
+		quad = SPRITE3D_QUAD.new()
+		quad.name = "Sprite3D_%s" % alias
+		parent.add_child(quad)
 	quad.world_height = height
 	quad.bottom_anchored = anchor_bottom
 	quad.texture = tex
@@ -977,6 +1019,10 @@ func reset_all() -> void:
 		if is_instance_valid(player):
 			player.stop()
 	_players.clear()
+	for tid: int in _trees.keys():
+		if is_instance_valid(_trees[tid]):
+			_stop_tree(_trees[tid])
+	_trees.clear()
 	# Drop aliases registered by (possibly abandoned) history; keep authored.
 	for alias: String in _targets.keys():
 		if not _authored.has(alias):
