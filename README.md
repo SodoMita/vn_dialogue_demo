@@ -107,7 +107,7 @@ test-suite asserts this). All node references use `%UniqueName` lookups.
 
 ### Short staging tags (movable actors, 3D stage, animation, video)
 
-Full cheat sheet: **`docs/STAGING.md`**; demo: `examples/staging_demo.dialogue`.
+Full cheat sheet: **`docs/STAGING.md`**; demo: `examples/staging_demo.dialogue`. The 2D stage is no longer limited to `SpriteLeft` / `SpriteRight`: any number of short-tag actors can share the stage with the legacy pair (the shipped intro keeps a silent third bystander next to Maya and Rook, and the test suite puts twelve sprites on the 2D stage at once).
 
 | tag | effect |
 | --- | --- |
@@ -354,5 +354,5 @@ xvfb-run -a -s "-screen 0 1280x720x24" Godot_v4.7.2-stable_linux.x86_64 \
 - The two "resources still in use at exit" lines you may see are teardown bookkeeping of the
   *test harness* (forced `get_tree().quit()`); the game scene itself exits clean.
 - Art in `assets/` is AI-generated placeholder imagery (magenta-keyed to transparency for the
-  sprites); swap in your own PNGs and re-point the balloon's exported `backgrounds` /
+  sprites); swap in your own WebP art (see `tests/check_assets.sh` — PNG/JPEG are rejected) and re-point the balloon's exported `backgrounds` /
   `sprites` dictionaries in the inspector.

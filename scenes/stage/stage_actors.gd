@@ -363,9 +363,10 @@ func _actor_parent_3d() -> Node3D:
 ## Shadow shape: {"_stage": String, actor_id: {"place": Dictionary,
 ## "look": String}}.  Called by RouteTravel._dress() through a Callable
 ## the balloon supplies. Resolution of 3D markers is only attempted when
-## the branch's tracked stage matches the currently-loaded 3D scene; a
-## branch that switches to another stage leaves subsequent markers
-## unresolved (restore, which loads the stage first, will look them up).
+## the branch's tracked stage matches the currently-loaded 3D scene. For a
+## branch on another stage the scene is instantiated offline (never added
+## to the tree) and the marker is expressed relative to that scene's
+## Actors node, exactly as live play does.
 func resolve_record(parsed: Dictionary, shadow: Dictionary) -> Dictionary:
 	if not bool(parsed.get("ok", false)):
 		return {"ok": false, "resolved": {}, "shadow": shadow}
