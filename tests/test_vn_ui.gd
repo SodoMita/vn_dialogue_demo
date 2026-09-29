@@ -509,7 +509,11 @@ func run() -> void:
 		return not alive() or balloon.dialogue_line.responses.size() > 0
 	, 6000)
 	check(alive() and balloon.dialogue_line.responses.size() > 0, "skip mode ran to the next choices")
-	check(alive() and not balloon.skip_mode, "skip mode stops at choices")
+	# A choice stops the line, but Skip stays armed and resumes on the chosen
+	# branch (see the "held-key intent" comments in the balloon).
+	check(alive() and balloon.responses_menu.visible and balloon._resume_skip_after_choice, "skip stops at the choice and stays armed for the chosen branch")
+	balloon._set_skip_active(false)
+	balloon._resume_skip_after_choice = false
 	await choose(0)
 
 	# Pause via the Esc action. Start a known clip so the regression check proves
