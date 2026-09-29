@@ -357,7 +357,7 @@ func _shutdown_sfx() -> void:
 	_hold_player.stop()
 	_hold_player.stream = null
 	_synth_cache.clear()
-		_sfx_ogg_cache.clear()
+	_sfx_ogg_cache.clear()
 
 
 ## Tag helper: #music=stop | loop:<file> | <theme>.
