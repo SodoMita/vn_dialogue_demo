@@ -107,6 +107,8 @@ func run() -> void:
 
 	await _shipped_rooftop_shadow_tests()
 	await _cross_stage_marker_tests()
+	await _probe_matches_live_tests()
+	await _scene_backed_look_tests()
 
 
 #region Parser
@@ -943,4 +945,134 @@ func _cross_stage_marker_tests() -> void:
 		and abs(float(probed_pos[1]) - live_local.origin.y) < 0.001
 		and abs(float(probed_pos[2]) - live_local.origin.z) < 0.001,
 		"probed marker position equals the live scene's marker")
+	actors.reset_all()
+
+
+## A stage scene with transforms on the root, on Marks, on a holder around the
+## marker, and on the Actors parent: everything that can make "relative to the
+## scene root" differ from "relative to the actor parent".
+func _lab_scene() -> PackedScene:
+	var root := Node3D.new()
+	root.name = "Lab"
+	root.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(20.0)), Vector3(5, 0, -2))
+	var marks := Node3D.new()
+	marks.name = "Marks"
+	marks.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(15.0)), Vector3(0.3, 0.0, 0.2))
+	root.add_child(marks)
+	var bench := Node3D.new()
+	bench.name = "Bench"
+	bench.transform = Transform3D(Basis.IDENTITY.scaled(Vector3(1.5, 1.5, 1.5)), Vector3(1, 0, 1))
+	marks.add_child(bench)
+	var spot := Marker3D.new()
+	spot.name = "spot"
+	spot.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(70.0)), Vector3(0.5, 0.1, 1.5))
+	bench.add_child(spot)
+	var act := Node3D.new()
+	act.name = "Actors"
+	act.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(40.0)).scaled(Vector3(2, 2, 2)), Vector3(1, 2, 3))
+	root.add_child(act)
+	for n: Node in [marks, bench, spot, act]:
+		n.owner = root
+	var packed := PackedScene.new()
+	packed.pack(root)
+	root.free()
+	return packed
+
+
+func _same_array(a: Variant, b: Variant, eps: float = 0.001) -> bool:
+	if not (a is Array and b is Array) or (a as Array).size() != (b as Array).size():
+		return false
+	for i in (a as Array).size():
+		if absf(float(a[i]) - float(b[i])) > eps:
+			return false
+	return true
+
+
+## The route walker's record for a stage that is not loaded (probed offline)
+## must equal the record live play produces once the stage is loaded, or a
+## route-travelled save would place actors differently from the story.
+func _probe_matches_live_tests() -> void:
+	print("== probe vs live: transformed Actors parent ==")
+	actors.reset_all()
+	actors.stage_scenes["lab"] = _lab_scene()
+	var probed: Dictionary = actors.resolve_record(StageTagParser.parse("show=maya@spot"), {"_stage": "lab"})
+	check(bool(probed.get("ok", false)) and (probed.resolved as Dictionary).has("place"), "the walker resolves a marker on a stage that is not loaded")
+	var walked: Dictionary = probed.resolved.place
+	var by_probed: Dictionary = actors.resolve_record(StageTagParser.parse("move=maya?by=0.5 0 0"), probed.shadow)
+	check(bool(by_probed.get("ok", false)), "the walker resolves a relative move from the probed marker")
+	check(actors.apply(StageTagParser.parse("stage=lab")).ok, "the lab stage loads live")
+	var live: Dictionary = actors.apply(StageTagParser.parse("show=maya@spot"))
+	var lived: Dictionary = live.resolved.place
+	check(_same_array(walked.pos, lived.pos), "probed position equals live position %s vs %s" % [walked.pos, lived.pos])
+	check(_same_array(walked.rot, lived.rot), "probed rotation equals live rotation")
+	check(_same_array(walked.scale, lived.scale), "probed scale equals live scale")
+	check(absf(float(walked.yaw) - float(lived.yaw)) < 0.01, "probed yaw equals live yaw (%s vs %s)" % [walked.yaw, lived.yaw])
+	var live_by: Dictionary = actors.apply(StageTagParser.parse("move=maya?by=0.5 0 0&t=0"))
+	check(_same_array(by_probed.resolved.place.pos, live_by.resolved.place.pos), "a relative move after the probed marker matches live play")
+	# What the player sees: restoring from the walker's record stands on the marker.
+	actors.reset_all()
+	actors.apply(StageTagParser.parse("stage=lab"))
+	actors.apply(StageTagParser.parse("show=maya@spot"), true, probed.resolved)
+	var mark: Node3D = actors._find_marker("spot")
+	check(near(actors.resolve("maya").global_position, mark.global_position, 0.01), "restoring from the walker's record puts Maya on the marker")
+	check(actors.resolve("maya").global_transform.is_equal_approx(mark.global_transform), "and with the marker's full transform")
+	actors.stage_scenes.erase("lab")
+	actors.reset_all()
+
+
+## A body scene that owns its own graphics: the runtime-built root records every
+## set_look() call it receives (Node3D for the 3D stage, Control for 2D).
+func _look_scene(three: bool) -> PackedScene:
+	var script := GDScript.new()
+	script.source_code = "extends %s\nvar looks: Array = []\nfunc set_look(key: String) -> void:\n\tlooks.append(key)\n" % ("Node3D" if three else "Control")
+	script.reload()
+	var root: Node = Node3D.new() if three else Control.new()
+	root.set_script(script)
+	root.name = "Robot"
+	var packed := PackedScene.new()
+	packed.pack(root)
+	root.free()
+	return packed
+
+
+## Scene-backed appearances (ActorDefinition.scene): the look reaches the body's
+## set_look() on creation AND on later changes, a look change keeps the node,
+## and restore delivers the same looks.
+func _scene_backed_look_tests() -> void:
+	print("== scene-backed appearances ==")
+	for three: bool in [true, false]:
+		var id := "bot3" if three else "bot2"
+		var def := ActorDefinition.new()
+		def.id = id
+		def.scene = _look_scene(three)
+		actors.add_definition(def)
+		actors.reset_all()
+		if three:
+			check(actors.apply(StageTagParser.parse("stage=classroom")).ok, "3D stage for the scene-backed actor")
+		var where := "door" if three else "left"
+		var first: Dictionary = actors.apply(StageTagParser.parse("show=%s:happy@%s" % [id, where]))
+		check(bool(first.get("ok", false)), "%s: #show with a look is accepted for a scene-backed actor" % id)
+		var body: Node = actors.actors[id].body
+		check(body.get_script() != null and body.has_method("set_look"), "%s: the body is the authored scene (its own script)" % id)
+		check(body.looks == [id + "_happy"], "%s: the FIRST look reaches the body on creation (%s)" % [id, body.looks])
+		check(str(actors.actors[id].look) == id + "_happy", "%s: the actor remembers its look" % id)
+		var second: Dictionary = actors.apply(StageTagParser.parse("show=%s:sad" % id))
+		check(bool(second.get("ok", false)) and actors.actors[id].body == body, "%s: a look change keeps the same body node" % id)
+		check(body.looks == [id + "_happy", id + "_sad"], "%s: the later look reaches the body too (%s)" % [id, body.looks])
+		# Restore: replay the recorded commands into a rebuilt stage.
+		var records: Array = [{"tag": "show=%s:happy@%s" % [id, where], "resolved": first.resolved}, {"tag": "show=%s:sad" % id, "resolved": second.resolved}]
+		actors.reset_all()
+		if three:
+			actors.apply(StageTagParser.parse("stage=classroom"))
+		for r: Dictionary in records:
+			actors.apply(StageTagParser.parse(str(r.tag)), true, r.resolved)
+		actors.finish_restore()
+		var rebuilt: Node = actors.actors[id].body
+		check(rebuilt != body and rebuilt.looks == [id + "_happy", id + "_sad"], "%s: restore rebuilds the body and re-delivers both looks (%s)" % [id, rebuilt.looks])
+		check(str(actors.actors[id].look) == id + "_sad", "%s: and ends on the last look" % id)
+		# A bare #show of a scene-backed actor with no default look is legal.
+		actors.reset_all()
+		if three:
+			actors.apply(StageTagParser.parse("stage=classroom"))
+		check(bool(actors.apply(StageTagParser.parse("show=%s@%s" % [id, where])).get("ok", false)) and actors.actors[id].body.looks.is_empty(), "%s: a bare #show creates the scene body without inventing a look" % id)
 	actors.reset_all()

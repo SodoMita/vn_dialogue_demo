@@ -418,3 +418,24 @@ self-contained when reached without replaying the classroom.
   (3) `intro.cues["rooftop"]` is the bare line number ("29"), full ids look like `33rodbi2bnnh@29`.
 - Art follow-up (not done): in the screenshot the silhouette reads as a heavy dark blob (wide torso, big head) rather than
   a person, and it is dimmed to 45% while others speak. It is <= 8 KB SVG by the human's rule; a slimmer shape would look better.
+
+## Audit of 9b2's cross-stage probe and scene-backed looks (Chocola-7f3)
+
+Two more things that were claimed done but had no test that could fail:
+
+- **Cross-stage marker probe** (`StageActors._find_marker_in_scene`, `_resolve_place_record`): for a branch on a stage
+  that is not loaded, the record was computed relative to the scene ROOT, while live play expresses the marker relative
+  to the scene's `Actors` node. On the real `classroom.tscn` the two coincide (Actors is at identity), which is the only
+  scene the original test used. On a stage whose `Actors` node is moved/rotated/scaled the walker placed the actor at
+  (8.6, 0.15, -0.26) where live play puts it at (0.74, -0.93, 0.55). Fixed (marker relative to the probe scene's
+  `Actors`), and the hidden `_walker_shadow_ref` member was replaced by passing the shadow explicitly.
+  `_probe_matches_live_tests` builds a stage with transforms on root, `Marks`, a holder around the marker and `Actors`,
+  and compares walker vs live (pos, rot, scale, yaw, a `?by=` chain) and the resulting global transform after restore.
+- **Scene-backed appearances** (`ActorDefinition.scene`): the creation look was never delivered to the body's
+  `set_look` (only later looks were), so the record said `happy` while the body never saw it, also after restore.
+  Fixed in `_new_actor`; contract documented in `docs/STAGING.md` ("Scene-backed characters").
+- **Shadow art**: 9b2's redraw ("slimmer human silhouette") was checked against Ken/Maya at equal height: legs merged into
+  one column with a rectangular hole, a pedestal-like foot block and an unaligned pale halo. Redrawn as a single closed
+  outline at Ken's 0.38 aspect (imported 475x1250, `svg/scale=2.5`): head, neck, shoulders, arms hanging apart, two legs.
+  1.8 KB, generated once by a throwaway script (not shipped).
+- Suites: UI 433/0, route-graph 201/0, motion PASS, staging 383/0.

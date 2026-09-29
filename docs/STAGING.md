@@ -95,6 +95,24 @@ Define each character once as an `ActorDefinition` resource
 
 `#anim` on an `AnimationTree` supports state travel only (no `?loop`).
 
+### Scene-backed characters (`scene`)
+
+When a definition has a `scene`, that scene is the body (a `Node3D` on 3D stages, a
+`Control` on 2D) and owns its own graphics, so no sprite keys are needed. Looks
+are delivered to the body by calling its `set_look(key: String)`:
+
+- `#show=bot:happy@spot` calls `set_look("bot_happy")` **on creation**, and every
+  later `#show=bot:sad` calls `set_look("bot_sad")` on the same node (a look change
+  never rebuilds the character). The key is the prefixed form (`<sprite_prefix>_<look>`),
+  or a full key exactly as written.
+- Any short look is accepted for a scene body (the body decides what it means); a
+  body without `set_look` simply ignores looks. A bare `#show=bot` creates the body
+  without inventing a look.
+- Restore rebuilds the body and delivers the recorded looks in order, so the body
+  ends on the same look as live play.
+- `tests/test_staging.gd::_scene_backed_look_tests` covers both stages, including
+  restore. (Before that test existed, the creation look was silently dropped.)
+
 ## Stage switching
 
 `#stage=` clears the previous stage's visible actors, movement, local
