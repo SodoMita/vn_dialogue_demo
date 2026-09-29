@@ -107,7 +107,7 @@ test-suite asserts this). All node references use `%UniqueName` lookups.
 
 ### Short staging tags (movable actors, 3D stage, animation, video)
 
-Full cheat sheet: **`docs/STAGING.md`**; demo: `examples/staging_demo.dialogue`.
+Full cheat sheet: **`docs/STAGING.md`**; demo: `examples/staging_demo.dialogue`. The 2D stage is no longer limited to `SpriteLeft` / `SpriteRight`: any number of short-tag actors can share the stage with the legacy pair (the shipped intro keeps a silent third bystander next to Maya and Rook, and the test suite puts twelve sprites on the 2D stage at once).
 
 | tag | effect |
 | --- | --- |
