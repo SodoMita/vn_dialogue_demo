@@ -363,3 +363,23 @@ Merged `chocola-18-7f3-audio` on top of the first-round audit fixes:
   version of the legacy-slot tracking (displacement measured in `position`, so a rotate-to-portrait resize counted
   as a move; now measured in offsets), and "skip mode stops at choices" was a stale test (skip stays armed across a
   choice by design). Both are fixed in the merge below (UI 426/0).
+
+## Web build verified in a real browser (Chocola-7f3, branch `chocola-18-7f3-audio`)
+
+9b2's build/CI/SAB work was never run. Now it was: a real `godot --export-release "Web"` (Godot 4.7 web templates),
+`scripts/pack_web.sh`, then headless Chromium against a plain static server with NO COOP/COEP headers.
+
+- The service worker works: first load shows Godot's isolation error, the worker registers, the page reloads, then
+  `crossOriginIsolated` is true, Godot boots as "multi-threaded", the classroom + dialogue box render.
+- **Found and fixed:** on web, `ProceduralMusic` logged "trying to play a sample from a stream that cannot be sampled"
+  (web defaults to Sample playback, which cannot play `AudioStreamGenerator`). `project.godot` now sets
+  `audio/general/default_playback_type.web=0`; the warning is gone in the rerun.
+- **Found and fixed (desktop too):** `AudioDirector._synth_stream` had no `"holdtone"` branch, so the hold gesture's
+  "falling tone" was always the 12 ms click (`_synth_holdtone()` was dead code). It is now the real ~1 s tone, looped
+  while the gesture lasts, with a regression test. This also explains the intermittently failing check
+  "the hold tone plays continuously while charging".
+- New: `tests/web_smoke.mjs` (isolation + threaded boot + no page/script errors + no sample warning), wired into
+  `release.yml` as a non-blocking step; `tests/check_assets.sh` (WebP-only + sprite size guard, run first by
+  `run_tests.sh`); `build/` and `dist/` gitignored; Web preset excludes `web/*` and `scripts/*`; `docs/WEB_BUILD.md`.
+- Not verified from here: the GitHub Actions run itself (workflows parse; Pages must be enabled in the repo settings).
+- Ken stays WebP: the human said SVG is "awful and bad and not used" (chat id 36); Remi's SVG branch must not be merged.
