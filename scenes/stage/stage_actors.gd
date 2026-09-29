@@ -147,6 +147,12 @@ func _look_key(id: String, look: String) -> String:
 	var key := "%s_%s" % [prefix, look]
 	if sprites.has(key):
 		return key
+	# Scene-backed appearance adapter: the scene body owns its own graphics,
+	# so any short look is accepted here and delivered by _set_look via the
+	# body's set_look(key) method. Prefixed form is preserved so the record
+	# survives restore identically for both scene- and texture-backed actors.
+	if def != null and def.scene != null:
+		return key
 	return ""
 
 

@@ -1,0 +1,50 @@
+name: Godot CI
+
+on:
+  push:
+    branches: [main, "chocola-*", "remi-*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  headless-tests:
+    name: Headless test suites
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot 4.7
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: /tmp/godot-bin/godot
+          key: ${{ runner.os }}-godot-4.7-stable
+
+      - name: Install Godot 4.7
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -e
+          mkdir -p /tmp/godot-bin
+          cd /tmp/godot-bin
+          curl -fsSL -o godot.zip \
+            "https://github.com/godotengine/godot-builds/releases/download/4.7-stable/Godot_v4.7-stable_linux.x86_64.zip"
+          unzip -oq godot.zip
+          mv Godot_v4.7-stable_linux.x86_64 godot
+          chmod +x godot
+          ./godot --version
+
+      - name: Restore Godot from cache
+        if: steps.cache-godot.outputs.cache-hit == 'true'
+        shell: bash
+        run: chmod +x /tmp/godot-bin/godot
+
+      - name: Run headless test suites
+        shell: bash
+        env:
+          GODOT_BIN: /tmp/godot-bin/godot
+        run: |
+          set -e
+          # run_tests.sh accepts the godot binary as its first arg
+          bash run_tests.sh "$GODOT_BIN"

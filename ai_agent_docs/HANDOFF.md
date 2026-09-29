@@ -214,3 +214,85 @@ yoyo/infinite `#tween=` restores to its rest value, not a running loop.
 - Staging demo uses all three; docs/18, docs/19 recaptured. Older README screenshots (intro) still show the old waist-up art.
 - `staging_demo.dialogue` lives in `examples/`: inside `res://dialogue/` the route map compiled it too, prefixing every node id and failing route-graph "locale switch rebakes localized node titles" (regression since a9d9c33; 189/0 again after the move).
 - Two parallel Remi-q7x sessions pushed sprite work; bbd7d8d (Rook triangulated, Ken vtrace SVG) is kept; the other session's alternative (vector_sprite.py clipPath variant, ~600 KB SVGs) is on local branch only, not pushed.
+
+
+## 2026-09-29 — branch `chocola-18-dev` (Chocola-9b2): audit + integration
+
+Audit of `remi-q7x@3e1d028`. Must-fixes 1-5 and should-fixes 6 & scene-
+appearance adapter landed; `#move=left/#move=right` still deferred (legacy
+slots keep their layout hook — a proper adapter needs anchor sync).
+
+- **Fix #1 — route travel produces resolved records.** `route_graph_travel`
+  now carries a `_resolver` Callable + `_shadow` in the branch stage dict.
+  `_dress` runs every parsed command through `StageActors.resolve_record`,
+  which computes anchor/marker/pos endpoints against the branch shadow (so
+  `?by=` chains add to the branch's own destination, not the live logical
+  value). All three `RouteTravel.replay` call sites in the balloon supply
+  the resolver via `_travel_stage` / `_travel_stage_seed`. Restore now uses
+  the stored endpoint without a second marker lookup.
+- **Fix #2 — bare `#show` on restore honours the recorded placement.**
+  `_apply_show`'s "new actor, no @place" branch now consumes `stored.place`
+  before falling back to `default_place`, so a moved marker cannot drift
+  the actor to a new destination on reconstruction.
+- **Fix #3 — snap overlapping tweens BEFORE reading the relative base.**
+  Both `_apply_tween` and `_apply_set` cancel overlapping property tweens
+  and re-read the on-screen value before computing the destination, so a
+  relative `position:x=+5` sees the whole-position logical value instead
+  of a mid-tween sample.
+- **Fix #4 — video pending is tied to actor lifetime.** `_free_actor`
+  filters `_pending_videos` by the vanishing actor id, so `finish_restore`
+  can no longer reattach a looping video to a replacement instance.
+- **Fix #5 — AnimationTree playback is tracked and stopped by `reset_all`
+  / `nla_stop`.** `play_clip` registers the tree in `_players`; the reset
+  path calls `RESET` on state-machine playback and clears `active`.
+- **Fix #6 — `spawn_quad()` refreshes in place.** The in-place update
+  previously living only inside `_apply_sprite3d()` now lives in
+  `spawn_quad` itself; callers no longer force a remove + respawn.
+- **Scene-backed appearance adapter.** `_look_key` now accepts any short
+  look on a scene-backed actor: the prefixed key is returned and delivered
+  by `_set_look` via the body's `set_look(key)` method. Texture-backed
+  actors still take the sprite lookup path.
+
+Integration:
+
+- **Demo route to the 3D scene.** `dialogue/intro.dialogue`'s final rooftop
+  line ends with a two-choice branch: "Head home" ends the day, "Take one
+  last look at the classroom" jumps to a new `~ classroom_3d` cue that
+  exercises `#stage=classroom`, `#show=@door`, `#move=@desk?t=0.9`,
+  `#anim=maya:wave`, `#show=rook@guest_desk`, `#focus=`, `#hide=@hall` and
+  a `#stage=2d` return. Route-graph tests: 189 → 201, no regressions.
+- **`build/*` release pipeline.** `.github/workflows/release.yml` (adapted
+  from klima-gem) triggers on `build/**` pushes and `v*` tags: web export
+  → GitHub Pages, Linux + Windows bundles → GitHub Release. On PRs and
+  main, `.github/workflows/godot-ci.yml` runs the headless suite.
+- **SharedArrayBuffer on GitHub Pages.** `web/coi-serviceworker.js`
+  (vendored from https://github.com/gzuidhof/coi-serviceworker, MIT)
+  registers a service worker that re-serves every response with COOP/COEP
+  headers. `export_presets.cfg` enables `variant/thread_support=true` and
+  ships the shim via `html/head_include`.
+- **Post-export packaging.** `scripts/pack_web.sh` copies the shim next
+  to `index.html` and calls `scripts/stamp_release.py` which writes
+  `version.json` and injects a build badge.
+- **`version.txt` -> 1.16.1-chocola.**
+
+### Verification
+
+- `bash run_tests.sh` (Godot 4.7-stable): motion PASS, staging 272/0,
+  route-graph 201/0, panic-return PASS. UI suite matches baseline
+  (391/8 — same pre-existing skip-mode failures as `main`).
+- Web export was not run locally (no export templates in the sandbox);
+  workflow validated via YAML parse only. First `build/*` push in CI
+  will produce the first Pages deploy.
+
+### Left for follow-up
+
+- `#move=left / #move=right` on the legacy slot IDs. Sprint slot layout
+  runs on resize; a proper adapter needs to disengage the layout hook
+  while a legacy tween is running.
+- Route walker cannot resolve 3D markers when the branch travels to a
+  stage that is not the currently-loaded one. It stores `{}` for those
+  and restore's live-lookup after `#stage=` reload picks them up. A
+  fully offline resolver would need to load candidate stage scenes.
+- Sprite plates: Rook / Ken black-plate mattes are still the earlier
+  generation; the image-gen quota is spent. Follow-up when generator
+  quality returns.
