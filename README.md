@@ -73,10 +73,10 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
 - **styled text**: BBCode (`[b]`, `[i]`, `[color=…]`, …) renders in the typewriter label;
   the backlog and save-slot labels store the same lines without markup
 
-Verified headless with `Godot_v4.7.2-stable_linux.x86_64`: **296 checks pass** (the suite
-also reports 9 known failures around held-skip mode, unchanged by the audio work and
-pre-existing on `main`), zero `SCRIPT ERROR` / `Parse Error` in import and runtime logs.
-Real rendered frames are saved in `docs/` (captured under Xvfb).
+Verified headless with Godot 4.7: `bash run_tests.sh` runs the asset rules (WebP only) and five
+suites - UI, route graph, panic return, motion director and staging - and every check passes,
+with zero `SCRIPT ERROR` / `Parse Error` in import and runtime logs. Real rendered frames are
+saved in `docs/` (captured under Xvfb).
 
 **Web build / releases:** see [docs/WEB_BUILD.md](docs/WEB_BUILD.md) (build/* pipeline, the SharedArrayBuffer service worker, the browser smoke test).
 
