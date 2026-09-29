@@ -493,6 +493,19 @@ func _video_tests() -> void:
 	actors.reset_all()
 	check(actors.video_layer.get_child_count() == 0 or actors.video_layer.get_children().all(func(c: Node) -> bool: return c.is_queued_for_deletion()), "players freed on reset")
 
+	# Fix #4 regression: a looping video pending on an actor that was
+	# removed and reshown as a new instance must NOT reattach to the fresh
+	# actor's body when finish_restore fires.
+	actors.apply(StageTagParser.parse("show=maya@left"))
+	actors.apply(StageTagParser.parse("video=intro?on=maya&loop"), true)
+	check(actors._pending_videos.size() == 1, "restore queued the looping video on Maya")
+	actors.apply(StageTagParser.parse("hide=maya"))
+	check(actors._pending_videos.is_empty(), "hiding Maya drops the pending video for her")
+	actors.apply(StageTagParser.parse("show=maya@left"))
+	actors.finish_restore()
+	check(actors.video_names().is_empty(), "no video resurrects on the replacement Maya actor")
+	actors.reset_all()
+
 
 func _old_save_tests() -> void:
 	print("== old save -> continue -> save -> load ==")
