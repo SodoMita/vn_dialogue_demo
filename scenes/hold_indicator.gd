@@ -12,7 +12,10 @@ var _age: float = 0.0
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	size = Vector2(2 * RADIUS + 64, 2 * RADIUS + 64)
+	# Parent's anchors_preset = 15 (full rect) overrides any size set
+	# during _ready. Defer the resize so the layout pass finishes first
+	# and the anchor-conflict warning stops firing at startup.
+	set_deferred("size", Vector2(2 * RADIUS + 64, 2 * RADIUS + 64))
 	set_process(false)
 	hide()
 
