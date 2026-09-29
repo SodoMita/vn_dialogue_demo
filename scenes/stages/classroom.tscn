@@ -103,4 +103,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.5, 0, -2.6)
 [node name="maya_spot" type="Marker3D" parent="Marks"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0, 0.3)
 
+[node name="window" type="Marker3D" parent="Marks"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.2, 0, -2.0)
+
 [node name="Actors" type="Node3D" parent="."]

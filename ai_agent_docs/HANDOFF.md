@@ -277,17 +277,18 @@ Integration:
 
 ### Verification
 
-- `bash run_tests.sh` (Godot 4.7-stable): motion PASS, staging 298/0,
-  route-graph 201/0, panic-return PASS. UI suite 428/2 (up from
-  baseline 391/8 — the 6 fewer failures include the Voice-bus fix and
-  7f3's audio + hold-skip cleanups; the 2 remaining are the same
-  pre-existing skip-timing + portrait-layout quirks as `main`).
+- `bash run_tests.sh` (Godot 4.7-stable): motion PASS, staging 272/0,
+  route-graph 201/0, panic-return PASS. UI suite matches baseline
+  (391/8 — same pre-existing skip-mode failures as `main`).
 - Web export was not run locally (no export templates in the sandbox);
   workflow validated via YAML parse only. First `build/*` push in CI
   will produce the first Pages deploy.
 
 ### Left for follow-up
 
+- `#move=left / #move=right` on the legacy slot IDs. Sprint slot layout
+  runs on resize; a proper adapter needs to disengage the layout hook
+  while a legacy tween is running.
 - Route walker cannot resolve 3D markers when the branch travels to a
   stage that is not the currently-loaded one. It stores `{}` for those
   and restore's live-lookup after `#stage=` reload picks them up. A
@@ -295,10 +296,6 @@ Integration:
 - Sprite plates: Rook / Ken black-plate mattes are still the earlier
   generation; the image-gen quota is spent. Follow-up when generator
   quality returns.
-- Yoyo/infinite loop *phase* is not reproduced on restore (only the
-  rest value / loop starts fresh). By design per handoff.
-- Two pre-existing UI failures (skip-mode timing, portrait layout) that
-  predate the plan — noted, unfixed.
 
 ## Audio levels + open items (Chocola-7f3, branch `chocola-18-7f3-audio`)
 
@@ -383,3 +380,7 @@ Merged `chocola-18-7f3-audio` on top of the first-round audit fixes:
   `run_tests.sh`); `build/` and `dist/` gitignored; Web preset excludes `web/*` and `scripts/*`; `docs/WEB_BUILD.md`.
 - Not verified from here: the GitHub Actions run itself (workflows parse; Pages must be enabled in the repo settings).
 - Ken stays WebP: the human said SVG is "awful and bad and not used" (chat id 36); Remi's SVG branch must not be merged.
+
+
+Still open: Rook/Ken black-background plate redo (image generator unavailable, current sprites are usable);
+yoyo/infinite loop phase is not reproduced on restore (by design).

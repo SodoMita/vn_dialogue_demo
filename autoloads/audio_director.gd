@@ -112,6 +112,7 @@ var _sfx_pool: Array[AudioStreamPlayer] = []
 var _hold_player: AudioStreamPlayer
 var hold_pitch: float = 1.4            ## hold tone pitch (falls as it fills)
 var _synth_cache: Dictionary = {}   ## synth blips, on first use
+var _sfx_ogg_cache: Dictionary = {}   ## per-key OGG streams (reused so play_sfx does not leak an instance each time)
 var _last_tick_ms: int = -1000
 var _tick_parity: int = 0
 
@@ -167,6 +168,7 @@ func _notification(what: int) -> void:
 				p.stop()
 				p.stream = null
 		_synth_cache.clear()
+		_sfx_ogg_cache.clear()
 		_playback = null
 
 
@@ -355,6 +357,7 @@ func _shutdown_sfx() -> void:
 	_hold_player.stop()
 	_hold_player.stream = null
 	_synth_cache.clear()
+	_sfx_ogg_cache.clear()
 
 
 ## Tag helper: #music=stop | loop:<file> | <theme>.
@@ -381,8 +384,14 @@ func play_sfx(key: String, pitch: float = 1.0) -> void:
 	var path: String = "res://assets/sfx/%s.ogg" % key
 	if ResourceLoader.exists(path) or FileAccess.file_exists(path):
 		last_sfx_source = "ogg"
-		_play_stream(ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE),
-			pitch + _rng.randf_range(-0.02, 0.02))
+		# Reuse one stream per key. AudioStreamPlayer can play the same
+		# stream through multiple voices, so a cache avoids leaking one
+		# instance per play (18 ObjectDB leaks at exit came from here).
+		var stream: AudioStream = _sfx_ogg_cache.get(key)
+		if stream == null:
+			stream = ResourceLoader.load(path)
+			_sfx_ogg_cache[key] = stream
+		_play_stream(stream, pitch + _rng.randf_range(-0.02, 0.02))
 	else:
 		last_sfx_source = "synth"
 		_play_stream(_synth_stream(key), pitch + _rng.randf_range(-0.05, 0.05))
