@@ -59,10 +59,6 @@ var _videos: Dictionary = {}
 ## Looping videos requested during reconstruction; started by finish_restore.
 var _pending_videos: Array = []
 
-## Set for the duration of one resolve_record() call so
-## _resolve_place_record can read the branch's target stage without a
-## deeper parameter thread. Cleared after each dispatch.
-var _walker_shadow_ref: Variant = null
 ## Cache of PackedScene roots instantiated ONLY for marker probing when
 ## the branch travels to a stage we haven't loaded. Never added to the
 ## SceneTree; freed by _drop_probe_stages on reset.
@@ -374,7 +370,6 @@ func resolve_record(parsed: Dictionary, shadow: Dictionary) -> Dictionary:
 	if not bool(parsed.get("ok", false)):
 		return {"ok": false, "resolved": {}, "shadow": shadow}
 	var next: Dictionary = shadow.duplicate(true)
-	_walker_shadow_ref = shadow
 	var cmd: String = str(parsed.cmd)
 	match cmd:
 		"focus", "anim", "video":
@@ -407,7 +402,9 @@ func _record_look(id: String, look: String) -> String:
 	return _look_key(id, look)
 
 
-func _resolve_place_record(parsed: Dictionary, shadow_place: Variant, three: bool, live_ok: bool) -> Dictionary:
+func _resolve_place_record(parsed: Dictionary, shadow_place: Variant, shadow: Dictionary) -> Dictionary:
+	var three: bool = _branch_is_3d(shadow)
+	var live_ok: bool = _branch_matches_live(shadow)
 	if parsed.coords != null:
 		var c: Array = parsed.coords
 		if c.size() != (3 if three else 2):
@@ -432,10 +429,7 @@ func _resolve_place_record(parsed: Dictionary, shadow_place: Variant, three: boo
 	if name == "":
 		return {"ok": true, "record": {}}
 	if three:
-		var stage_name: String = ""
-		var shadow_dict: Variant = _walker_shadow_ref
-		if shadow_dict is Dictionary:
-			stage_name = str((shadow_dict as Dictionary).get("_stage", current_stage))
+		var stage_name: String = str(shadow.get("_stage", current_stage))
 		if stage_name == "":
 			stage_name = current_stage
 		var m: Node3D = null
@@ -458,11 +452,19 @@ func _resolve_place_record(parsed: Dictionary, shadow_place: Variant, three: boo
 			# Probed scene is not in the tree: global_transform would return
 			# identity and warn. Multiply local transforms up to the scene root.
 			world_t = _transform_up_to(m, probe_root)
+		# Express the marker in the actor parent's space, as live play does.
+		# The parent is the scene's "Actors" node (or the scene root when it
+		# has none) - with its own transform, which is why "relative to the
+		# scene root" would place actors somewhere else on a stage whose
+		# Actors node is moved, rotated or scaled.
 		var local: Transform3D = world_t
 		if live_ok:
 			var par := _actor_parent_3d()
 			if par != null:
 				local = par.global_transform.affine_inverse() * world_t
+		elif probe_root != null:
+			var probe_actors := probe_root.get_node_or_null("Actors") as Node3D
+			local = _transform_up_to(probe_actors if probe_actors != null else probe_root, probe_root).affine_inverse() * world_t
 		var q: Quaternion = local.basis.get_rotation_quaternion()
 		var sc: Vector3 = local.basis.get_scale()
 		var yaw := rad_to_deg(world_t.basis.get_euler().y)
@@ -512,7 +514,7 @@ func _resolve_show_record(parsed: Dictionary, shadow: Dictionary) -> Dictionary:
 		out["look"] = look_key
 	var has_place: bool = parsed.place != "" or parsed.coords != null
 	if has_place:
-		var r: Dictionary = _resolve_place_record(parsed, existing.get("place") if existing is Dictionary else null, three, live_ok)
+		var r: Dictionary = _resolve_place_record(parsed, existing.get("place") if existing is Dictionary else null, shadow)
 		if not r.ok:
 			return {"ok": false, "resolved": {}, "shadow": shadow}
 		if not (r.record as Dictionary).is_empty():
@@ -523,7 +525,7 @@ func _resolve_show_record(parsed: Dictionary, shadow: Dictionary) -> Dictionary:
 		var def_place := def.default_place if def != null else "center"
 		var synth := {"ok": true, "tag": parsed.tag, "actor": id, "look": "",
 				"place": def_place, "coords": null, "by": null}
-		var r2: Dictionary = _resolve_place_record(synth, null, three, live_ok)
+		var r2: Dictionary = _resolve_place_record(synth, null, shadow)
 		if r2.ok and not (r2.record as Dictionary).is_empty():
 			out["place"] = r2.record
 	var rec: Dictionary = (existing as Dictionary).duplicate() if existing is Dictionary else {}
@@ -542,7 +544,7 @@ func _resolve_move_record(parsed: Dictionary, shadow: Dictionary) -> Dictionary:
 		return {"ok": false, "resolved": {}, "shadow": shadow}
 	var three: bool = _branch_is_3d(shadow)
 	var live_ok: bool = _branch_matches_live(shadow)
-	var r: Dictionary = _resolve_place_record(parsed, existing.get("place"), three, live_ok)
+	var r: Dictionary = _resolve_place_record(parsed, existing.get("place"), shadow)
 	if not r.ok:
 		return {"ok": false, "resolved": {}, "shadow": shadow}
 	var out: Dictionary = {}
@@ -563,7 +565,7 @@ func _resolve_hide_record(parsed: Dictionary, shadow: Dictionary) -> Dictionary:
 	var has_place: bool = parsed.place != "" or parsed.coords != null
 	var out: Dictionary = {}
 	if has_place:
-		var r: Dictionary = _resolve_place_record(parsed, existing.get("place"), three, live_ok)
+		var r: Dictionary = _resolve_place_record(parsed, existing.get("place"), shadow)
 		if not r.ok:
 			return {"ok": false, "resolved": {}, "shadow": shadow}
 		if not (r.record as Dictionary).is_empty():

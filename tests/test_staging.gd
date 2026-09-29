@@ -107,6 +107,7 @@ func run() -> void:
 
 	await _shipped_rooftop_shadow_tests()
 	await _cross_stage_marker_tests()
+	await _probe_matches_live_tests()
 
 
 #region Parser
@@ -930,4 +931,76 @@ func _cross_stage_marker_tests() -> void:
 		and abs(float(probed_pos[1]) - live_local.origin.y) < 0.001
 		and abs(float(probed_pos[2]) - live_local.origin.z) < 0.001,
 		"probed marker position equals the live scene's marker")
+	actors.reset_all()
+
+
+## A stage scene with transforms on the root, on Marks, on a holder around the
+## marker, and on the Actors parent: everything that can make "relative to the
+## scene root" differ from "relative to the actor parent".
+func _lab_scene() -> PackedScene:
+	var root := Node3D.new()
+	root.name = "Lab"
+	root.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(20.0)), Vector3(5, 0, -2))
+	var marks := Node3D.new()
+	marks.name = "Marks"
+	marks.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(15.0)), Vector3(0.3, 0.0, 0.2))
+	root.add_child(marks)
+	var bench := Node3D.new()
+	bench.name = "Bench"
+	bench.transform = Transform3D(Basis.IDENTITY.scaled(Vector3(1.5, 1.5, 1.5)), Vector3(1, 0, 1))
+	marks.add_child(bench)
+	var spot := Marker3D.new()
+	spot.name = "spot"
+	spot.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(70.0)), Vector3(0.5, 0.1, 1.5))
+	bench.add_child(spot)
+	var act := Node3D.new()
+	act.name = "Actors"
+	act.transform = Transform3D(Basis(Vector3.UP, deg_to_rad(40.0)).scaled(Vector3(2, 2, 2)), Vector3(1, 2, 3))
+	root.add_child(act)
+	for n: Node in [marks, bench, spot, act]:
+		n.owner = root
+	var packed := PackedScene.new()
+	packed.pack(root)
+	root.free()
+	return packed
+
+
+func _same_array(a: Variant, b: Variant, eps: float = 0.001) -> bool:
+	if not (a is Array and b is Array) or (a as Array).size() != (b as Array).size():
+		return false
+	for i in (a as Array).size():
+		if absf(float(a[i]) - float(b[i])) > eps:
+			return false
+	return true
+
+
+## The route walker's record for a stage that is not loaded (probed offline)
+## must equal the record live play produces once the stage is loaded, or a
+## route-travelled save would place actors differently from the story.
+func _probe_matches_live_tests() -> void:
+	print("== probe vs live: transformed Actors parent ==")
+	actors.reset_all()
+	actors.stage_scenes["lab"] = _lab_scene()
+	var probed: Dictionary = actors.resolve_record(StageTagParser.parse("show=maya@spot"), {"_stage": "lab"})
+	check(bool(probed.get("ok", false)) and (probed.resolved as Dictionary).has("place"), "the walker resolves a marker on a stage that is not loaded")
+	var walked: Dictionary = probed.resolved.place
+	var by_probed: Dictionary = actors.resolve_record(StageTagParser.parse("move=maya?by=0.5 0 0"), probed.shadow)
+	check(bool(by_probed.get("ok", false)), "the walker resolves a relative move from the probed marker")
+	check(actors.apply(StageTagParser.parse("stage=lab")).ok, "the lab stage loads live")
+	var live: Dictionary = actors.apply(StageTagParser.parse("show=maya@spot"))
+	var lived: Dictionary = live.resolved.place
+	check(_same_array(walked.pos, lived.pos), "probed position equals live position %s vs %s" % [walked.pos, lived.pos])
+	check(_same_array(walked.rot, lived.rot), "probed rotation equals live rotation")
+	check(_same_array(walked.scale, lived.scale), "probed scale equals live scale")
+	check(absf(float(walked.yaw) - float(lived.yaw)) < 0.01, "probed yaw equals live yaw (%s vs %s)" % [walked.yaw, lived.yaw])
+	var live_by: Dictionary = actors.apply(StageTagParser.parse("move=maya?by=0.5 0 0&t=0"))
+	check(_same_array(by_probed.resolved.place.pos, live_by.resolved.place.pos), "a relative move after the probed marker matches live play")
+	# What the player sees: restoring from the walker's record stands on the marker.
+	actors.reset_all()
+	actors.apply(StageTagParser.parse("stage=lab"))
+	actors.apply(StageTagParser.parse("show=maya@spot"), true, probed.resolved)
+	var mark: Node3D = actors._find_marker("spot")
+	check(near(actors.resolve("maya").global_position, mark.global_position, 0.01), "restoring from the walker's record puts Maya on the marker")
+	check(actors.resolve("maya").global_transform.is_equal_approx(mark.global_transform), "and with the marker's full transform")
+	actors.stage_scenes.erase("lab")
 	actors.reset_all()
