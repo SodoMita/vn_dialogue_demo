@@ -1,3 +1,46 @@
+# READ THIS FIRST - current state (Chocola-7f3 + Chocola-9b2, 2026-09-29)
+
+The dated sections below are a log of what was believed at the time. Several early ones call test failures
+"pre-existing"; that was wrong (each was a real bug or a stale test, all fixed). This block is the source of truth.
+
+**Verified on the merge tip** (Godot 4.7 headless, `bash run_tests.sh`): asset rules OK; UI, route-graph,
+panic-return, motion and staging suites all pass (0 failures); GitHub's own runner ("Godot CI") is green on the same
+commits; a real Web export boots in headless Chromium with SharedArrayBuffer via the service worker
+(`tests/web_smoke.mjs`).
+
+**How each item of the original review of remi-q7x@5403038 is covered** (test names in `tests/`):
+1. route travel records resolved -> `test_staging.gd::_review_regression_tests` (real `RouteTravel.replay` -> commit),
+   `_probe_matches_live_tests` (cross-stage walker == live play)
+2. bare `#show` restore placement -> `_review_regression_tests`
+3. mixed vector/component moves -> `motion_director_test.gd::_logical_tests`
+4. video resurrection -> `_review_regression_tests` and `_pending video` test
+5. AnimationTree stop/reset -> `motion_director_test.gd` (nla section)
+6. `spawn_quad` in place -> `motion_director_test.gd` "spawn_quad in place"
+7. scene-backed appearances -> `_scene_backed_look_tests` (contract in `docs/STAGING.md`)
+8. `#move=left/right` -> `_legacy_move_tests`
+9. demo -> 3D route -> `_shipped_route_tests`; 2D any-number-of-sprites -> `_silent_2d_tests`
+10. the two coverage gaps (empty route walk, injected Ken) -> replaced by the real walk; nothing is injected.
+Every regression test above was run against the old code and fails there.
+
+**Not done / decisions for the owner**
+- GitHub Pages is NOT enabled for the repo (API returns 404), so the `pages` job of `release.yml` will fail until
+  Settings -> Pages -> Source = "GitHub Actions" is set. The release only runs on `build/**` branches or `v*` tags, so
+  merging to `main` does not trigger it.
+- `art_src/sprite_plates/` is ~8 MB of lossless source plates (`.gdignore`d, excluded from every export; the shipped
+  pck stays ~8 MB). Delete the folder if you do not want them in the checkout; nothing at runtime uses them.
+- Art is the owner's: Rook/Ken black-background plate redo, README screenshots that still show the old waist-up art,
+  `assets/characters/shadow.svg` (tiny SVG by rule, <= 8 KB, placeholder look).
+- Infinite `#tween=...?loops=0` restarts after restore but its phase is not reproduced (by design).
+- Orphan `assets/voices/m1.ogg.import` ... `r6.ogg.import` exist on `main` since v1.8.0 (the clips live in
+  `assets/voices/en|ru/`); harmless, left alone.
+- No version tag was created (`version.txt` is `1.16.1-chocola`).
+
+Working notes that cost time: `.dialogue` files compile at import (re-run `godot --headless --import` after editing);
+`balloon.start()` is async (wait for the first line's own effect); `intro.cues["rooftop"]` is a bare line number; do not
+run two Godot processes at once (timing tests flake); the workspace `/tmp` can be wiped, so push after every step.
+
+---
+
 # VN Dialogue Demo — Handoff
 
 Date: 2026-09-22
