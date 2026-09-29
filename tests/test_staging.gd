@@ -104,6 +104,7 @@ func run() -> void:
 	await _legacy_move_tests()
 	await _shipped_route_tests()
 	await _shipped_rooftop_shadow_tests()
+	await _cross_stage_marker_tests()
 
 
 #region Parser
@@ -789,3 +790,36 @@ func _shipped_rooftop_shadow_tests() -> void:
 		guard2 += 1
 	await wait(0.7)
 	check(not actors.has_actor("shadow"), "silent shadow exits when the rooftop ends")
+
+
+## Fix #1 follow-up: the branch walker can resolve 3D markers even when the
+## branch travels to a stage that is not currently loaded (StageActors
+## instantiates the candidate scene invisibly, reads its Marks/, and frees
+## the probe on reset). Records land with computed endpoints so restore
+## after a save doesn't need the same scene to be loaded first.
+func _cross_stage_marker_tests() -> void:
+	print("== cross-stage marker probing ==")
+	# Start on the 2D stage (no _stage_root).
+	actors.reset_all()
+	check(actors.current_stage == "2d", "start on the 2D stage")
+	# Simulate a route walker: shadow describes a branch that has done
+	# #stage=classroom then #show=maya@door — the live stage is still 2D.
+	var shadow: Dictionary = {"_stage": "classroom"}
+	var parsed: Dictionary = StageTagParser.parse("show=maya@door")
+	var out: Dictionary = actors.resolve_record(parsed, shadow)
+	check(bool(out.get("ok", false)), "cross-stage show=maya@door resolves")
+	var resolved: Dictionary = out.get("resolved", {})
+	check(resolved.has("place") and str((resolved.place as Dictionary).get("kind", "")) == "marker",
+		"marker record produced without the classroom being loaded")
+	var place: Dictionary = resolved.place
+	check(str(place.get("name", "")) == "door" and (place.get("pos", []) as Array).size() == 3,
+		"probed marker record carries name + 3D pos")
+	# Restore path uses the same record and the live stage does not have to
+	# match: _target with restoring=true and stored record returns the record.
+	actors.apply(StageTagParser.parse("stage=classroom"))
+	var re_out: Dictionary = actors.apply(StageTagParser.parse("show=maya@door"), true, resolved)
+	check(bool(re_out.get("ok", false)) and actors.has_actor("maya"),
+		"restore uses the probed record to place the actor once the stage is live")
+	# Probe cache is dropped on reset.
+	actors.reset_all()
+	check(actors._probe_stage_cache.is_empty(), "probe cache freed on reset_all")
