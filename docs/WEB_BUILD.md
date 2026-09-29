@@ -27,7 +27,7 @@ the audio worklet like desktop.
 ## Checks
 
 ```sh
-bash tests/check_assets.sh        # WebP-only art + sprite size guard (also run by run_tests.sh)
+bash tests/check_assets.sh        # WebP-only art (+ tiny SVG silhouettes <= 8 KB) and a sprite size guard; also run by run_tests.sh
 
 # real export + browser smoke test (needs the 4.7 export templates)
 godot --headless --export-release "Web" build/web/index.html

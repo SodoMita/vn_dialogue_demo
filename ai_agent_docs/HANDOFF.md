@@ -379,7 +379,9 @@ Merged `chocola-18-7f3-audio` on top of the first-round audit fixes:
   `release.yml` as a non-blocking step; `tests/check_assets.sh` (WebP-only + sprite size guard, run first by
   `run_tests.sh`); `build/` and `dist/` gitignored; Web preset excludes `web/*` and `scripts/*`; `docs/WEB_BUILD.md`.
 - Not verified from here: the GitHub Actions run itself (workflows parse; Pages must be enabled in the repo settings).
-- Ken stays WebP: the human said SVG is "awful and bad and not used" (chat id 36); Remi's SVG branch must not be merged.
+- Asset rule (human, chat ids 18/36/38): art is highly packed WebP, never PNG; SVG is "awful and bad and not used" for
+  real art, but a tiny SVG may show a silent third character. `tests/check_assets.sh` enforces exactly that (SVG <= 8 KB
+  allowed, larger rejected). Ken stays WebP (~40 KB); Remi's 47 KB-SVG Ken branch must not be merged.
 
 
 Still open: Rook/Ken black-background plate redo (image generator unavailable, current sprites are usable);

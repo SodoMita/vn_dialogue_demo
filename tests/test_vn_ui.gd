@@ -1232,6 +1232,12 @@ func run() -> void:
 	check(oversize.is_empty(), "every generated audio file is under 20 KB %s" % [oversize])
 
 	# Procedural engine: starting a theme schedules notes and renders frames.
+	# Start from silence: play_theme() of the theme that is already running is
+	# a no-op, and at 96 bpm a bar is 2.5 s, so a fixed 30-frame window would
+	# only sometimes cross a bar boundary (the story leaves "tense" playing).
+	ad.stop_music(0.0)
+	await get_tree().process_frame
+	check(ad.music_source == "" and not ad.has_music_request(), "music is stopped before the scheduler check")
 	var notes0: int = ad.notes_scheduled
 	var frames0: int = ad.frames_pushed
 	ad.play_theme(&"tense")
