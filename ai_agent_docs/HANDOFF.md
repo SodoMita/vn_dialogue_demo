@@ -296,3 +296,25 @@ Integration:
 - Sprite plates: Rook / Ken black-plate mattes are still the earlier
   generation; the image-gen quota is spent. Follow-up when generator
   quality returns.
+
+## Audio levels + open items (Chocola-7f3, branch `chocola-18-7f3-audio`)
+
+- **Voice slider never applied**: `%VoicePlayer` had no `bus` (it played on Master), so the Voice bus level
+  affected nothing. The scene now sets `bus = &"Voice"`. The old UI-suite failure "Rook's voiced line plays a
+  voice clip on the Voice bus" was this bug, not a pre-existing quirk.
+- **Volume 0 = subsystem off** (`vn_balloon.gd::_apply_volumes`, `AudioDirector.set_levels`): Music 0 stops the
+  generator and loop players and synthesizes nothing; SFX 0 drops `play_sfx` / typewriter ticks / hold tone and
+  frees the synth cache (`sfx_suppressed` counts drops); Voice 0 stops the clip and `_play_voice` loads nothing;
+  Master 0 does all of it and mutes the Master bus. The director remembers the story's last `#music=` request and
+  resumes it when the level rises; `#music=stop` clears it. Pause/Resume goes through `_refresh_master_mute()`, so
+  resuming never unmutes a Master that is at 0. Video sound plays on the SFX bus.
+- **`#move=left|right`** work on the legacy slots (`StageActors._legacy_actor`): feet-based, recorded/resolved
+  like other moves. `_apply_sprite_transform` now keeps a slot's displacement across layout passes and re-homes
+  the director's captured position/scale; `#sprite=none` recentres.
+- **Infinite `#tween=...?loops=0`** runs again after a restore (`StageDirector.finish_restore`).
+- **Stale test fixed**: keyboard skip is a hold gesture on main, but the UI test pressed Ctrl twice and expected a
+  toggle, leaving skip latched; that cascaded into "Resume continues the current voice clip", the panic resume and
+  more. The test now presses and releases.
+
+Still open: sprite plates for Rook/Ken black-background redo (image generator unavailable); yoyo/infinite loop
+phase is not reproduced on restore (by design).
