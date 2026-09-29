@@ -980,10 +980,26 @@ func _restore_presentation(cursor: int) -> void:
 		var records: Variant = history[i].get("motion", [])
 		if records is not Array:
 			continue
+		# Records the branch walker could not resolve (e.g. markers of a stage
+		# the branch switches to) resolve here, against the staging rebuilt so
+		# far. Persist that and drop commands that never applied, so later
+		# restores never look markers up again.
+		var kept: Array = []
 		for rec: Variant in records:
-			if rec is Dictionary:
-				var resolved: Variant = rec.get("resolved", {})
-				_apply_presentation(str(rec.get("tag", "")), true, resolved if resolved is Dictionary else {})
+			if rec is not Dictionary:
+				continue
+			var stored: Variant = rec.get("resolved", {})
+			var had: bool = stored is Dictionary and not (stored as Dictionary).is_empty()
+			var result: Dictionary = _apply_presentation(str(rec.get("tag", "")), true, stored if stored is Dictionary else {})
+			if not bool(result.get("ok", false)):
+				if had:
+					kept.append(rec)
+				continue
+			if not had and result.get("resolved") is Dictionary:
+				rec["resolved"] = (result.resolved as Dictionary).duplicate(true)
+			kept.append(rec)
+		if kept.size() != (records as Array).size():
+			history[i]["motion"] = kept
 	stage_actors.finish_restore()
 
 
