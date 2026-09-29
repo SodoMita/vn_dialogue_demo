@@ -297,6 +297,25 @@ func _find_marker(name: String) -> Node3D:
 ## walks its Marks/. Duplicates or misses return null. Used by the route
 ## walker so a branch that #stage=other_room can still record marker
 ## endpoints without ever showing that room.
+
+## Effective global-like transform for a node in a scene that is NOT in
+## the tree. Multiplies local transforms from [param root] down to
+## [param node], so probed markers still deliver a real world transform.
+static func _transform_up_to(node: Node3D, root: Node3D) -> Transform3D:
+	var t := Transform3D.IDENTITY
+	var chain: Array[Node3D] = []
+	var cursor: Node = node
+	while cursor != null and cursor != root:
+		if cursor is Node3D:
+			chain.push_front(cursor)
+		cursor = cursor.get_parent()
+	if cursor == root and root is Node3D:
+		t = (root as Node3D).transform
+	for n: Node3D in chain:
+		t = t * n.transform
+	return t
+
+
 func _find_marker_in_scene(scene_name: String, marker_name: String) -> Node3D:
 	if scene_name == "" or scene_name == "2d" or marker_name == "":
 		return null
@@ -420,6 +439,7 @@ func _resolve_place_record(parsed: Dictionary, shadow_place: Variant, three: boo
 		if stage_name == "":
 			stage_name = current_stage
 		var m: Node3D = null
+		var probe_root: Node3D = null
 		if live_ok:
 			m = _find_marker(name)
 		else:
@@ -428,19 +448,24 @@ func _resolve_place_record(parsed: Dictionary, shadow_place: Variant, three: boo
 			# computed endpoint. The instance never enters the tree so it is
 			# invisible; it is freed by [method _drop_probe_stages] on reset.
 			m = _find_marker_in_scene(stage_name, name)
+			probe_root = _probe_stage_cache.get(stage_name)
 		if m == null:
 			return {"ok": false, "error": "no single marker '%s' under Marks" % name}
-		# When we probed a scene, the marker's global_transform IS its local
-		# scene transform (no parent chain in the tree), which matches the
-		# actor parent when live-loaded normally.
-		var local: Transform3D = m.global_transform
+		var world_t: Transform3D
+		if live_ok:
+			world_t = m.global_transform
+		else:
+			# Probed scene is not in the tree: global_transform would return
+			# identity and warn. Multiply local transforms up to the scene root.
+			world_t = _transform_up_to(m, probe_root)
+		var local: Transform3D = world_t
 		if live_ok:
 			var par := _actor_parent_3d()
 			if par != null:
-				local = par.global_transform.affine_inverse() * m.global_transform
+				local = par.global_transform.affine_inverse() * world_t
 		var q: Quaternion = local.basis.get_rotation_quaternion()
 		var sc: Vector3 = local.basis.get_scale()
-		var yaw := rad_to_deg(m.global_transform.basis.get_euler().y)
+		var yaw := rad_to_deg(world_t.basis.get_euler().y)
 		return {"ok": true, "record": {"kind": "marker", "name": name,
 				"pos": [local.origin.x, local.origin.y, local.origin.z],
 				"rot": [q.x, q.y, q.z, q.w],

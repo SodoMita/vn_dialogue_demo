@@ -823,3 +823,20 @@ func _cross_stage_marker_tests() -> void:
 	# Probe cache is dropped on reset.
 	actors.reset_all()
 	check(actors._probe_stage_cache.is_empty(), "probe cache freed on reset_all")
+
+	# Values from the probe must match the live scene's marker.
+	shadow = {"_stage": "classroom"}
+	parsed = StageTagParser.parse("show=maya@desk")
+	var probed: Dictionary = actors.resolve_record(parsed, shadow)
+	var probed_pos: Array = (probed.resolved.place as Dictionary).get("pos", [])
+	# Load classroom live for comparison.
+	actors.apply(StageTagParser.parse("stage=classroom"))
+	var live_marker: Node3D = actors._find_marker("desk")
+	var par: Node3D = actors._actor_parent_3d()
+	var live_local: Transform3D = par.global_transform.affine_inverse() * live_marker.global_transform
+	check(probed_pos.size() == 3
+		and abs(float(probed_pos[0]) - live_local.origin.x) < 0.001
+		and abs(float(probed_pos[1]) - live_local.origin.y) < 0.001
+		and abs(float(probed_pos[2]) - live_local.origin.z) < 0.001,
+		"probed marker position equals the live scene's marker")
+	actors.reset_all()
