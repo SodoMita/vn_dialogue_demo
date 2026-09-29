@@ -108,6 +108,7 @@ func run() -> void:
 	await _shipped_rooftop_shadow_tests()
 	await _cross_stage_marker_tests()
 	await _probe_matches_live_tests()
+	await _scene_backed_look_tests()
 
 
 #region Parser
@@ -1003,4 +1004,62 @@ func _probe_matches_live_tests() -> void:
 	check(near(actors.resolve("maya").global_position, mark.global_position, 0.01), "restoring from the walker's record puts Maya on the marker")
 	check(actors.resolve("maya").global_transform.is_equal_approx(mark.global_transform), "and with the marker's full transform")
 	actors.stage_scenes.erase("lab")
+	actors.reset_all()
+
+
+## A body scene that owns its own graphics: the runtime-built root records every
+## set_look() call it receives (Node3D for the 3D stage, Control for 2D).
+func _look_scene(three: bool) -> PackedScene:
+	var script := GDScript.new()
+	script.source_code = "extends %s\nvar looks: Array = []\nfunc set_look(key: String) -> void:\n\tlooks.append(key)\n" % ("Node3D" if three else "Control")
+	script.reload()
+	var root: Node = Node3D.new() if three else Control.new()
+	root.set_script(script)
+	root.name = "Robot"
+	var packed := PackedScene.new()
+	packed.pack(root)
+	root.free()
+	return packed
+
+
+## Scene-backed appearances (ActorDefinition.scene): the look reaches the body's
+## set_look() on creation AND on later changes, a look change keeps the node,
+## and restore delivers the same looks.
+func _scene_backed_look_tests() -> void:
+	print("== scene-backed appearances ==")
+	for three: bool in [true, false]:
+		var id := "bot3" if three else "bot2"
+		var def := ActorDefinition.new()
+		def.id = id
+		def.scene = _look_scene(three)
+		actors.add_definition(def)
+		actors.reset_all()
+		if three:
+			check(actors.apply(StageTagParser.parse("stage=classroom")).ok, "3D stage for the scene-backed actor")
+		var where := "door" if three else "left"
+		var first: Dictionary = actors.apply(StageTagParser.parse("show=%s:happy@%s" % [id, where]))
+		check(bool(first.get("ok", false)), "%s: #show with a look is accepted for a scene-backed actor" % id)
+		var body: Node = actors.actors[id].body
+		check(body.get_script() != null and body.has_method("set_look"), "%s: the body is the authored scene (its own script)" % id)
+		check(body.looks == [id + "_happy"], "%s: the FIRST look reaches the body on creation (%s)" % [id, body.looks])
+		check(str(actors.actors[id].look) == id + "_happy", "%s: the actor remembers its look" % id)
+		var second: Dictionary = actors.apply(StageTagParser.parse("show=%s:sad" % id))
+		check(bool(second.get("ok", false)) and actors.actors[id].body == body, "%s: a look change keeps the same body node" % id)
+		check(body.looks == [id + "_happy", id + "_sad"], "%s: the later look reaches the body too (%s)" % [id, body.looks])
+		# Restore: replay the recorded commands into a rebuilt stage.
+		var records: Array = [{"tag": "show=%s:happy@%s" % [id, where], "resolved": first.resolved}, {"tag": "show=%s:sad" % id, "resolved": second.resolved}]
+		actors.reset_all()
+		if three:
+			actors.apply(StageTagParser.parse("stage=classroom"))
+		for r: Dictionary in records:
+			actors.apply(StageTagParser.parse(str(r.tag)), true, r.resolved)
+		actors.finish_restore()
+		var rebuilt: Node = actors.actors[id].body
+		check(rebuilt != body and rebuilt.looks == [id + "_happy", id + "_sad"], "%s: restore rebuilds the body and re-delivers both looks (%s)" % [id, rebuilt.looks])
+		check(str(actors.actors[id].look) == id + "_sad", "%s: and ends on the last look" % id)
+		# A bare #show of a scene-backed actor with no default look is legal.
+		actors.reset_all()
+		if three:
+			actors.apply(StageTagParser.parse("stage=classroom"))
+		check(bool(actors.apply(StageTagParser.parse("show=%s@%s" % [id, where])).get("ok", false)) and actors.actors[id].body.looks.is_empty(), "%s: a bare #show creates the scene body without inventing a look" % id)
 	actors.reset_all()

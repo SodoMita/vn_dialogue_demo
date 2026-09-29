@@ -633,6 +633,10 @@ func _new_actor(id: String, key: String) -> Dictionary:
 		a.root = root
 		a.visual = visual
 		a.body = body
+	# A scene body owns its own graphics: deliver the creation look to it, as
+	# later looks are (a texture body already got it above).
+	if key != "" and def != null and def.scene != null and a.body.has_method("set_look"):
+		a.body.set_look(key)
 	a.player = _make_player(a)
 	actors[id] = a
 	director.register_alias(id, a.root)
@@ -692,6 +696,11 @@ func relayout() -> void:
 
 func _set_look(a: Dictionary, key: String) -> void:
 	a.look = key
+	# A body that implements set_look() owns its own graphics (scene-backed
+	# actors), even when its root happens to be a TextureRect or a quad.
+	if a.body.has_method("set_look"):
+		a.body.set_look(key)
+		return
 	var tex: Texture2D = sprites.get(key)
 	if a.body is Sprite3DQuad:
 		(a.body as Sprite3DQuad).texture = tex
