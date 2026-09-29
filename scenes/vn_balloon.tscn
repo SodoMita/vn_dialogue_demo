@@ -26,6 +26,8 @@
 [ext_resource type="Texture2D" path="res://assets/characters/ken_sad.webp" id="24_ken_sad"]
 [ext_resource type="Texture2D" path="res://assets/characters/ken_surprised.webp" id="25_ken_surprised"]
 [ext_resource type="Resource" path="res://characters/ken.tres" id="26_def_ken"]
+[ext_resource type="Texture2D" path="res://assets/characters/shadow.svg" id="27_shadow"]
+[ext_resource type="Resource" path="res://characters/shadow.tres" id="28_def_shadow"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
 bg_color = Color(0.045, 0.06, 0.12, 0.94)
@@ -211,9 +213,10 @@ sprites = Dictionary[String, Texture2D]({
 "ken": ExtResource("22_ken"),
 "ken_smile": ExtResource("23_ken_smile"),
 "ken_sad": ExtResource("24_ken_sad"),
-"ken_surprised": ExtResource("25_ken_surprised")
+"ken_surprised": ExtResource("25_ken_surprised"),
+"shadow": ExtResource("27_shadow")
 })
-actor_definitions = [ExtResource("15_def_maya"), ExtResource("16_def_rook"), ExtResource("26_def_ken")]
+actor_definitions = [ExtResource("15_def_maya"), ExtResource("16_def_rook"), ExtResource("26_def_ken"), ExtResource("28_def_shadow")]
 
 [node name="Balloon" type="Control" parent="." unique_id=1419289364]
 unique_name_in_owner = true

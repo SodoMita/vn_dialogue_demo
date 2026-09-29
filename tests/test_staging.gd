@@ -715,12 +715,19 @@ func _shipped_route_tests() -> void:
 	check(actors.actors.maya.player != null, "the shipped Maya carries an animation player for #anim=wave")
 	await _advance()  # rook + focus
 	check(actors.has_actor("rook") and actors.focus_id == "rook", "Rook stands at the guest desk with focus")
+	# Silent third character (shadow, SVG) stands at the window from the
+	# opening line and stays through the whole cue.
+	check(actors.has_actor("shadow"), "silent shadow bystander appears in the 3D cue")
+	var window_mark: Node3D = actors._find_marker("window")
+	check(window_mark != null and near(actors.resolve("shadow").global_position, window_mark.global_position, 0.05), "shadow stands at the window marker")
 	var with_rook: int = balloon.history_cursor
+	await _advance()  # maya whispers "someone by the window"
+	await _advance()  # rook: "A memory. Ignore them."
 	await _advance()  # maya smile
 	await _advance()  # rook smile
-	await _advance()  # both walk off
+	await _advance()  # all three exit
 	await wait(0.9)
-	check(not actors.has_actor("maya") and not actors.has_actor("rook"), "both characters walked off and were removed")
+	check(not actors.has_actor("maya") and not actors.has_actor("rook") and not actors.has_actor("shadow"), "all three (incl. silent shadow) walked off and were removed")
 	await _advance()  # back to 2D
 	check(actors.current_stage == "2d" and not actors.has_actor("maya"), "the epilogue returns to the 2D stage")
 	balloon.rollback_to(with_rook)

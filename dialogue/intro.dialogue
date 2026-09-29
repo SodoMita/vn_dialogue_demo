@@ -46,11 +46,13 @@ The three of you watch until the sky burns out. [#box=hide, #music=loop:night]
 	=> classroom_3d
 
 ~ classroom_3d
-The door swings open on an empty classroom. [#box=show, #stage=classroom, #show=maya@door, #music=warm]
+The door swings open on an empty classroom. [#box=show, #stage=classroom, #show=maya@door, #show=shadow@window, #music=warm]
 Maya: We really did skip the last bell. [#move=maya@desk?t=0.9, #anim=maya:wave]
 Rook: I saw. From here. [#show=rook@guest_desk, #focus=rook]
+Maya: (whispering) ...someone by the window. [#show=maya:surprised, #focus=maya]
+Rook: A memory. Ignore them. [#show=rook:sad, #focus=rook]
 Maya: Guess we all needed the quiet. [#show=maya:smile, #focus=maya]
 Rook: Don't ruin it by saying so. [#show=rook:smile]
-[#hide=maya@hall?t=0.6, #hide=rook@hall?t=0.6]
+[#hide=maya@hall?t=0.6, #hide=rook@hall?t=0.6, #hide=shadow?t=0.6]
 The empty room keeps their voices for a moment more, then lets them go. [#stage=2d, #bg=rooftop]
 => END
