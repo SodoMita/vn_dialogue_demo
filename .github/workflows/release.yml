@@ -1,0 +1,212 @@
+name: Release
+
+# Adapted from klima-gem's build/* pipeline. Pushes to a build/* branch
+# (or a manual dispatch, or a v* tag) produce a Web export deployed to
+# GitHub Pages, plus Linux + Windows desktop bundles attached to a
+# GitHub Release. No itch secret required in this repo yet — add
+# BUTLER_API_KEY later and uncomment the itch job.
+
+on:
+  push:
+    branches: ["build/**"]
+    tags: ["v*"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: "4.7-stable"
+  GODOT_BIN: /tmp/godot-bin/godot
+
+jobs:
+  build:
+    name: Export web + desktop
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot ${{ env.GODOT_VERSION }}
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: |
+            /tmp/godot-bin/godot
+            /tmp/godot-templates
+          key: ${{ runner.os }}-godot-4.7-templates
+
+      - name: Install Godot ${{ env.GODOT_VERSION }} + export templates
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/godot-bin /tmp/godot-templates
+          cd /tmp/godot-bin
+          curl -fsSL -o godot.zip \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -oq godot.zip
+          mv "Godot_v${GODOT_VERSION}_linux.x86_64" godot
+          chmod +x godot
+          ./godot --version
+          cd /tmp/godot-templates
+          curl -fsSL -o templates.tpz \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_export_templates.tpz"
+          unzip -oq templates.tpz
+          rm -f templates.tpz
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.7.stable"
+          mkdir -p "$TEMPLATE_DIR"
+          cp -f templates/* "$TEMPLATE_DIR/"
+
+      - name: Restore Godot from cache
+        if: steps.cache-godot.outputs.cache-hit == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x "$GODOT_BIN"
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.7.stable"
+          mkdir -p "$TEMPLATE_DIR"
+          cp -f /tmp/godot-templates/templates/* "$TEMPLATE_DIR/"
+          "$GODOT_BIN" --version
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="$(cat version.txt 2>/dev/null || echo 0.0.0)"
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${BASE}-dev.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Import project resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --foreground 900 "$GODOT_BIN" --headless --import
+
+      - name: Export web bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/web
+          timeout --foreground 900 "$GODOT_BIN" --headless --export-release "Web" build/web/index.html
+          test -f build/web/index.html
+          test -f build/web/index.wasm
+
+      - name: Export Linux bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/linux
+          timeout --foreground 900 "$GODOT_BIN" --headless --export-release "Linux" build/linux/vn-dialogue-demo.x86_64
+          chmod +x build/linux/vn-dialogue-demo.x86_64 || true
+
+      - name: Export Windows bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/windows
+          timeout --foreground 900 "$GODOT_BIN" --headless --export-release "Windows Desktop" build/windows/vn-dialogue-demo.exe
+
+      - name: Pack web (COI service worker + version stamp)
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          bash scripts/pack_web.sh build/web "$VERSION" "$GITHUB_SHA" "$GITHUB_REF_NAME"
+
+      - name: Package artifact zips
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          (cd build/web && zip -qr "../../dist/vn-dialogue-demo-web-${VERSION}.zip" .)
+          (cd build/linux && zip -qr "../../dist/vn-dialogue-demo-linux-${VERSION}.zip" .)
+          (cd build/windows && zip -qr "../../dist/vn-dialogue-demo-windows-${VERSION}.zip" .)
+          ls -lh dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: build/linux
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: build/windows
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-zips
+          path: dist
+          retention-days: 14
+          if-no-files-found: error
+
+  pages:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+  release:
+    name: GitHub Release
+    needs: [build, pages]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-zips
+          path: dist
+      - name: Publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.build.outputs.version }}
+          TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          set -euo pipefail
+          NOTES="$(printf 'vn_dialogue_demo %s\n\nPlay in the browser via GitHub Pages (build/* pushes).\nBuilt from %s (%s) by the release pipeline.\n' "$VERSION" "$GITHUB_SHA" "$GITHUB_REF_NAME")"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.zip --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" dist/*.zip --title "$TAG" --notes "$NOTES" --repo "$GITHUB_REPOSITORY"
+          fi
