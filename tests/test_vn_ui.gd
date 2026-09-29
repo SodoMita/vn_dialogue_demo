@@ -492,8 +492,13 @@ func run() -> void:
 	skip_key_event.keycode = KEY_CTRL
 	balloon._input(skip_key_event)
 	check(alive() and balloon.skip_mode, "Skip key enables skip mode")
-	balloon._input(skip_key_event)
-	check(alive() and not balloon.skip_mode, "Skip key toggles skip mode off")
+	# Keyboard skip is a hold gesture (press = on, release = off); only the
+	# toolbar button toggles.
+	var skip_release_event := InputEventKey.new()
+	skip_release_event.pressed = false
+	skip_release_event.keycode = KEY_CTRL
+	balloon._input(skip_release_event)
+	check(alive() and not balloon.skip_mode, "Releasing the skip key turns skip mode off")
 
 	# Skip: runs the dialogue to the next choices without further input.
 	balloon.skip_button.grab_focus()
@@ -1153,6 +1158,7 @@ func run() -> void:
 		balloon.sfx_vol_slider.value = 80
 	balloon.master_vol_slider.value = 80
 	balloon.music_vol_slider.value = 80
+	await _volume_off_tests()
 
 	# Seen-only skip: fast-forwards through read lines, halts at the first unread one.
 	# The suite has played the whole game by now, so reset the seen log to create
@@ -1541,3 +1547,102 @@ func finish() -> void:
 	balloon = null
 	resource = null
 	get_tree().quit(1 if fails > 0 else 0)
+
+
+
+## Volume 0 switches the corresponding subsystem off (not just its bus down);
+## Master 0 switches everything off; raising the level resumes the story's
+## last request. The Voice slider really reaches the voice clips.
+func _volume_off_tests() -> void:
+	var ad: Node = get_tree().root.get_node("AudioDirector")
+	var voice_bus := AudioServer.get_bus_index(&"Voice")
+	var master_bus := AudioServer.get_bus_index(&"Master")
+	balloon.master_vol_slider.value = 80
+	balloon.music_vol_slider.value = 80
+	balloon.voice_vol_slider.value = 100
+	balloon.sfx_vol_slider.value = 80
+	await get_tree().process_frame
+
+	# --- Voice: routed to the Voice bus, so its slider applies ---
+	check(alive() and voice_bus > 0 and AudioServer.get_bus_index(balloon.voice_player.bus) == voice_bus,
+		"voice clips play on the Voice bus")
+	balloon.voice_vol_slider.value = 50
+	check(is_equal_approx(AudioServer.get_bus_volume_db(voice_bus), linear_to_db(0.5)), "Voice slider sets the Voice bus level")
+	balloon._play_voice("r1")
+	check(balloon.voice_player.playing, "voice plays at 50%")
+	balloon.voice_vol_slider.value = 0
+	check(not balloon.voice_player.playing and balloon.voice_player.stream == null, "Voice 0 stops the clip and drops the stream")
+	balloon._play_voice("r1")
+	check(not balloon.voice_player.playing and balloon.voice_player.stream == null, "Voice 0: clips are not loaded or played")
+	check(not is_equal_approx(AudioServer.get_bus_volume_db(master_bus), -80.0) and not AudioServer.is_bus_mute(master_bus), "Voice 0 leaves the other channels on")
+	balloon.voice_vol_slider.value = 100
+	balloon._play_voice("r1")
+	check(balloon.voice_player.playing, "raising Voice brings clips back")
+	balloon.voice_player.stop()
+
+	# --- Music: subsystem off at 0, request remembered, resumes ---
+	ad.play_theme(&"calm")
+	await get_tree().process_frame
+	check(ad.music_source == "procedural" and ad._gen_player.playing, "control: procedural music runs")
+	balloon.music_vol_slider.value = 0
+	var pushed_before: int = ad.frames_pushed
+	check(ad.music_source == "" and not ad._gen_player.playing and ad._playback == null, "Music 0 stops the generator")
+	check(not ad._loop_a.playing and not ad._loop_b.playing, "Music 0 stops the loop players")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(ad.frames_pushed == pushed_before, "Music 0: nothing is synthesized")
+	ad.request_music("warm")
+	check(ad.music_source == "" and not ad._gen_player.playing and ad.has_music_request(), "a #music= tag at Music 0 stays silent but is remembered")
+	ad.request_music("loop:night")
+	check(not ad._loop_a.playing and not ad._loop_b.playing, "a loop request at Music 0 is not decoded or played")
+	ad.request_music("tense")
+	balloon.music_vol_slider.value = 80
+	await get_tree().process_frame
+	check(ad.current_theme == &"tense" and ad._gen_player.playing, "raising Music resumes the story's last theme")
+	ad.request_music("stop")
+	balloon.music_vol_slider.value = 0
+	balloon.music_vol_slider.value = 80
+	check(ad.music_source == "" and not ad.has_music_request(), "#music=stop is not resurrected by a level change")
+
+	# --- SFX: off at 0 ---
+	balloon.sfx_vol_slider.value = 0
+	var played: int = ad.sfx_played
+	var dropped: int = ad.sfx_suppressed
+	ad.play_sfx("click")
+	ad.typing_tick("a")
+	ad.hold_start()
+	check(ad.sfx_played == played and ad.sfx_suppressed == dropped + 2, "SFX 0 drops story/UI SFX and the hold tone")
+	var any_sfx := false
+	for p: AudioStreamPlayer in ad._sfx_pool:
+		any_sfx = any_sfx or p.playing
+	check(not any_sfx and not ad._hold_player.playing and ad._synth_cache.is_empty(), "SFX 0: no SFX voice sounds and synth blips are freed")
+	balloon.sfx_vol_slider.value = 80
+	ad.play_sfx("click")
+	check(ad.sfx_played == played + 1, "raising SFX brings SFX back")
+
+	# --- Master 0: everything off, and Pause/Resume must not unmute it ---
+	ad.play_theme(&"warm")
+	balloon._play_voice("r1")
+	balloon.master_vol_slider.value = 0
+	check(AudioServer.is_bus_mute(master_bus), "Master 0 mutes the Master bus")
+	check(ad.music_source == "" and not ad._gen_player.playing, "Master 0 switches music off")
+	check(not balloon.voice_player.playing and balloon.voice_player.stream == null, "Master 0 switches voice off")
+	var played0: int = ad.sfx_played
+	ad.play_sfx("click")
+	check(ad.sfx_played == played0, "Master 0 switches SFX off")
+	balloon._silence_audio(true)
+	balloon._silence_audio(false)
+	check(AudioServer.is_bus_mute(master_bus), "resuming from Pause keeps Master muted while Master is 0")
+	balloon.master_vol_slider.value = 80
+	check(not AudioServer.is_bus_mute(master_bus), "raising Master unmutes it")
+	await get_tree().process_frame
+	check(ad.current_theme == &"warm" and ad._gen_player.playing, "raising Master resumes the music request")
+	balloon._silence_audio(true)
+	check(AudioServer.is_bus_mute(master_bus), "Pause still mutes Master")
+	balloon._silence_audio(false)
+	check(not AudioServer.is_bus_mute(master_bus), "Resume unmutes Master again")
+	ad.stop_music()
+	balloon.master_vol_slider.value = 80
+	balloon.music_vol_slider.value = 80
+	balloon.voice_vol_slider.value = 100
+	balloon.sfx_vol_slider.value = 80

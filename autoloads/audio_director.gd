@@ -58,6 +58,17 @@ var last_sfx_pitch: float = 1.0        ## pitch of the most recent SFX
 var typing_ticks: int = 0              ## typewriter tick requests
 var music_seed: int = 20260921         ## arpeggio RNG seed
 
+## Channel levels (0-100, the Settings sliders). A level of 0 switches that
+## subsystem OFF - no synthesis, no decoding, no playback - instead of only
+## turning its bus down. Master 0 switches every channel off. What the story
+## last asked for is remembered and resumes when the level comes back.
+var master_level: float = 100.0
+var music_level: float = 100.0
+var voice_level: float = 100.0
+var sfx_level: float = 100.0
+var sfx_suppressed: int = 0            ## SFX requests dropped while SFX is off
+var _wanted_music: Dictionary = {}     ## last music request (kind + args)
+
 var _gen: AudioStreamGenerator
 var _gen_player: AudioStreamPlayer
 var _playback: AudioStreamGeneratorPlayback
@@ -105,13 +116,6 @@ var _last_tick_ms: int = -1000
 var _tick_parity: int = 0
 
 
-
-## True when the named bus is muted at the AudioServer level (either
-## user slider at 0 or a Pause/Panic mute on Master).
-func _bus_off(bus_name: String) -> bool:
-	var idx: int = AudioServer.get_bus_index(bus_name)
-	return idx != -1 and AudioServer.is_bus_mute(idx)
-
 func _ready() -> void:
 	_ensure_audio_buses()
 	_gen = AudioStreamGenerator.new()
@@ -147,8 +151,6 @@ func _make_music_player(node_name: String) -> AudioStreamPlayer:
 
 
 func _process(delta: float) -> void:
-	if _bus_off("Music") or _bus_off("Master"):
-		return
 	if music_source != "procedural" and _gain <= 0.0005 and _gain_target <= 0.0005:
 		return
 	_ramp_gain(delta)
@@ -180,6 +182,9 @@ func play_theme(theme: StringName) -> void:
 		stop_music()
 		return
 	_last_theme = theme
+	_wanted_music = {"kind": "theme", "theme": theme}
+	if not music_enabled():
+		return
 	if not procedural_enabled:
 		play_music_loop(String(THEME_LOOPS.get(theme, "res://assets/music/day.ogg")), true)
 		return
@@ -203,6 +208,9 @@ func play_theme(theme: StringName) -> void:
 
 ## Crossfade to an OGG loop; as_fallback marks a stand-in for the engine.
 func play_music_loop(path: String, as_fallback: bool = false) -> void:
+	_wanted_music = {"kind": "loop", "path": path, "fallback": as_fallback}
+	if not music_enabled():
+		return
 	if music_source == "loop" and _loop_path == path:
 		return
 	_gain_target = 0.0  # fade the procedural engine out under the loop
@@ -232,6 +240,7 @@ func play_music_loop(path: String, as_fallback: bool = false) -> void:
 
 ## Fade everything out.
 func stop_music(fade: float = 0.8) -> void:
+	_wanted_music = {}
 	_gain_target = 0.0
 	current_theme = &""
 	_last_theme = &""
@@ -258,6 +267,11 @@ func _fade_out_loops() -> void:
 ## "Generated music" setting: swap engine <-> fallback loops.
 func set_procedural_enabled(on: bool) -> void:
 	procedural_enabled = on
+	if not music_enabled():
+		# Nothing is sounding; make the remembered request follow the setting.
+		if on and bool(_wanted_music.get("fallback", false)) and _last_theme != &"":
+			_wanted_music = {"kind": "theme", "theme": _last_theme}
+		return
 	if on:
 		if music_source == "loop" and _auto_loop and _last_theme != &"":
 			play_theme(_last_theme)
@@ -266,6 +280,81 @@ func set_procedural_enabled(on: bool) -> void:
 			var theme: StringName = current_theme if current_theme != &"" else _last_theme
 			_last_theme = theme
 			play_music_loop(String(THEME_LOOPS.get(theme, "res://assets/music/day.ogg")), true)
+
+
+## True while a channel may sound (its own level and Master both above 0).
+func music_enabled() -> bool:
+	return master_level > 0.0 and music_level > 0.0
+
+
+func sfx_enabled() -> bool:
+	return master_level > 0.0 and sfx_level > 0.0
+
+
+func voice_enabled() -> bool:
+	return master_level > 0.0 and voice_level > 0.0
+
+
+## True when the story asked for music (a theme, a loop) and has not stopped it.
+func has_music_request() -> bool:
+	return not _wanted_music.is_empty()
+
+
+## Feed the four Settings levels (0-100). A channel that drops to 0 is shut
+## down at once; one that comes back resumes what the story last asked for.
+func set_levels(master: float, music: float, voice: float, sfx: float) -> void:
+	var music_was: bool = music_enabled()
+	var sfx_was: bool = sfx_enabled()
+	master_level = clampf(master, 0.0, 100.0)
+	music_level = clampf(music, 0.0, 100.0)
+	voice_level = clampf(voice, 0.0, 100.0)
+	sfx_level = clampf(sfx, 0.0, 100.0)
+	if music_was and not music_enabled():
+		_shutdown_music()
+	elif music_enabled() and not music_was:
+		_resume_music()
+	if sfx_was and not sfx_enabled():
+		_shutdown_sfx()
+
+
+## Stop the generator and both loop players and drop all synth state. The
+## request in [member _wanted_music] survives for [method _resume_music].
+func _shutdown_music() -> void:
+	_gain = 0.0
+	_gain_target = 0.0
+	current_theme = &""
+	music_source = ""
+	_loop_path = ""
+	_auto_loop = false
+	_queue.clear()
+	_voice_count = 0
+	_trim_voices()
+	_gen_player.stop()
+	_playback = null
+	for p: AudioStreamPlayer in [_loop_a, _loop_b]:
+		p.stop()
+		p.stream = null
+		p.volume_db = LOOP_SILENT_DB
+
+
+func _resume_music() -> void:
+	var wanted: Dictionary = _wanted_music
+	if wanted.is_empty():
+		return
+	if str(wanted.get("kind", "")) == "theme":
+		play_theme(StringName(str(wanted.theme)))
+	else:
+		play_music_loop(str(wanted.path), bool(wanted.get("fallback", false)))
+
+
+## Silence every SFX voice and free the synthesized blips (rebuilt on demand).
+func _shutdown_sfx() -> void:
+	for p: AudioStreamPlayer in _sfx_pool:
+		p.stop()
+		p.stream = null
+	_hold_player.stop()
+	_hold_player.stream = null
+	_synth_cache.clear()
 
 
 ## Tag helper: #music=stop | loop:<file> | <theme>.
@@ -283,12 +372,12 @@ func request_music(spec: String) -> void:
 
 ## Play SFX by key: OGG if present, else synthesized.
 func play_sfx(key: String, pitch: float = 1.0) -> void:
+	if not sfx_enabled():
+		sfx_suppressed += 1
+		return
 	sfx_played += 1
 	last_sfx = key
 	last_sfx_pitch = pitch
-	# Silent SFX bus (or master) skips decode + synth entirely.
-	if _bus_off("SFX") or _bus_off("Master"):
-		return
 	var path: String = "res://assets/sfx/%s.ogg" % key
 	if ResourceLoader.exists(path) or FileAccess.file_exists(path):
 		last_sfx_source = "ogg"
@@ -302,9 +391,7 @@ func play_sfx(key: String, pitch: float = 1.0) -> void:
 ## Typewriter tick: silent on whitespace, throttled.
 func typing_tick(letter: String) -> void:
 	typing_ticks += 1
-	if letter.strip_edges().is_empty():
-		return
-	if _bus_off("SFX") or _bus_off("Master"):
+	if not sfx_enabled() or letter.strip_edges().is_empty():
 		return
 	var now: int = Time.get_ticks_msec()
 	if now - _last_tick_ms < 30:
@@ -319,7 +406,8 @@ func typing_tick(letter: String) -> void:
 
 ## Falling, swelling tone for a hold gesture.
 func hold_start() -> void:
-	if _bus_off("SFX") or _bus_off("Master"):
+	if not sfx_enabled():
+		sfx_suppressed += 1
 		return
 	sfx_played += 1
 	last_sfx = "hold"

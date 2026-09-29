@@ -25,6 +25,7 @@ values only when you want to change the defaults.
 #move=maya?by=100 0        move by an offset (2D px)
 #move=maya?by=0.5 0 0      move by an offset (3D units)
 #move=maya@640 700         move to exact coordinates (2D: x y, 3D: x y z)
+#move=left@center          the legacy portrait slots move too (2D; feet go to the place)
 #hide=maya                 remove
 #hide=maya@off_left        walk off to the left, then remove
 #focus=maya                spotlight the speaker (#focus=left / #focus=right still work)
@@ -101,13 +102,24 @@ animations, videos and focus. Definitions stay registered. Characters are not
 transferred between 2D and 3D — show them again. The legacy `left`/`right`
 portraits are cleared, not destroyed. Selecting the active stage is a no-op.
 
+### Moving `left` / `right`
+
+`#move=left@center`, `#move=right?by=-80 0` and `#move=left@640 700` move the two
+legacy portrait slots exactly like a dynamic actor: the slot's feet (bottom centre)
+go to the place, `?by=` starts from its logical position, and the resolved place
+is recorded for save/rollback/route travel. A moved slot keeps its position when
+its expression changes (`#sprite=maya_smile:left`) or the layout re-runs; only
+`#sprite=none:left` (or a stage switch) sends it home. A slot without a portrait
+rejects the move. `#show=` / `#hide=` still refuse the reserved IDs.
+
 ## Video
 
 Ogg Theora (`.ogv`) through `VideoStreamPlayer`; files come from the
 balloon's `videos` or `res://assets/video/<name>.ogv`. `#video=intro` plays
 over the stage background; `#video=intro?on=maya` plays on a character.
 Video never blocks dialogue. On rollback/load, non-looping videos are
-omitted; looping videos start once after the stage is rebuilt.
+omitted; looping videos start once after the stage is rebuilt. Video sound plays
+on the SFX bus, so the SFX and Master sliders govern it.
 
 ## History, rollback, saves
 
@@ -152,4 +164,8 @@ Notes:
   vice versa) after snapping it to its end.
 - `reset_all()` (rollback) stops story animation playback and drops aliases
   registered by story tags; authored aliases (`bg left right box stage`) stay.
+- An infinite `#tween=...?loops=0` restores at its rest value and then runs again
+  once the stage is rebuilt (the exact phase is not reproduced; a later `#set=`,
+  `#tween=` or `#tween_stop=` on that property cancels it). Finite `loops=N` /
+  `yoyo` tweens restore at their end value.
 - Not ported: Klima's `ShowDirector`, trials, Aurora code/art and its balloon.

@@ -101,6 +101,7 @@ func run() -> void:
 	await _old_save_tests()
 	await _route_tests()
 	await _review_regression_tests()
+	await _legacy_move_tests()
 
 
 #region Parser
@@ -615,3 +616,65 @@ func _review_regression_tests() -> void:
 	actors.finish_restore()
 	check(not actors._videos.has("intro"), "a video pending for a removed actor is not attached to its replacement")
 	actors.reset_all()
+
+
+const DIALOGUE_LEGACY := """~ legacy
+Maya: Hi. [#sprite=maya:left]
+Maya: Slide. [#move=left@center?t=0]
+Maya: Smile. [#sprite=maya_smile:left]
+Maya: More. [#move=left?by=50 0&t=0]
+Maya: Ghost. [#move=right@center]
+Maya: Gone. [#sprite=none:left]
+Maya: Back. [#sprite=maya:left]
+=> END
+"""
+
+
+func _legacy_feet() -> Vector2:
+	# Feet in actors_2d space: the slot's pivot (bottom centre) through its transform.
+	var g: Vector2 = balloon.sprite_left.get_global_transform() * balloon.sprite_left.pivot_offset
+	return actors.actors_2d.get_global_transform().affine_inverse() * g
+
+
+## #move=left / #move=right on the legacy portrait slots.
+func _legacy_move_tests() -> void:
+	print("== legacy slot moves ==")
+	await _start(DIALOGUE_LEGACY, "legacy")
+	var home: Vector2 = _legacy_feet()
+	await _advance()  # move=left@center
+	check(near(_legacy_feet(), _anchor("center"), 1.0), "#move=left@center puts the slot's feet on the anchor")
+	check(not near(_legacy_feet(), home, 1.0), "the slot moved away from its authored place")
+	await _advance()  # expression change
+	check(near(_legacy_feet(), _anchor("center"), 1.0), "an expression change keeps the moved position")
+	await _advance()  # ?by=
+	check(near(_legacy_feet(), _anchor("center") + Vector2(50, 0), 1.0), "#move=left?by= offsets from the logical feet position")
+	var moved_rec := {}
+	for e: Dictionary in balloon.history:
+		for r: Dictionary in e.get("motion", []):
+			if str(r.tag).begins_with("move=left@center") and not (r.get("resolved", {}) as Dictionary).is_empty():
+				moved_rec = r.resolved
+	check(not moved_rec.is_empty(), "the legacy move is recorded with a resolved place")
+	balloon.rollback_to(balloon.history_cursor)
+	await _wait_line()
+	check(near(_legacy_feet(), _anchor("center") + Vector2(50, 0), 1.0), "restore reproduces the moved slot")
+	balloon.rollback_to(1)
+	await _wait_line()
+	check(near(_legacy_feet(), _anchor("center"), 1.0), "rolling back to an earlier line restores the earlier position")
+	balloon.rollback_to(0)
+	await _wait_line()
+	check(near(_legacy_feet(), home, 1.0), "rolling back before the move restores the home position")
+	for i in 4:
+		await _advance()
+	await _wait_line()
+	check(near(_legacy_feet(), _anchor("center") + Vector2(50, 0), 1.0), "control: the story is back at the moved position")
+	check(not actors.apply(StageTagParser.parse("move=right@center")).ok, "moving an empty slot is rejected")
+	await _advance()  # line 6: #sprite=none:left
+	check(balloon.sprite_left.texture == null and near(_legacy_feet(), home, 1.0), "#sprite=none recentres the slot")
+	await _advance()  # line 7: the portrait comes back
+	check(balloon.sprite_left.texture != null and near(_legacy_feet(), home, 1.0), "the next portrait starts at home")
+	# A layout pass keeps the displacement.
+	actors.apply(StageTagParser.parse("move=left@far_right?t=0"))
+	var far: Vector2 = _legacy_feet()
+	balloon.sprite_scale = 1.0
+	balloon._apply_sprite_transform()
+	check(near(_legacy_feet(), far, 1.0), "a relayout keeps a moved slot where it was put")

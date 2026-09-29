@@ -237,6 +237,10 @@ var temporary_game_states: Array = []
 
 ## The AudioDirector autoload (music + SFX); null when a scene runs standalone.
 var audio: Node = null
+## True while Pause or the boss screen silences the game (see _silence_audio).
+var _audio_silenced: bool = false
+## Legacy slot instance id -> the position its own layout gave it (no #move).
+var _sprite_laid_pos: Dictionary = {}
 
 ## See if we are waiting for the player
 var is_waiting_for_input: bool = false
@@ -554,7 +558,7 @@ func start(with_dialogue_resource: DialogueResource = null, cue: String = "", ex
 		start_from_cue = cue
 	show()
 	# Ambient music under the conversation; tagged #music= lines override this.
-	if audio != null and audio.music_source == "":
+	if audio != null and audio.music_source == "" and not audio.has_music_request():
 		audio.play_theme(&"calm")
 	dialogue_line = await dialogue_resource.get_next_dialogue_line(start_from_cue, temporary_game_states)
 
@@ -849,8 +853,8 @@ func _legacy_speaker_slot_for_sprite(spec: String, speaker: String) -> String:
 ## (or a still-missing file) simply stay silent.
 func _play_voice(key: String) -> void:
 	voice_player.stop()
-	# Slider-to-0 or Master mute -> skip the load entirely (no wasted decode).
-	if _bus_silent("Voice") or _bus_silent("Master"):
+	if not _voice_enabled():
+		# Voice (or Master) at 0 switches voice off: no clip is loaded or played.
 		voice_player.stream = null
 		return
 	var path: String = _voice_path(key)
@@ -897,6 +901,10 @@ func _set_sprite(spec: String) -> void:
 	if key == "none":
 		slot.texture = null
 		slot.modulate.a = 0.0
+		# An empty slot forgets any #move: the next portrait starts at home.
+		var laid: Variant = _sprite_laid_pos.get(slot.get_instance_id())
+		if laid is Vector2 and motion != null:
+			motion.set_now(slot, "position", laid)
 	elif sprites.has(key):
 		slot.texture = sprites[key]
 		slot.modulate.a = 1.0
@@ -1004,6 +1012,7 @@ func _restore_presentation(cursor: int) -> void:
 			kept.append(rec)
 		if kept.size() != (records as Array).size():
 			history[i]["motion"] = kept
+	motion.finish_restore()
 	stage_actors.finish_restore()
 
 
@@ -1629,10 +1638,7 @@ func _load_settings() -> void:
 			var slider: HSlider = {"vol_master": master_vol_slider, "vol_music": music_vol_slider,
 				"vol_voice": voice_vol_slider, "vol_sfx": sfx_vol_slider}[key]
 			slider.value = float(data[key])
-	_set_bus_volume("Master", master_vol_slider.value)
-	_set_bus_volume("Music", music_vol_slider.value)
-	_set_bus_volume("Voice", voice_vol_slider.value)
-	_set_bus_volume("SFX", sfx_vol_slider.value)
+	_apply_volumes()
 	if data.has("procedural_music"):
 		procedural_music = bool(data.procedural_music)
 		procedural_music_check.button_pressed = procedural_music
@@ -2076,6 +2082,11 @@ func _apply_sprite_transform() -> void:
 	var tall := stage.y > stage.x + 1.0
 	for spr: TextureRect in [sprite_left, sprite_right]:
 		var id := spr.get_instance_id()
+		# A slot moved by #move / #tween keeps its displacement across layout
+		# passes (an expression change must not snap it home).
+		var displaced := Vector2.ZERO
+		if _sprite_laid_pos.has(id):
+			displaced = spr.position - (_sprite_laid_pos[id] as Vector2)
 		if not _sprite_base_offsets.has(id):
 			_sprite_base_offsets[id] = Vector2(spr.offset_top, spr.offset_bottom)
 		if not _sprite_base_sides.has(id):
@@ -2098,6 +2109,12 @@ func _apply_sprite_transform() -> void:
 		spr.offset_bottom = bottom
 		spr.pivot_offset = Vector2(spr.size.x * 0.5, spr.size.y)
 		spr.scale = Vector2(sprite_scale, sprite_scale)
+		_sprite_laid_pos[id] = spr.position
+		if motion != null:
+			motion.set_home(spr, "position", spr.position)
+			motion.set_home(spr, "scale", spr.scale)
+		if displaced != Vector2.ZERO:
+			spr.position += displaced
 	if stage_actors != null:
 		stage_actors.sprite_scale = sprite_scale
 		stage_actors.sprite_y = sprite_y
@@ -2239,33 +2256,6 @@ func _apply_resolution(w: int, h: int) -> void:
 	_on_viewport_size_changed()
 
 
-
-## True while Pause/Panic owns a bus's mute. Prevents user-slider
-## silence-side-effects from firing during a Pause (which restores state).
-var _bus_pause_hold: Dictionary = {}
-
-
-## Turn off (or resume) the subsystem behind [param bus_name] when the
-## user drags the slider to 0. Independent of Pause muting, which uses
-## its own path so state can be restored on Resume.
-func _apply_bus_silence(bus_name: String, silent: bool) -> void:
-	match bus_name:
-		"Voice":
-			if silent and is_instance_valid(voice_player) and voice_player.playing:
-				voice_player.stop()
-				voice_player.stream = null
-		"Music":
-			if audio == null:
-				return
-			if silent and audio.has_method("stop_music"):
-				audio.stop_music(0.0)
-
-
-func _bus_silent(bus_name: String) -> bool:
-	var idx: int = AudioServer.get_bus_index(bus_name)
-	return idx != -1 and AudioServer.is_bus_mute(idx)
-
-
 func _ensure_audio_buses() -> void:
 	for bus_name: String in ["Music", "Voice", "SFX"]:
 		if AudioServer.get_bus_index(bus_name) == -1:
@@ -2279,38 +2269,57 @@ func _set_bus_volume(bus_name: String, volume: float) -> void:
 	if index == -1:
 		return
 	var linear: float = clampf(volume, 0.0, 100.0) / 100.0
-	var silent: bool = linear <= 0.0
-	# The bus is muted at 0 (so any residual playback is silent), AND the
-	# audio director gets a hint so it can skip the whole subsystem — a
-	# muted Music bus stops the procedural synth pump and background loops;
-	# a muted Voice bus stops the current clip; a muted SFX bus drops the
-	# tick/hold synth. Master mute (Pause/Panic) still uses set_bus_mute.
-	AudioServer.set_bus_mute(index, silent)
-	AudioServer.set_bus_volume_db(index, linear_to_db(linear) if not silent else -80.0)
-	if not _bus_pause_hold.get(bus_name, false):
-		_apply_bus_silence(bus_name, silent)
+	AudioServer.set_bus_volume_db(index, linear_to_db(linear) if linear > 0.0 else -80.0)
+
+
+## Apply all four Settings sliders. Every bus follows its slider, and a level
+## of 0 also switches that subsystem OFF: the AudioDirector stops music / SFX
+## generation and playback, the balloon stops loading and playing voice clips,
+## and Master 0 switches all of them off (and mutes the Master bus).
+func _apply_volumes() -> void:
+	_set_bus_volume("Master", master_vol_slider.value)
+	_set_bus_volume("Music", music_vol_slider.value)
+	_set_bus_volume("Voice", voice_vol_slider.value)
+	_set_bus_volume("SFX", sfx_vol_slider.value)
+	if audio != null:
+		audio.set_levels(master_vol_slider.value, music_vol_slider.value,
+				voice_vol_slider.value, sfx_vol_slider.value)
+	if not _voice_enabled():
+		voice_player.stop()
+		voice_player.stream = null
+	_refresh_master_mute()
+
+
+func _voice_enabled() -> bool:
+	return master_vol_slider.value > 0.0 and voice_vol_slider.value > 0.0
+
+
+## Master is muted while an overlay silences the game or Master is at 0.
+func _refresh_master_mute() -> void:
+	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"),
+			_audio_silenced or master_vol_slider.value <= 0.0)
 
 
 func _on_master_vol_changed(v: float) -> void:
-	_set_bus_volume("Master", v)
+	_apply_volumes()
 	_update_slider_value_labels()
 	_save_settings()
 
 
-func _on_music_vol_changed(v: float) -> void:
-	_set_bus_volume("Music", v)
+func _on_music_vol_changed(_v: float) -> void:
+	_apply_volumes()
 	_update_slider_value_labels()
 	_save_settings()
 
 
-func _on_voice_vol_changed(v: float) -> void:
-	_set_bus_volume("Voice", v)
+func _on_voice_vol_changed(_v: float) -> void:
+	_apply_volumes()
 	_update_slider_value_labels()
 	_save_settings()
 
 
-func _on_sfx_vol_changed(v: float) -> void:
-	_set_bus_volume("SFX", v)
+func _on_sfx_vol_changed(_v: float) -> void:
+	_apply_volumes()
 	_update_slider_value_labels()
 	_save_settings()
 
@@ -2673,12 +2682,9 @@ func _silence_audio(on: bool) -> void:
 	# Leaving one overlay while the other is still up must keep both the bus and
 	# the current voice paused.
 	var silent: bool = on or pause_panel.visible or _panic_open()
-	# Hold user-slider silence side-effects while Pause owns the mute, so
-	# Resume doesn't have to reload the current voice clip / restart music.
-	for bus_name: String in ["Master", "Music", "Voice", "SFX"]:
-		_bus_pause_hold[bus_name] = silent
+	_audio_silenced = silent
 	voice_player.stream_paused = silent
-	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), silent)
+	_refresh_master_mute()
 
 
 ## Touch pause: keyboards have the pause action, phones only get this button.

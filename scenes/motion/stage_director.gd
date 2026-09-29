@@ -124,6 +124,9 @@ var _authored: Dictionary = {}
 var _players: Dictionary = {}
 ## AnimationTrees driven by story tags (stopped on reset / #nla_stop).
 var _trees: Dictionary = {}
+## Infinite tweens met during a restore (key -> tag). Restore lands the rest
+## value; [method finish_restore] then starts the loop running again.
+var _pending_loops: Dictionary = {}
 ## Bumped by [method reset_all]; delayed callbacks compare against it so a
 ## callback scheduled by abandoned history never fires into the new stage.
 var generation: int = 0
@@ -362,7 +365,7 @@ func _capture_home(node: Node) -> void:
 	_homes[iid] = {"node": node, "props": home}
 
 
-func _apply_tween(tag: String, instant: bool) -> bool:
+func _apply_tween(tag: String, instant: bool, ignore_delay: bool = false) -> bool:
 	var parsed: Array = _split_options(tag.substr(tag.find("=") + 1))
 	var main: String = parsed[0]
 	var opts: Dictionary = parsed[1]
@@ -399,6 +402,8 @@ func _apply_tween(tag: String, instant: bool) -> bool:
 		_logical.erase(key)
 		# A yoyo/looping tween logically rests on its start value.
 		node.set_indexed(NodePath(prop), base if (yoyo or loops != 1) else to)
+		if instant and loops == 0 and fields.size() >= 3 and fields[2].is_valid_float() and float(fields[2]) > 0.0:
+			_pending_loops[key] = tag
 		return _accept(tag)
 	_capture_home(node)
 	var duration: float = float(fields[2])
@@ -411,7 +416,7 @@ func _apply_tween(tag: String, instant: bool) -> bool:
 	var ease: int = int(EASES.get(ease_name if ease_name != "" else "out", Tween.EASE_OUT))
 	_cancel_overlapping(node, prop)
 	var tween: Tween = create_tween()
-	var delay: float = maxf(float(opts.get("delay", 0.0)), 0.0)
+	var delay: float = 0.0 if ignore_delay else maxf(float(opts.get("delay", 0.0)), 0.0)
 	if delay > 0.0:
 		tween.tween_interval(delay)
 	# Absolute tween from the on-screen value to the logical destination:
@@ -441,6 +446,7 @@ func _on_tween_finished(key: String, tween: Tween = null) -> void:
 ## different-but-overlapping property is snapped to its logical end first,
 ## so the new command starts from the same state a restore would.
 func _cancel_overlapping(node: Node, prop: String) -> void:
+	_drop_pending_loops(node, prop)
 	var iid: int = node.get_instance_id()
 	var prefix: String = "%d:" % iid
 	var head: String = prop.get_slice(":", 0)
@@ -633,6 +639,7 @@ func _apply_tween_stop(tag: String) -> bool:
 
 
 func _kill_tweens_for(node: Node) -> void:
+	_drop_pending_loops(node)
 	var prefix: String = "%d:" % node.get_instance_id()
 	for key: String in _tweens.keys():
 		if key.begins_with(prefix):
@@ -1012,6 +1019,7 @@ func _apply_place3d(tag: String) -> bool:
 ## [method replay_tags] re-dresses the stage right after.
 func reset_all() -> void:
 	generation += 1
+	_pending_loops.clear()
 	_logical.clear()
 	# Stop authored animation playback started by story tags.
 	for iid: int in _players.keys():
@@ -1063,6 +1071,41 @@ func reset_all() -> void:
 func replay_tags(tags: Array) -> void:
 	for tag: Variant in tags:
 		apply_tag(str(tag), true)
+	finish_restore()
+
+
+## Reconstruction is done: infinite `#tween=` loops run again (from their
+## rest value; restoring never reproduces the exact phase).
+func finish_restore() -> void:
+	var pending: Dictionary = _pending_loops
+	_pending_loops = {}
+	for key: String in pending:
+		_apply_tween(str(pending[key]), false, true)
+
+
+## A pending loop dies with any command that overrides its property (or the
+## node): same overlap rule as running tweens.
+func _drop_pending_loops(node: Node, prop: String = "") -> void:
+	if _pending_loops.is_empty():
+		return
+	var prefix: String = "%d:" % node.get_instance_id()
+	var head: String = prop.get_slice(":", 0)
+	for key: String in _pending_loops.keys():
+		if not key.begins_with(prefix):
+			continue
+		if prop != "":
+			var other: String = key.substr(prefix.length())
+			if other != prop and not (other.get_slice(":", 0) == head and (other == head or prop == head)):
+				continue
+		_pending_loops.erase(key)
+
+
+## The layout moved [param node]'s rest state: update the captured home so a
+## later reset_all() returns to the current layout, not a stale one.
+func set_home(node: Node, prop: String, value: Variant) -> void:
+	var iid: int = node.get_instance_id()
+	if _homes.has(iid) and (_homes[iid].props as Dictionary).has(prop):
+		_homes[iid].props[prop] = value
 
 
 ## Re-capture the rest state of an alias after the layout moved it (the
