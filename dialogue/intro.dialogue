@@ -8,8 +8,9 @@ Rook: Another transfer student. Just what this school needed. [#sprite=rook:righ
 Maya: H-hey! The bell hasn't even rung yet, I'm not late! [#sprite=maya_surprised:left, #focus=left, #voice=m1]
 Rook: The bell rang four minutes ago. [#focus=right, #voice=r2]
 Maya: ... [#sprite=maya_smile:left]
-Maya: Fine, you win, clock-watch person. I'm {{player_name}}. And you are? [#voice=m2]
-- I'm Alex. Nice to meet you.
+Maya: Fine, you win, clock-watch person. I'm Alex. And you are? [#voice=m2]
+- Nice to meet you, i'm...
+    My name is[#input=player_name?placeholder=Your name&default=Alex&max=16]
 	Maya: {{player_name}}! That's a solid name. I'm Maya! [#sprite=maya_smile:left, #voice=m3]
 	do met_maya = true
 - I'd rather not say.
@@ -56,6 +57,10 @@ Maya: (whispering) ...someone by the window. [#show=maya:surprised, #focus=maya]
 Rook: A memory. Ignore them. [#show=rook:sad, #focus=rook]
 Maya: Guess we all needed the quiet. [#show=maya:smile, #focus=maya]
 Rook: Don't ruin it by saying so. [#show=rook:smile]
+(How old are you, anyway?) [#input=age?type=int&placeholder=16&ok=Write]
+Maya: No way, {{input_value("age")}}? Same as me. [#show=maya_surprised]
+(A secret only you know.) [#input=diary_word?secret=true&allow_empty=true&placeholder=It stays with you]
+Maya: Keep that one to yourself, then.
 [#hide=maya@hall?t=0.6, #hide=rook@hall?t=0.6, #hide=shadow?t=0.6]
 The empty room keeps their voices for a moment more, then lets them go. [#stage=2d, #bg=rooftop]
 => END
