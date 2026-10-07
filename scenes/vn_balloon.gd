@@ -36,6 +36,9 @@ const DisplayScale = preload("res://scenes/display_scale.gd")
 ## game-specific controllers.
 signal stage_restored
 
+## Emitted when the player confirms a `#input=` prompt (variable, value).
+signal input_submitted(variable: String, value: Variant)
+
 ## Version of the per-entry presentation record ("pfmt" in history entries).
 const PRESENTATION_FORMAT := 1
 
@@ -117,6 +120,11 @@ const PRESENTATION_FORMAT := 1
 @onready var character_label: RichTextLabel = %CharacterLabel
 @onready var dialogue_label: DialogueLabel = %DialogueLabel
 @onready var next_indicator: Polygon2D = %NextIndicator
+
+## Text input (Dialogic-style `#input=` tag)
+@onready var input_row: HBoxContainer = %InputRow
+@onready var input_field: LineEdit = %InputField
+@onready var input_ok_button: Button = %InputOKButton
 
 ## Choices
 @onready var responses_menu: DialogueResponsesMenu = %ResponsesMenu
@@ -244,6 +252,12 @@ var _sprite_laid_offs: Dictionary = {}
 
 ## See if we are waiting for the player
 var is_waiting_for_input: bool = false
+
+## Parsed `#input=` spec for the current line ({} when the line has none).
+var _pending_input: Dictionary = {}
+## Values typed into `#input=` prompts whose variable is not on GameState.
+## Dialogue can read them with `input_value("key")` (the balloon is a game state).
+var input_values: Dictionary = {}
 
 ## See if we are running a long mutation and should hide the box
 var will_hide_box: bool = false
@@ -429,6 +443,11 @@ func _ready() -> void:
 		route_graph_panel.hide()
 		if route_graph_panel.has_signal("travel_requested") and not route_graph_panel.travel_requested.is_connected(_on_route_travel_requested):
 			route_graph_panel.travel_requested.connect(_on_route_travel_requested)
+	input_row.hide()
+	if not input_field.text_submitted.is_connected(_on_input_text_submitted):
+		input_field.text_submitted.connect(_on_input_text_submitted)
+	if not input_ok_button.pressed.is_connected(_on_input_ok_pressed):
+		input_ok_button.pressed.connect(_on_input_ok_pressed)
 	DirAccess.make_dir_recursive_absolute(saves_dir)
 	_ensure_audio_buses()
 	_setup_staging()
@@ -567,11 +586,16 @@ func start(with_dialogue_resource: DialogueResource = null, cue: String = "", ex
 func apply_dialogue_line() -> void:
 	_line_token += 1
 	var this_line_token: int = _line_token
+	# Restores (rollback, load, panic, travel) must not reopen a #input=
+	# prompt that was already answered; `next()` re-asks on a fresh advance.
+	var came_from_restore: bool = _restoring
 	mutation_cooldown.stop()
 	auto_timer.stop()
 
 	next_indicator.hide()
 	is_waiting_for_input = false
+	if is_instance_valid(input_row):
+		input_row.hide()
 
 	# Stage direction tags first, so the scene is dressed before the text types out.
 	voice_player.stop()
@@ -600,6 +624,8 @@ func apply_dialogue_line() -> void:
 			"motion": _line_records.duplicate(true),
 			"display_in_backlog": shown_line,
 		}
+		if not input_values.is_empty():
+			entry.inputs = input_values.duplicate(true)
 		var game_state: Node = get_tree().root.get_node_or_null("GameState")
 		if is_instance_valid(game_state) and game_state.has_method("snapshot"):
 			entry.state = game_state.snapshot()
@@ -637,6 +663,18 @@ func apply_dialogue_line() -> void:
 			dialogue_label.skip_typing()
 		if dialogue_label.is_typing:
 			await dialogue_label.finished_typing
+
+	# A `#input=` line blocks here: the player types, confirms, and only then
+	# does the story continue (skip/auto are inert while the field is open).
+	if not _pending_input.is_empty() and not came_from_restore:
+		_open_input_prompt(_pending_input)
+		await input_submitted
+		if this_line_token != _line_token:
+			return
+		_mark_seen(dialogue_line.id)
+		if dialogue_line.responses.size() == 0:
+			next(dialogue_line.next_id)
+			return
 
 	# Wait for next line
 	if dialogue_line.responses.size() > 0:
@@ -683,6 +721,14 @@ func apply_dialogue_line() -> void:
 
 ## Go to the next line
 func next(next_id: String) -> void:
+	# A rolled-back #input= line re-asks on advance instead of silently
+	# reusing the snapshot value (restores skip the auto-prompt).
+	if not _pending_input.is_empty() and not input_row.visible:
+		var token: int = _line_token
+		_open_input_prompt(_pending_input)
+		await input_submitted
+		if token != _line_token:
+			return
 	dialogue_line = await dialogue_resource.get_next_dialogue_line(next_id, temporary_game_states)
 
 
@@ -691,7 +737,8 @@ func next(next_id: String) -> void:
 
 func _any_overlay_open() -> bool:
 	return history_panel.visible or save_menu_panel.visible or settings_panel.visible \
-		or pause_panel.visible or _panic_open() or route_graph_panel.visible
+		or pause_panel.visible or _panic_open() or route_graph_panel.visible \
+		or (is_instance_valid(input_row) and input_row.visible)
 
 
 func _open_overlay(p: Control) -> void:
@@ -746,8 +793,16 @@ func _restore_waiting() -> void:
 
 func _apply_stage_tags(line: DialogueLine) -> void:
 	_line_records = []
+	_pending_input = {}
 	# Transient audio/UI tags keep their existing handling (not replayed).
 	for tag: String in line.tags:
+		if InputTag.is_input_tag(tag):
+			var spec: Dictionary = InputTag.parse(tag)
+			if spec.ok:
+				_pending_input = spec
+			else:
+				push_warning("Bad #%s: %s" % [tag, spec.error])
+			continue
 		if tag == "box=hide":
 			dialogue_box.hide()
 			name_plate.hide()
@@ -1077,6 +1132,7 @@ func rollback_to(index: int) -> void:
 
 	var entry: Dictionary = history[index]
 	history_cursor = index
+	input_values = (entry.get("inputs", {}) as Dictionary).duplicate(true)
 	auto_timer.stop()
 	close_history()
 
@@ -2790,6 +2846,82 @@ func _on_auto_timeout() -> void:
 	if is_waiting_for_input and is_instance_valid(dialogue_line) \
 		and dialogue_line.responses.size() == 0 and not _any_overlay_open():
 		next(dialogue_line.next_id)
+
+
+#endregion
+
+
+#region Text input prompt
+
+
+## Show the inline text field for a parsed `#input=` spec.
+func _open_input_prompt(spec: Dictionary) -> void:
+	auto_timer.stop()
+	skip_timer.stop()
+	_set_skip_active(false)
+	is_waiting_for_input = false
+	next_indicator.hide()
+	dialogue_box.show()
+	input_field.max_length = int(spec.get("max_length", 0))
+	input_field.secret = bool(spec.get("secret", false))
+	input_field.placeholder_text = String(spec.get("placeholder", ""))
+	input_field.text = String(spec.get("default", ""))
+	input_ok_button.text = String(spec.get("ok_text", "OK"))
+	input_row.show()
+	balloon.focus_mode = Control.FOCUS_NONE
+	input_field.grab_focus()
+	input_field.select_all()
+	input_field.caret_column = input_field.text.length()
+
+
+func _on_input_ok_pressed() -> void:
+	_commit_input(input_field.text)
+
+
+func _on_input_text_submitted(text: String) -> void:
+	_commit_input(text)
+
+
+## Validate, store and close the prompt. Invalid input keeps the field open.
+func _commit_input(text: String) -> void:
+	if _pending_input.is_empty():
+		return
+	var spec: Dictionary = _pending_input
+	if not InputTag.is_valid_value(spec, text):
+		_toast("Please enter a valid %s" % String(spec.get("type", "text")))
+		input_field.grab_focus()
+		return
+	var value: Variant = InputTag.coerce(spec, text.strip_edges())
+	var variable: String = String(spec.get("variable", ""))
+	_store_input_value(variable, value)
+	_pending_input = {}
+	input_row.hide()
+	input_field.release_focus()
+	balloon.focus_mode = Control.FOCUS_ALL
+	balloon.grab_focus()
+	input_submitted.emit(variable, value)
+
+
+## GameState owns the variable when it declares it; otherwise it goes into
+## GameState.input_values (snapshotted with the story, readable from dialogue
+## via `{{input_value("key")}}` even without the balloon, e.g. in the route
+## graph walker). Projects without a GameState fall back to the balloon.
+func _store_input_value(variable: String, value: Variant) -> void:
+	var game_state: Node = get_tree().root.get_node_or_null("GameState")
+	if is_instance_valid(game_state):
+		for property: Dictionary in game_state.get_property_list():
+			if property.name == variable:
+				game_state.set(variable, value)
+				return
+		if game_state.get("input_values") is Dictionary:
+			game_state.input_values[variable] = value
+			return
+	input_values[variable] = value
+
+
+## Read a value typed into a `#input=` prompt from dialogue.
+func input_value(variable: String) -> Variant:
+	return input_values.get(variable, "")
 
 
 #endregion

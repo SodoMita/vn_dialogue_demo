@@ -79,7 +79,7 @@ func wait_until(cond: Callable, max_frames: int = 400) -> bool:
 ## Wait until the current line finished typing and is actionable.
 func wait_ready() -> void:
 	await wait_until(func() -> bool:
-		return not alive() or (not balloon.dialogue_label.is_typing and (balloon.is_waiting_for_input or balloon.dialogue_line != null and balloon.dialogue_line.responses.size() > 0))
+		return not alive() or (not balloon.dialogue_label.is_typing and (balloon.is_waiting_for_input or balloon.input_row.visible or balloon.dialogue_line != null and balloon.dialogue_line.responses.size() > 0))
 	)
 
 
@@ -97,8 +97,18 @@ func await_line_change() -> DialogueLine:
 	return balloon.dialogue_line
 
 
-## Advance from a line that has no responses.
+## Advance from a line that has no responses. An open #input= prompt is
+## answered with a valid value for its declared type.
 func step() -> DialogueLine:
+	if alive() and balloon.input_row.visible:
+		var spec: Dictionary = balloon._pending_input
+		var answer: String = str(spec.get("default", ""))
+		match str(spec.get("type", "text")):
+			"int": answer = "17"
+			"float": answer = "1.5"
+			_: answer = answer if answer != "" else "Alex"
+		balloon._commit_input(answer)
+		return await await_line_change()
 	press(&"ui_accept")
 	return await await_line_change()
 
@@ -108,8 +118,7 @@ func run_to_responses() -> DialogueLine:
 	await wait_ready()
 	var guard := 0
 	while alive() and balloon.dialogue_line != null and balloon.dialogue_line.responses.size() == 0 and guard < 40:
-		press(&"ui_accept")
-		await await_line_change()
+		await step()
 		guard += 1
 	if not alive():
 		return null
@@ -266,7 +275,7 @@ func run() -> void:
 		and balloon.responses_menu.get_global_rect().end.y <= balloon.dialogue_box.get_global_rect().position.y + 1.0,
 		"choices sit above the dialogue box, fully on screen")
 	if items.size() > 0:
-		check(items[0].text.begins_with("I'm Alex"), "first choice text correct")
+		check(items[0].text.begins_with("Nice to meet you"), "first choice text correct")
 	else:
 		check(false, "first choice text correct")
 
@@ -321,6 +330,13 @@ func run() -> void:
 	var qline: DialogueLine = await run_to_responses()
 	check(qline != null and qline.responses.size() == 3, "run 2 reached the first choices")
 	await choose(0)
+	# Choice 1 now opens the #input= name prompt on its first branch line.
+	await wait_until(func() -> bool: return not alive() or balloon.input_row.visible)
+	check(alive() and balloon.input_row.visible, "run 2: #input= prompt opened on the branch line")
+	check(alive() and balloon.input_field.text == "Alex", "run 2: prompt is pre-filled with the default")
+	line = await step()  # submits the prompt, Maya's reply line
+	check(alive() and not balloon.input_row.visible, "run 2: prompt closed after submit")
+	check(alive() and gs.player_name == "Alex", "run 2: typed name landed on GameState")
 	line = await step()
 	check(gs.met_maya == true, "run 2: met_maya mutation ran")
 
@@ -515,6 +531,10 @@ func run() -> void:
 	balloon._set_skip_active(false)
 	balloon._resume_skip_after_choice = false
 	await choose(0)
+	# Choice 1 opens the name prompt; answer it so the pause/panic/wheel
+	# blocks below run against a plain waiting line, as before.
+	if alive() and balloon.input_row.visible:
+		await step()
 
 	# Pause via the Esc action. Start a known clip so the regression check proves
 	# Resume continues voice playback instead of merely unmuting the bus.

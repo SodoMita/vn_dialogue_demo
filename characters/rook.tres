@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="ActorDefinition" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="ActorDefinition" format=3 uid="uid://crctxd6ce6mdg"]
 
-[ext_resource type="Script" path="res://scenes/stage/actor_definition.gd" id="1_def"]
+[ext_resource type="Script" uid="uid://bxnyrmr6de7kb" path="res://scenes/stage/actor_definition.gd" id="1_def"]
 
 [sub_resource type="Animation" id="Animation_wave2d"]
 resource_name = "wave"
@@ -48,6 +48,5 @@ _data = {
 script = ExtResource("1_def")
 id = "rook"
 default_appearance = "rook"
-default_place = "center"
 animations_2d = SubResource("AnimationLibrary_2d")
 animations_3d = SubResource("AnimationLibrary_3d")

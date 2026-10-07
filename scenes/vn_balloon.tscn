@@ -12,22 +12,124 @@
 [ext_resource type="Texture2D" uid="uid://y2c8c23cqlm6" path="res://assets/characters/rook.webp" id="10_rook"]
 [ext_resource type="Script" uid="uid://dvxki2gr62k4a" path="res://scenes/hold_indicator.gd" id="11_hold"]
 [ext_resource type="PackedScene" uid="uid://ba4pj5dj4gjtc" path="res://scenes/route_graph/route_graph_panel.tscn" id="12_route"]
-[ext_resource type="Script" path="res://scenes/motion/stage_director.gd" id="13_director"]
-[ext_resource type="Script" path="res://scenes/stage/stage_actors.gd" id="14_actors"]
-[ext_resource type="Resource" path="res://characters/maya.tres" id="15_def_maya"]
-[ext_resource type="Resource" path="res://characters/rook.tres" id="16_def_rook"]
-[ext_resource type="Texture2D" path="res://assets/characters/maya_sad.webp" id="17_maya_sad"]
-[ext_resource type="Texture2D" path="res://assets/characters/maya_surprised.webp" id="18_maya_surprised"]
-[ext_resource type="Texture2D" path="res://assets/characters/rook_smile.webp" id="19_rook_smile"]
-[ext_resource type="Texture2D" path="res://assets/characters/rook_sad.webp" id="20_rook_sad"]
-[ext_resource type="Texture2D" path="res://assets/characters/rook_surprised.webp" id="21_rook_surprised"]
-[ext_resource type="Texture2D" path="res://assets/characters/ken.webp" id="22_ken"]
-[ext_resource type="Texture2D" path="res://assets/characters/ken_smile.webp" id="23_ken_smile"]
-[ext_resource type="Texture2D" path="res://assets/characters/ken_sad.webp" id="24_ken_sad"]
-[ext_resource type="Texture2D" path="res://assets/characters/ken_surprised.webp" id="25_ken_surprised"]
-[ext_resource type="Resource" path="res://characters/ken.tres" id="26_def_ken"]
-[ext_resource type="Texture2D" path="res://assets/characters/shadow.svg" id="27_shadow"]
+[ext_resource type="Script" uid="uid://iqq1vagpcskl" path="res://scenes/motion/stage_director.gd" id="13_director"]
+[ext_resource type="Script" uid="uid://bvq2jwptdrjwi" path="res://scenes/stage/stage_actors.gd" id="14_actors"]
+[ext_resource type="Resource" uid="uid://ci5pql1ecuvl3" path="res://characters/maya.tres" id="15_def_maya"]
+[ext_resource type="Resource" uid="uid://crctxd6ce6mdg" path="res://characters/rook.tres" id="16_def_rook"]
+[ext_resource type="Texture2D" uid="uid://cjot4q7ci74oy" path="res://assets/characters/maya_sad.webp" id="17_maya_sad"]
+[ext_resource type="Texture2D" uid="uid://bowxigk3ncort" path="res://assets/characters/maya_surprised.webp" id="18_maya_surprised"]
+[ext_resource type="Texture2D" uid="uid://b4bgrnd67ryw3" path="res://assets/characters/rook_smile.webp" id="19_rook_smile"]
+[ext_resource type="Texture2D" uid="uid://k6lu3iedqfef" path="res://assets/characters/rook_sad.webp" id="20_rook_sad"]
+[ext_resource type="Texture2D" uid="uid://wqn1dsyx3opk" path="res://assets/characters/rook_surprised.webp" id="21_rook_surprised"]
+[ext_resource type="Texture2D" uid="uid://dulygx3c4ca8e" path="res://assets/characters/ken.webp" id="22_ken"]
+[ext_resource type="Texture2D" uid="uid://cnsi0byoyc54r" path="res://assets/characters/ken_smile.webp" id="23_ken_smile"]
+[ext_resource type="Texture2D" uid="uid://cioo16gr4o8fd" path="res://assets/characters/ken_sad.webp" id="24_ken_sad"]
+[ext_resource type="Texture2D" uid="uid://c183lhpmkdgxp" path="res://assets/characters/ken_surprised.webp" id="25_ken_surprised"]
+[ext_resource type="Resource" uid="uid://b66yxv86scah8" path="res://characters/ken.tres" id="26_def_ken"]
+[ext_resource type="Texture2D" uid="uid://wn8erwp616ea" path="res://assets/characters/shadow.svg" id="27_shadow"]
 [ext_resource type="Resource" path="res://characters/shadow.tres" id="28_def_shadow"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_disabled"]
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
+bg_color = Color(0.05, 0.06, 0.1, 0.6)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.3, 0.35, 0.5)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_hot"]
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
+bg_color = Color(0.1, 0.14, 0.26, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.83, 0.68, 0.36, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_normal"]
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 8.0
+bg_color = Color(0.05, 0.07, 0.14, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.45, 0.47, 0.55, 0.9)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_input_focus"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+bg_color = Color(0.1, 0.14, 0.26, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.83, 0.68, 0.36, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_input_normal"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+bg_color = Color(0.05, 0.07, 0.14, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.45, 0.47, 0.55, 0.9)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="Theme" id="Theme_vn"]
+default_font = ExtResource("4_serif")
+default_font_size = 20
+Button/colors/font_color = Color(0.95, 0.94, 0.9, 1)
+Button/colors/font_disabled_color = Color(0.5, 0.5, 0.55, 1)
+Button/colors/font_focus_color = Color(1, 0.9, 0.6, 1)
+Button/colors/font_hover_color = Color(1, 0.9, 0.6, 1)
+Button/colors/font_pressed_color = Color(1, 0.9, 0.6, 1)
+Button/styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
+Button/styles/focus = SubResource("StyleBoxFlat_btn_hot")
+Button/styles/hover = SubResource("StyleBoxFlat_btn_hot")
+Button/styles/normal = SubResource("StyleBoxFlat_btn_normal")
+Button/styles/pressed = SubResource("StyleBoxFlat_btn_hot")
+LineEdit/colors/caret_color = Color(1, 0.9, 0.6, 1)
+LineEdit/colors/font_color = Color(0.96, 0.95, 0.9, 1)
+LineEdit/colors/font_placeholder_color = Color(0.62, 0.64, 0.72, 0.8)
+LineEdit/colors/font_selected_color = Color(0.1, 0.08, 0.04, 1)
+LineEdit/colors/selection_color = Color(0.83, 0.68, 0.36, 0.55)
+LineEdit/styles/focus = SubResource("StyleBoxFlat_input_focus")
+LineEdit/styles/normal = SubResource("StyleBoxFlat_input_normal")
+LineEdit/styles/read_only = SubResource("StyleBoxFlat_input_normal")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_box"]
 bg_color = Color(0.045, 0.06, 0.12, 0.94)
@@ -124,68 +226,6 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_disabled"]
-content_margin_left = 18.0
-content_margin_top = 8.0
-content_margin_right = 18.0
-content_margin_bottom = 8.0
-bg_color = Color(0.05, 0.06, 0.1, 0.6)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.3, 0.3, 0.35, 0.5)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_hot"]
-content_margin_left = 18.0
-content_margin_top = 8.0
-content_margin_right = 18.0
-content_margin_bottom = 8.0
-bg_color = Color(0.1, 0.14, 0.26, 0.95)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.83, 0.68, 0.36, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btn_normal"]
-content_margin_left = 18.0
-content_margin_top = 8.0
-content_margin_right = 18.0
-content_margin_bottom = 8.0
-bg_color = Color(0.05, 0.07, 0.14, 0.88)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.45, 0.47, 0.55, 0.9)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
-[sub_resource type="Theme" id="Theme_vn"]
-default_font = ExtResource("4_serif")
-default_font_size = 20
-Button/colors/font_color = Color(0.95, 0.94, 0.9, 1)
-Button/colors/font_disabled_color = Color(0.5, 0.5, 0.55, 1)
-Button/colors/font_focus_color = Color(1, 0.9, 0.6, 1)
-Button/colors/font_hover_color = Color(1, 0.9, 0.6, 1)
-Button/colors/font_pressed_color = Color(1, 0.9, 0.6, 1)
-Button/styles/disabled = SubResource("StyleBoxFlat_btn_disabled")
-Button/styles/focus = SubResource("StyleBoxFlat_btn_hot")
-Button/styles/hover = SubResource("StyleBoxFlat_btn_hot")
-Button/styles/normal = SubResource("StyleBoxFlat_btn_normal")
-Button/styles/pressed = SubResource("StyleBoxFlat_btn_hot")
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_history"]
 bg_color = Color(0.03, 0.04, 0.09, 0.96)
 border_width_left = 3
@@ -202,21 +242,21 @@ backgrounds = Dictionary[String, Texture2D]({
 "rooftop": ExtResource("7_bg_rooftop")
 })
 sprites = Dictionary[String, Texture2D]({
+"ken": ExtResource("22_ken"),
+"ken_sad": ExtResource("24_ken_sad"),
+"ken_smile": ExtResource("23_ken_smile"),
+"ken_surprised": ExtResource("25_ken_surprised"),
 "maya": ExtResource("8_maya"),
-"maya_smile": ExtResource("9_maya_smile"),
 "maya_sad": ExtResource("17_maya_sad"),
+"maya_smile": ExtResource("9_maya_smile"),
 "maya_surprised": ExtResource("18_maya_surprised"),
 "rook": ExtResource("10_rook"),
-"rook_smile": ExtResource("19_rook_smile"),
 "rook_sad": ExtResource("20_rook_sad"),
+"rook_smile": ExtResource("19_rook_smile"),
 "rook_surprised": ExtResource("21_rook_surprised"),
-"ken": ExtResource("22_ken"),
-"ken_smile": ExtResource("23_ken_smile"),
-"ken_sad": ExtResource("24_ken_sad"),
-"ken_surprised": ExtResource("25_ken_surprised"),
 "shadow": ExtResource("27_shadow")
 })
-actor_definitions = [ExtResource("15_def_maya"), ExtResource("16_def_rook"), ExtResource("26_def_ken"), ExtResource("28_def_shadow")]
+actor_definitions = Array[Resource]([ExtResource("15_def_maya"), ExtResource("16_def_rook"), ExtResource("26_def_ken"), ExtResource("28_def_shadow")])
 
 [node name="Balloon" type="Control" parent="." unique_id=1419289364]
 unique_name_in_owner = true
@@ -248,7 +288,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6
 
-[node name="Stage3D" type="SubViewportContainer" parent="Balloon/Stage"]
+[node name="Stage3D" type="SubViewportContainer" parent="Balloon/Stage" unique_id=1729982674]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
@@ -260,14 +300,14 @@ grow_vertical = 2
 mouse_filter = 2
 stretch = true
 
-[node name="Stage3DViewport" type="SubViewport" parent="Balloon/Stage/Stage3D"]
+[node name="Stage3DViewport" type="SubViewport" parent="Balloon/Stage/Stage3D" unique_id=1530870318]
 unique_name_in_owner = true
 own_world_3d = true
 handle_input_locally = false
 size = Vector2i(1280, 720)
-render_target_update_mode = 4
+render_target_update_mode = 0
 
-[node name="VideoLayer" type="Control" parent="Balloon/Stage"]
+[node name="VideoLayer" type="Control" parent="Balloon/Stage" unique_id=1289437869]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -310,7 +350,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Actors" type="Control" parent="Balloon/Stage"]
+[node name="Actors" type="Control" parent="Balloon/Stage" unique_id=479442931]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -320,7 +360,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="Anchors" type="Control" parent="Balloon/Stage"]
+[node name="Anchors" type="Control" parent="Balloon/Stage" unique_id=1776796994]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -330,7 +370,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="far_left" type="Control" parent="Balloon/Stage/Anchors"]
+[node name="far_left" type="Control" parent="Balloon/Stage/Anchors" unique_id=269314248]
 layout_mode = 1
 anchor_left = 0.1
 anchor_top = 1.0
@@ -338,7 +378,7 @@ anchor_right = 0.1
 anchor_bottom = 1.0
 mouse_filter = 2
 
-[node name="left" type="Control" parent="Balloon/Stage/Anchors"]
+[node name="left" type="Control" parent="Balloon/Stage/Anchors" unique_id=1462715503]
 layout_mode = 1
 anchor_left = 0.25
 anchor_top = 1.0
@@ -346,15 +386,16 @@ anchor_right = 0.25
 anchor_bottom = 1.0
 mouse_filter = 2
 
-[node name="center" type="Control" parent="Balloon/Stage/Anchors"]
+[node name="center" type="Control" parent="Balloon/Stage/Anchors" unique_id=1163612081]
 layout_mode = 1
+anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 mouse_filter = 2
 
-[node name="right" type="Control" parent="Balloon/Stage/Anchors"]
+[node name="right" type="Control" parent="Balloon/Stage/Anchors" unique_id=222468071]
 layout_mode = 1
 anchor_left = 0.75
 anchor_top = 1.0
@@ -362,7 +403,7 @@ anchor_right = 0.75
 anchor_bottom = 1.0
 mouse_filter = 2
 
-[node name="far_right" type="Control" parent="Balloon/Stage/Anchors"]
+[node name="far_right" type="Control" parent="Balloon/Stage/Anchors" unique_id=359074270]
 layout_mode = 1
 anchor_left = 0.9
 anchor_top = 1.0
@@ -370,7 +411,7 @@ anchor_right = 0.9
 anchor_bottom = 1.0
 mouse_filter = 2
 
-[node name="off_left" type="Control" parent="Balloon/Stage/Anchors"]
+[node name="off_left" type="Control" parent="Balloon/Stage/Anchors" unique_id=1755868855]
 layout_mode = 1
 anchor_left = -0.25
 anchor_top = 1.0
@@ -378,7 +419,7 @@ anchor_right = -0.25
 anchor_bottom = 1.0
 mouse_filter = 2
 
-[node name="off_right" type="Control" parent="Balloon/Stage/Anchors"]
+[node name="off_right" type="Control" parent="Balloon/Stage/Anchors" unique_id=1216749914]
 layout_mode = 1
 anchor_left = 1.25
 anchor_top = 1.0
@@ -386,7 +427,7 @@ anchor_right = 1.25
 anchor_bottom = 1.0
 mouse_filter = 2
 
-[node name="top_left" type="Control" parent="Balloon/Stage/Anchors"]
+[node name="top_left" type="Control" parent="Balloon/Stage/Anchors" unique_id=1298142013]
 layout_mode = 1
 anchor_left = 0.25
 anchor_top = 0.55
@@ -394,7 +435,7 @@ anchor_right = 0.25
 anchor_bottom = 0.55
 mouse_filter = 2
 
-[node name="top" type="Control" parent="Balloon/Stage/Anchors"]
+[node name="top" type="Control" parent="Balloon/Stage/Anchors" unique_id=774451871]
 layout_mode = 1
 anchor_left = 0.5
 anchor_top = 0.55
@@ -402,7 +443,7 @@ anchor_right = 0.5
 anchor_bottom = 0.55
 mouse_filter = 2
 
-[node name="top_right" type="Control" parent="Balloon/Stage/Anchors"]
+[node name="top_right" type="Control" parent="Balloon/Stage/Anchors" unique_id=1134029691]
 layout_mode = 1
 anchor_left = 0.75
 anchor_top = 0.55
@@ -410,7 +451,7 @@ anchor_right = 0.75
 anchor_bottom = 0.55
 mouse_filter = 2
 
-[node name="true_center" type="Control" parent="Balloon/Stage/Anchors"]
+[node name="true_center" type="Control" parent="Balloon/Stage/Anchors" unique_id=1879643475]
 layout_mode = 1
 anchor_left = 0.5
 anchor_top = 0.75
@@ -427,6 +468,36 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="InputRow" type="HBoxContainer" parent="Balloon/UIRoot" unique_id=311204871]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 29.0
+offset_top = 25.0
+offset_right = 1251.0
+offset_bottom = 69.0
+size_flags_vertical = 8
+theme = SubResource("Theme_vn")
+theme_override_constants/separation = 12
+
+[node name="InputPrompt" type="Label" parent="Balloon/UIRoot/InputRow" unique_id=311204874]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.83, 0.68, 0.36, 1)
+text = "▸"
+
+[node name="InputField" type="LineEdit" parent="Balloon/UIRoot/InputRow" unique_id=311204872]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Type here..."
+caret_blink = true
+
+[node name="InputOKButton" type="Button" parent="Balloon/UIRoot/InputRow" unique_id=311204873]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+text = "OK"
 
 [node name="BottomUI" type="Control" parent="Balloon/UIRoot" unique_id=548241112]
 unique_name_in_owner = true
@@ -715,8 +786,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_hist_hot")
 theme_override_styles/focus = SubResource("StyleBoxFlat_hist_hot")
 text = "Pause"
 
-
-[node name="RouteButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow"]
+[node name="RouteButton" type="Button" parent="Balloon/UIRoot/BottomUI/SystemRow" unique_id=1753249174]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(62, 44)
 layout_mode = 2
@@ -923,13 +993,13 @@ text = "Text speed"
 
 [node name="TextSpeedSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow" unique_id=238017293]
 unique_name_in_owner = true
-layout_mode = 2
 custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
 size_flags_horizontal = 3
 min_value = 0.001
 max_value = 0.2
 step = 0.001
-value = 0.018
+value = 0.018000000000000002
 
 [node name="TextSpeedValue" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSpeedRow" unique_id=286123580]
 unique_name_in_owner = true
@@ -954,9 +1024,8 @@ text = "Text size"
 
 [node name="TextSizeSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/TextSizeRow" unique_id=2013936143]
 unique_name_in_owner = true
-layout_mode = 2
-step = 1.0
 custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
 size_flags_horizontal = 3
 min_value = 8.0
 max_value = 72.0
@@ -1004,8 +1073,8 @@ text = "Skip speed"
 
 [node name="SkipSpeedSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SkipSpeedRow" unique_id=330528194]
 unique_name_in_owner = true
-layout_mode = 2
 custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
 size_flags_horizontal = 3
 min_value = 0.01
 max_value = 2.0
@@ -1021,11 +1090,9 @@ max_value = 2.0
 step = 0.01
 value = 0.55
 alignment = 1
-suffix = " s"
 update_on_text_changed = true
+suffix = " s"
 select_all_on_focus = true
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 15
 
 [node name="SkipModeRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=2020657532]
 layout_mode = 2
@@ -1249,10 +1316,9 @@ text = "Auto delay"
 
 [node name="AutoDelaySlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/AutoDelayRow" unique_id=916089765]
 unique_name_in_owner = true
-layout_mode = 2
 custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
 size_flags_horizontal = 3
-min_value = 0.0
 max_value = 12.0
 step = 0.1
 value = 1.5
@@ -1280,8 +1346,8 @@ text = "UI scale"
 
 [node name="UIScaleSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/UIScaleRow" unique_id=26467694]
 unique_name_in_owner = true
-layout_mode = 2
 custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
 size_flags_horizontal = 3
 min_value = 0.5
 max_value = 2.5
@@ -1297,11 +1363,9 @@ max_value = 2.5
 step = 0.05
 value = 1.0
 alignment = 1
-suffix = "x"
 update_on_text_changed = true
+suffix = "x"
 select_all_on_focus = true
-theme_override_fonts/font = ExtResource("4_serif")
-theme_override_font_sizes/font_size = 15
 
 [node name="DisplayHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=240786325]
 layout_mode = 2
@@ -1472,11 +1536,11 @@ min_value = 1.0
 max_value = 4320.0
 value = 720.0
 
-[node name="GlyphScaleRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+[node name="GlyphScaleRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=149278423]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="GlyphScaleRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/GlyphScaleRow"]
+[node name="GlyphScaleRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/GlyphScaleRow" unique_id=964800663]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
@@ -1484,12 +1548,13 @@ theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Glyph scale"
 
-[node name="GlyphScaleOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/GlyphScaleRow"]
+[node name="GlyphScaleOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/GlyphScaleRow" unique_id=298747030]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
+selected = 1
 item_count = 4
 popup/item_0/text = "1× Low"
 popup/item_0/id = 0
@@ -1499,13 +1564,12 @@ popup/item_2/text = "3× High"
 popup/item_2/id = 2
 popup/item_3/text = "4× Ultra"
 popup/item_3/id = 3
-selected = 1
 
-[node name="GameFilterRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+[node name="GameFilterRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1768739558]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="GameFilterRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/GameFilterRow"]
+[node name="GameFilterRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/GameFilterRow" unique_id=2021562359]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
@@ -1513,12 +1577,13 @@ theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Game filter"
 
-[node name="GameFilterOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/GameFilterRow"]
+[node name="GameFilterOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/GameFilterRow" unique_id=1152648414]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
+selected = 1
 item_count = 4
 popup/item_0/text = "Nearest"
 popup/item_0/id = 0
@@ -1528,13 +1593,12 @@ popup/item_2/text = "Nearest mipmaps"
 popup/item_2/id = 2
 popup/item_3/text = "Linear mipmaps"
 popup/item_3/id = 3
-selected = 1
 
-[node name="MapFilterRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox"]
+[node name="MapFilterRow" type="BoxContainer" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=665175811]
 layout_mode = 2
 theme_override_constants/separation = 16
 
-[node name="MapFilterRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MapFilterRow"]
+[node name="MapFilterRowLabel" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MapFilterRow" unique_id=1964437345]
 custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
@@ -1542,12 +1606,13 @@ theme_override_fonts/font = ExtResource("4_serif")
 theme_override_font_sizes/font_size = 17
 text = "Map filter"
 
-[node name="MapFilterOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MapFilterRow"]
+[node name="MapFilterOption" type="OptionButton" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MapFilterRow" unique_id=1226034841]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 16
+selected = 1
 item_count = 4
 popup/item_0/text = "Nearest"
 popup/item_0/id = 0
@@ -1557,7 +1622,6 @@ popup/item_2/text = "Nearest mipmaps"
 popup/item_2/id = 2
 popup/item_3/text = "Linear mipmaps"
 popup/item_3/id = 3
-selected = 1
 
 [node name="AudioHeader" type="Label" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox" unique_id=1390737954]
 layout_mode = 2
@@ -1600,8 +1664,8 @@ text = "Master volume"
 
 [node name="MasterVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MasterVolRow" unique_id=54557889]
 unique_name_in_owner = true
-layout_mode = 2
 custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
 size_flags_horizontal = 3
 value = 80.0
 
@@ -1628,8 +1692,8 @@ text = "Music volume"
 
 [node name="MusicVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/MusicVolRow" unique_id=2120409494]
 unique_name_in_owner = true
-layout_mode = 2
 custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
 size_flags_horizontal = 3
 value = 80.0
 
@@ -1656,8 +1720,8 @@ text = "Voice volume"
 
 [node name="VoiceVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/VoiceVolRow" unique_id=1685228183]
 unique_name_in_owner = true
-layout_mode = 2
 custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
 size_flags_horizontal = 3
 value = 100.0
 
@@ -1684,8 +1748,8 @@ text = "SFX volume"
 
 [node name="SfxVolSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SfxVolRow" unique_id=796911999]
 unique_name_in_owner = true
-layout_mode = 2
 custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
 size_flags_horizontal = 3
 value = 80.0
 
@@ -1759,8 +1823,8 @@ text = "Sprite scale"
 
 [node name="SpriteScaleSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteScaleRow" unique_id=457217068]
 unique_name_in_owner = true
-layout_mode = 2
 custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
 size_flags_horizontal = 3
 min_value = 0.25
 max_value = 2.5
@@ -1790,8 +1854,8 @@ text = "Sprite Y offset"
 
 [node name="SpriteYSlider" type="HSlider" parent="Balloon/UIRoot/SettingsPanel/SettingsMargin/SettingsScroll/SettingsVBox/SpriteYRow" unique_id=1448262975]
 unique_name_in_owner = true
-layout_mode = 2
 custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
 size_flags_horizontal = 3
 min_value = -720.0
 max_value = 720.0
@@ -2039,16 +2103,9 @@ theme_override_font_sizes/font_size = 18
 text = "Saved"
 horizontal_alignment = 2
 
-[node name="RouteGraphPanel" parent="Balloon/UIRoot" instance=ExtResource("12_route")]
-unique_name_in_owner = true
-visible = false
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="RouteGraphPanel" parent="Balloon/UIRoot" unique_id=858577346 instance=ExtResource("12_route")]
 z_index = 15
+layout_mode = 1
 
 [node name="SettingsCloseButton" type="Button" parent="Balloon/UIRoot" unique_id=1725658527]
 unique_name_in_owner = true
@@ -2066,11 +2123,11 @@ theme_override_colors/font_color = Color(0.92, 0.92, 0.95, 1)
 theme_override_font_sizes/font_size = 22
 text = "X"
 
-[node name="MotionDirector" type="Node" parent="."]
+[node name="MotionDirector" type="Node" parent="." unique_id=1652831883]
 unique_name_in_owner = true
 script = ExtResource("13_director")
 
-[node name="StageActors" type="Node" parent="."]
+[node name="StageActors" type="Node" parent="." unique_id=1446091803]
 unique_name_in_owner = true
 script = ExtResource("14_actors")
 
@@ -2096,7 +2153,6 @@ one_shot = true
 
 [node name="VoicePlayer" type="AudioStreamPlayer" parent="." unique_id=1970659894]
 unique_name_in_owner = true
-bus = &"Voice"
 
 [connection signal="gui_input" from="Balloon" to="." method="_on_balloon_gui_input"]
 [connection signal="pressed" from="Balloon/UIRoot/BottomUI/SystemRow/QSButton" to="." method="_on_quick_save_pressed"]

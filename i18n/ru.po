@@ -38,12 +38,12 @@ msgid "..."
 msgstr "..."
 
 msgctxt "dialogue"
-msgid "Fine, you win, clock-watch person. I'm {{player_name}}. And you are?"
-msgstr "Ладно, твоя взяла, человек-часы. Я — {{player_name}}. А ты?"
+msgid "Fine, you win, clock-watch person. I'm Alex. And you are?"
+msgstr "Ладно, твоя взяла, человек-часы. Я — Алекс. А ты?"
 
 msgctxt "dialogue"
-msgid "I'm Alex. Nice to meet you."
-msgstr "Я Алекс. Приятно познакомиться."
+msgid "Nice to meet you, i'm..."
+msgstr "Приятно познакомиться, я Алекс..."
 
 msgctxt "dialogue"
 msgid "{{player_name}}! That's a solid name. I'm Maya!"
@@ -458,3 +458,27 @@ msgstr "Класс (3D)"
 
 msgid "classroom_3d"
 msgstr "Класс (3D)"
+
+msgctxt "dialogue"
+msgid "My name is"
+msgstr "Меня зовут"
+
+msgctxt "dialogue"
+msgid "{{player_name}}, huh. Suits you."
+msgstr "{{player_name}}, значит. Тебе идёт."
+
+msgctxt "dialogue"
+msgid "(How old are you, anyway?)"
+msgstr "(Кстати, сколько тебе лет?)"
+
+msgctxt "dialogue"
+msgid "No way, {{input_value(\"age\")}}? Same as me."
+msgstr "Да ладно, {{input_value(\"age\")}}? Как и мне."
+
+msgctxt "dialogue"
+msgid "(A secret only you know.)"
+msgstr "(Секрет, который знаешь только ты.)"
+
+msgctxt "dialogue"
+msgid "Keep that one to yourself, then."
+msgstr "Тогда держи его при себе."
