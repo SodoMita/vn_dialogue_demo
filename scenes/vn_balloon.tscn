@@ -471,6 +471,26 @@ size_flags_vertical = 3
 theme_override_colors/default_color = Color(0.96, 0.95, 0.9, 1)
 text = "..."
 
+[node name="InputRow" type="HBoxContainer" parent="Balloon/UIRoot/BottomUI/DialogueBox/BoxMargin/VBox" unique_id=311204871]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="InputField" type="LineEdit" parent="Balloon/UIRoot/BottomUI/DialogueBox/BoxMargin/VBox/InputRow" unique_id=311204872]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Type here..."
+caret_blink = true
+
+[node name="InputOKButton" type="Button" parent="Balloon/UIRoot/BottomUI/DialogueBox/BoxMargin/VBox/InputRow" unique_id=311204873]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+text = "OK"
+
 [node name="NamePlate" type="PanelContainer" parent="Balloon/UIRoot/BottomUI" unique_id=155575693]
 unique_name_in_owner = true
 layout_mode = 1

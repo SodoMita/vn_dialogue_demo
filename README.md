@@ -48,6 +48,8 @@ A complete Godot **4.7.2** project using **nathanhoad/godot_dialogue_manager v4.
   closes from a corner X (`docs/13_settings_portrait.webp`,
   `docs/15_system_row_wrapped.webp`, `docs/16_panic_portrait.webp`). v1.15 adds the
   Russian localization with localized character voices.
+- **text input fields** (`#input=player_name?placeholder=...&max=16`) — Dialogic-style typed
+  answers stored on `GameState` (saved and rolled back like any other variable)
 - **voiced dialogue**: all fourteen spoken character lines carry `#voice=` tags and play
   per-character clips (Maya and Rook) on the Voice bus, silenced again on unvoiced lines;
   the clips were generated as Opus but ship as tightly packed Ogg Vorbis (mono, 32 kbps)
@@ -104,6 +106,24 @@ test-suite asserts this). All node references use `%UniqueName` lookups.
 | `[#sprite=key:left\|right]`, `[#sprite=none:slot]` | show / clear a portrait (keys of `sprites`) |
 | `[#focus=left\|right]` | spotlight one slot, dim the other |
 | `[#box=hide]` / `[#box=show]` | hide / show the dialogue box for pure stage moments |
+| `[#input=var?opts]` | ask the player to type something (Dialogic's "text input" event) |
+
+### Text input (`#input=`)
+
+```
+(Write your name in the class register.) [#input=player_name?placeholder=Your name&default=Alex&max=16]
+Maya: {{player_name}}, huh. Suits you.
+```
+
+A line carrying `#input=` types out as usual and then opens an inline field inside the
+dialogue box instead of the "next" indicator: advance, auto and skip are inert until the
+player confirms with `Enter` or the OK button. Options (`&`-separated, spaces are allowed
+inside a value): `placeholder=`, `default=`, `max=` (0 = unlimited), `ok=` (button caption),
+`type=text|int|float`, `allow_empty=true`, `secret=true` (password dots). Invalid or empty
+input keeps the field open with a toast. The value is written to the `GameState` autoload
+when it declares that property (so it is saved, snapshotted and rolled back with everything
+else); otherwise it lands in the balloon's `input_values` and dialogue can read it with
+`input_value("key")`. Parser: `scenes/input_tag.gd`, tests: `tests/test_input_tag.gd`.
 
 ### Short staging tags (movable actors, 3D stage, animation, video)
 

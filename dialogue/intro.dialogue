@@ -8,7 +8,9 @@ Rook: Another transfer student. Just what this school needed. [#sprite=rook:righ
 Maya: H-hey! The bell hasn't even rung yet, I'm not late! [#sprite=maya_surprised:left, #focus=left, #voice=m1]
 Rook: The bell rang four minutes ago. [#focus=right, #voice=r2]
 Maya: ... [#sprite=maya_smile:left]
-Maya: Fine, you win, clock-watch person. I'm {{player_name}}. And you are? [#voice=m2]
+Maya: Fine, you win, clock-watch person. I'm Maya. And you are? [#voice=m2]
+(Write your name in the class register.) [#input=player_name?placeholder=Your name&default=Alex&max=16]
+Maya: {{player_name}}, huh. Suits you. [#sprite=maya_smile:left]
 - I'm Alex. Nice to meet you.
 	Maya: {{player_name}}! That's a solid name. I'm Maya! [#sprite=maya_smile:left, #voice=m3]
 	do met_maya = true
