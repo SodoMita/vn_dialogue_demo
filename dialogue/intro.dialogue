@@ -58,7 +58,7 @@ Rook: A memory. Ignore them. [#show=rook:sad, #focus=rook]
 Maya: Guess we all needed the quiet. [#show=maya:smile, #focus=maya]
 Rook: Don't ruin it by saying so. [#show=rook:smile]
 (How old are you, anyway?) [#input=age?type=int&placeholder=16&ok=Write]
-Maya: No way, {{input_value("age")}}? Same as me. [#show=maya_surprised]
+Maya: No way, {{input_value("age")}}? Same as me. [#show=maya:surprised]
 (A secret only you know.) [#input=diary_word?secret=true&allow_empty=true&placeholder=It stays with you]
 Maya: Keep that one to yourself, then.
 [#hide=maya@hall?t=0.6, #hide=rook@hall?t=0.6, #hide=shadow?t=0.6]

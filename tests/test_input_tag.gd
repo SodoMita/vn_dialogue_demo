@@ -61,6 +61,17 @@ func run() -> void:
 	check(balloon.contains("func _open_input_prompt"), "balloon opens a prompt")
 	var scene := FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
 	check(scene.contains("name=\"InputField\""), "the field is authored in the scene")
+	# The prompt must wear the same gold VN chrome as every other widget.
+	check(scene.contains("StyleBoxFlat_input_normal") and scene.contains("StyleBoxFlat_input_focus"),
+		"the field has authored VN styleboxes")
+	check(scene.contains("LineEdit/styles/focus = SubResource(\"StyleBoxFlat_input_focus\")"),
+		"Theme_vn styles LineEdit")
+	var row_block := scene.substr(scene.find("name=\"InputRow\""))
+	row_block = row_block.substr(0, row_block.find("name=\"InputField\""))
+	check(row_block.contains("theme = SubResource(\"Theme_vn\")"), "the row uses the shared VN theme")
+	check(balloon.contains("entry.inputs = input_values.duplicate(true)")
+		and balloon.contains("input_values = (entry.get(\"inputs\", {}) as Dictionary).duplicate(true)"),
+		"input_values ride along with history (saves + rollback)")
 	var demo := FileAccess.get_file_as_string("res://examples/input_demo.dialogue")
 	check(demo.contains("#input=player_name"), "the demo asks for a name")
 	check(demo.contains("type=int") and demo.contains("secret=true"), "the demo covers typed and secret input")

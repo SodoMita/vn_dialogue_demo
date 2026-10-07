@@ -586,6 +586,9 @@ func start(with_dialogue_resource: DialogueResource = null, cue: String = "", ex
 func apply_dialogue_line() -> void:
 	_line_token += 1
 	var this_line_token: int = _line_token
+	# Restores (rollback, load, panic, travel) must not reopen a #input=
+	# prompt that was already answered; `next()` re-asks on a fresh advance.
+	var came_from_restore: bool = _restoring
 	mutation_cooldown.stop()
 	auto_timer.stop()
 
@@ -621,6 +624,8 @@ func apply_dialogue_line() -> void:
 			"motion": _line_records.duplicate(true),
 			"display_in_backlog": shown_line,
 		}
+		if not input_values.is_empty():
+			entry.inputs = input_values.duplicate(true)
 		var game_state: Node = get_tree().root.get_node_or_null("GameState")
 		if is_instance_valid(game_state) and game_state.has_method("snapshot"):
 			entry.state = game_state.snapshot()
@@ -661,7 +666,7 @@ func apply_dialogue_line() -> void:
 
 	# A `#input=` line blocks here: the player types, confirms, and only then
 	# does the story continue (skip/auto are inert while the field is open).
-	if not _pending_input.is_empty():
+	if not _pending_input.is_empty() and not came_from_restore:
 		_open_input_prompt(_pending_input)
 		await input_submitted
 		if this_line_token != _line_token:
@@ -716,6 +721,14 @@ func apply_dialogue_line() -> void:
 
 ## Go to the next line
 func next(next_id: String) -> void:
+	# A rolled-back #input= line re-asks on advance instead of silently
+	# reusing the snapshot value (restores skip the auto-prompt).
+	if not _pending_input.is_empty() and not input_row.visible:
+		var token: int = _line_token
+		_open_input_prompt(_pending_input)
+		await input_submitted
+		if token != _line_token:
+			return
 	dialogue_line = await dialogue_resource.get_next_dialogue_line(next_id, temporary_game_states)
 
 
@@ -1119,6 +1132,7 @@ func rollback_to(index: int) -> void:
 
 	var entry: Dictionary = history[index]
 	history_cursor = index
+	input_values = (entry.get("inputs", {}) as Dictionary).duplicate(true)
 	auto_timer.stop()
 	close_history()
 

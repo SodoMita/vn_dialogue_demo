@@ -172,6 +172,38 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_input_normal"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+bg_color = Color(0.05, 0.07, 0.14, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.45, 0.47, 0.55, 0.9)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_input_focus"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+bg_color = Color(0.1, 0.14, 0.26, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.83, 0.68, 0.36, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
 [sub_resource type="Theme" id="Theme_vn"]
 default_font = ExtResource("4_serif")
 default_font_size = 20
@@ -185,6 +217,14 @@ Button/styles/focus = SubResource("StyleBoxFlat_btn_hot")
 Button/styles/hover = SubResource("StyleBoxFlat_btn_hot")
 Button/styles/normal = SubResource("StyleBoxFlat_btn_normal")
 Button/styles/pressed = SubResource("StyleBoxFlat_btn_hot")
+LineEdit/colors/caret_color = Color(1, 0.9, 0.6, 1)
+LineEdit/colors/font_color = Color(0.96, 0.95, 0.9, 1)
+LineEdit/colors/font_placeholder_color = Color(0.62, 0.64, 0.72, 0.8)
+LineEdit/colors/font_selected_color = Color(0.1, 0.08, 0.04, 1)
+LineEdit/colors/selection_color = Color(0.83, 0.68, 0.36, 0.55)
+LineEdit/styles/focus = SubResource("StyleBoxFlat_input_focus")
+LineEdit/styles/normal = SubResource("StyleBoxFlat_input_normal")
+LineEdit/styles/read_only = SubResource("StyleBoxFlat_input_normal")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_history"]
 bg_color = Color(0.03, 0.04, 0.09, 0.96)
@@ -475,7 +515,15 @@ text = "..."
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+size_flags_vertical = 8
+theme = SubResource("Theme_vn")
 theme_override_constants/separation = 12
+
+[node name="InputPrompt" type="Label" parent="Balloon/UIRoot/BottomUI/DialogueBox/BoxMargin/VBox/InputRow" unique_id=311204874]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.83, 0.68, 0.36, 1)
+text = "▸"
 
 [node name="InputField" type="LineEdit" parent="Balloon/UIRoot/BottomUI/DialogueBox/BoxMargin/VBox/InputRow" unique_id=311204872]
 unique_name_in_owner = true

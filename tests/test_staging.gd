@@ -744,6 +744,10 @@ func _shipped_route_tests() -> void:
 	await _advance()  # rook: "A memory. Ignore them."
 	await _advance()  # maya smile
 	await _advance()  # rook smile
+	await _advance()  # age #input= prompt line
+	await _advance()  # maya: same as me
+	await _advance()  # diary #input= prompt line
+	await _advance()  # maya: keep it to yourself
 	await _advance()  # all three exit
 	await wait(0.9)
 	check(not actors.has_actor("maya") and not actors.has_actor("rook") and not actors.has_actor("shadow"), "all three (incl. silent shadow) walked off and were removed")
