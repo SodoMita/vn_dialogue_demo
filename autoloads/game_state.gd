@@ -14,6 +14,11 @@ extends Node
 ## so the same choices produce the same random results. Saves keep it inside
 ## each history snapshot.
 @export var story_seed: int = 1
+## Answers typed into `#input=` prompts whose name is not a declared property
+## (e.g. `#input=age`). A plain script variable, so snapshot()/restore() carry
+## it through rollback, saves and panic like every other story variable.
+## Dialogue reads them with `{{input_value("age")}}` (via `using GameState`).
+var input_values: Dictionary = {}
 var rng := RandomNumberGenerator.new()
 
 
@@ -30,6 +35,7 @@ func reset() -> void:
 	met_maya = false
 	met_rook = false
 	knows_secret = false
+	input_values = {}
 	_reseed()
 
 
@@ -75,3 +81,8 @@ func restore(data: Dictionary) -> void:
 					stream.state = int(data[key])
 			continue
 		set(key, data[key])
+
+
+## Read a `#input=` answer stored in [member input_values].
+func input_value(key: String) -> Variant:
+	return input_values.get(key, "")

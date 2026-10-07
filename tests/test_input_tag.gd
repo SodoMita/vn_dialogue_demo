@@ -72,6 +72,22 @@ func run() -> void:
 	check(balloon.contains("entry.inputs = input_values.duplicate(true)")
 		and balloon.contains("input_values = (entry.get(\"inputs\", {}) as Dictionary).duplicate(true)"),
 		"input_values ride along with history (saves + rollback)")
+	# Values live on GameState so dialogue (and the route-graph walker, which
+	# runs without the balloon) can read {{input_value("key")}} anywhere.
+	var gs: Node = get_tree().root.get_node_or_null("GameState")
+	check(gs != null and gs.get("input_values") is Dictionary, "GameState owns input_values")
+	if gs != null:
+		gs.input_values["probe"] = "mochi"
+		check(str(gs.input_value("probe")) == "mochi", "GameState.input_value reads it back")
+		var snap: Dictionary = gs.snapshot()
+		check((snap.get("input_values", {}) as Dictionary).get("probe") == "mochi",
+			"snapshot carries typed answers (saves + rollback)")
+		gs.input_values = {}
+		gs.restore(snap)
+		check(str(gs.input_value("probe")) == "mochi", "restore brings typed answers back")
+		gs.reset()
+		check((gs.input_values as Dictionary).is_empty(), "reset clears typed answers")
+
 	var demo := FileAccess.get_file_as_string("res://examples/input_demo.dialogue")
 	check(demo.contains("#input=player_name"), "the demo asks for a name")
 	check(demo.contains("type=int") and demo.contains("secret=true"), "the demo covers typed and secret input")

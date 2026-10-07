@@ -2902,8 +2902,10 @@ func _commit_input(text: String) -> void:
 	input_submitted.emit(variable, value)
 
 
-## GameState owns the variable when it declares it; otherwise the value lives
-## on the balloon (which is itself a dialogue game state).
+## GameState owns the variable when it declares it; otherwise it goes into
+## GameState.input_values (snapshotted with the story, readable from dialogue
+## via `{{input_value("key")}}` even without the balloon, e.g. in the route
+## graph walker). Projects without a GameState fall back to the balloon.
 func _store_input_value(variable: String, value: Variant) -> void:
 	var game_state: Node = get_tree().root.get_node_or_null("GameState")
 	if is_instance_valid(game_state):
@@ -2911,6 +2913,9 @@ func _store_input_value(variable: String, value: Variant) -> void:
 			if property.name == variable:
 				game_state.set(variable, value)
 				return
+		if game_state.get("input_values") is Dictionary:
+			game_state.input_values[variable] = value
+			return
 	input_values[variable] = value
 
 
