@@ -61,5 +61,6 @@ func run() -> void:
 	check(balloon.contains("func _open_input_prompt"), "balloon opens a prompt")
 	var scene := FileAccess.get_file_as_string("res://scenes/vn_balloon.tscn")
 	check(scene.contains("name=\"InputField\""), "the field is authored in the scene")
-	var intro := FileAccess.get_file_as_string("res://dialogue/intro.dialogue")
-	check(intro.contains("#input=player_name"), "the demo asks for a name")
+	var demo := FileAccess.get_file_as_string("res://examples/input_demo.dialogue")
+	check(demo.contains("#input=player_name"), "the demo asks for a name")
+	check(demo.contains("type=int") and demo.contains("secret=true"), "the demo covers typed and secret input")

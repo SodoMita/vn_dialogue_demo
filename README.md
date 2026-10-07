@@ -115,6 +115,8 @@ test-suite asserts this). All node references use `%UniqueName` lookups.
 Maya: {{player_name}}, huh. Suits you.
 ```
 
+Runnable demo: `examples/input_demo.dialogue` (name, `type=int` age, `secret=true` field).
+
 A line carrying `#input=` types out as usual and then opens an inline field inside the
 dialogue box instead of the "next" indicator: advance, auto and skip are inert until the
 player confirms with `Enter` or the OK button. Options (`&`-separated, spaces are allowed

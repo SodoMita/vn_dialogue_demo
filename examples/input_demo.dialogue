@@ -1,0 +1,12 @@
+// Text-input demo (#input=, README "Text input"). Start it with cue "start".
+using GameState
+
+~ start
+Maya: And you are? [#bg=classroom, #sprite=maya:left, #focus=left]
+(Write your name in the class register.) [#input=player_name?placeholder=Your name&default=Alex&max=16]
+Maya: {{player_name}}, huh. Suits you. [#sprite=maya_smile:left]
+(How old are you, anyway?) [#input=age?type=int&placeholder=16&ok=Write]
+Maya: No way, {{input_value("age")}}? Same as me. [#sprite=maya_surprised:left]
+(A secret only you know.) [#input=diary_word?secret=true&allow_empty=true&placeholder=It stays with you]
+Maya: Keep that one to yourself, then.
+=> END
