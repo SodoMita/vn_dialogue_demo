@@ -66,9 +66,12 @@ func run() -> void:
 		"the field has authored VN styleboxes")
 	check(scene.contains("LineEdit/styles/focus = SubResource(\"StyleBoxFlat_input_focus\")"),
 		"Theme_vn styles LineEdit")
-	var row_block := scene.substr(scene.find("name=\"InputRow\""))
-	row_block = row_block.substr(0, row_block.find("name=\"InputField\""))
-	check(row_block.contains("theme = SubResource(\"Theme_vn\")"), "the row uses the shared VN theme")
+	var panel_block := scene.substr(scene.find("name=\"InputPanel\""))
+	panel_block = panel_block.substr(0, panel_block.find("name=\"InputField\""))
+	check(panel_block.contains("theme = SubResource(\"Theme_vn\")"), "the prompt uses the shared VN theme")
+	check(panel_block.contains("theme_override_styles/panel = SubResource(\"StyleBoxFlat_box\")"),
+		"the top prompt wears the same gold panel as the dialogue box")
+	check(panel_block.contains("visible = false"), "the prompt panel starts hidden")
 	check(balloon.contains("entry.inputs = input_values.duplicate(true)")
 		and balloon.contains("input_values = (entry.get(\"inputs\", {}) as Dictionary).duplicate(true)"),
 		"input_values ride along with history (saves + rollback)")

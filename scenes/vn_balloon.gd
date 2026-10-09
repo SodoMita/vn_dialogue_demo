@@ -122,6 +122,7 @@ const PRESENTATION_FORMAT := 1
 @onready var next_indicator: Polygon2D = %NextIndicator
 
 ## Text input (Dialogic-style `#input=` tag)
+@onready var input_panel: PanelContainer = %InputPanel
 @onready var input_row: HBoxContainer = %InputRow
 @onready var input_field: LineEdit = %InputField
 @onready var input_ok_button: Button = %InputOKButton
@@ -443,7 +444,7 @@ func _ready() -> void:
 		route_graph_panel.hide()
 		if route_graph_panel.has_signal("travel_requested") and not route_graph_panel.travel_requested.is_connected(_on_route_travel_requested):
 			route_graph_panel.travel_requested.connect(_on_route_travel_requested)
-	input_row.hide()
+	input_panel.hide()
 	if not input_field.text_submitted.is_connected(_on_input_text_submitted):
 		input_field.text_submitted.connect(_on_input_text_submitted)
 	if not input_ok_button.pressed.is_connected(_on_input_ok_pressed):
@@ -594,8 +595,8 @@ func apply_dialogue_line() -> void:
 
 	next_indicator.hide()
 	is_waiting_for_input = false
-	if is_instance_valid(input_row):
-		input_row.hide()
+	if is_instance_valid(input_panel):
+		input_panel.hide()
 
 	# Stage direction tags first, so the scene is dressed before the text types out.
 	voice_player.stop()
@@ -723,7 +724,7 @@ func apply_dialogue_line() -> void:
 func next(next_id: String) -> void:
 	# A rolled-back #input= line re-asks on advance instead of silently
 	# reusing the snapshot value (restores skip the auto-prompt).
-	if not _pending_input.is_empty() and not input_row.visible:
+	if not _pending_input.is_empty() and not input_panel.visible:
 		var token: int = _line_token
 		_open_input_prompt(_pending_input)
 		await input_submitted
@@ -738,7 +739,7 @@ func next(next_id: String) -> void:
 func _any_overlay_open() -> bool:
 	return history_panel.visible or save_menu_panel.visible or settings_panel.visible \
 		or pause_panel.visible or _panic_open() or route_graph_panel.visible \
-		or (is_instance_valid(input_row) and input_row.visible)
+		or (is_instance_valid(input_panel) and input_panel.visible)
 
 
 func _open_overlay(p: Control) -> void:
@@ -2867,7 +2868,7 @@ func _open_input_prompt(spec: Dictionary) -> void:
 	input_field.placeholder_text = String(spec.get("placeholder", ""))
 	input_field.text = String(spec.get("default", ""))
 	input_ok_button.text = String(spec.get("ok_text", "OK"))
-	input_row.show()
+	input_panel.show()
 	balloon.focus_mode = Control.FOCUS_NONE
 	input_field.grab_focus()
 	input_field.select_all()
@@ -2895,7 +2896,7 @@ func _commit_input(text: String) -> void:
 	var variable: String = String(spec.get("variable", ""))
 	_store_input_value(variable, value)
 	_pending_input = {}
-	input_row.hide()
+	input_panel.hide()
 	input_field.release_focus()
 	balloon.focus_mode = Control.FOCUS_ALL
 	balloon.grab_focus()
